@@ -239,8 +239,8 @@ if (isset($_POST['createcourse'])) {
 		$placementtype = 'assess';
 		$typeid = $_POST['setplacement'];
 	}
-	if (isset($sessiondata['lti_selection_return'])) {
-		//Canvas custom LTI selection return
+	if (isset($sessiondata['lti_selection_return']) && $sessiondata['lti_selection_return_format'] == "Canvas") {
+		//Canvas custom LTI selection return or IMS deeplink LTI selection return
 		if ($placementtype=='assess') {
 			//DB $query = "SELECT name FROM imas_assessments WHERE id='$typeid'";
 			//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
@@ -265,6 +265,43 @@ if (isset($_POST['createcourse'])) {
 			header('Location: '.$sessiondata['lti_selection_return'].'?embed_type=basic_lti&url='.Sanitize::encodeUrlParam($url).'&title='.Sanitize::encodeUrlParam($cname).'&text='.Sanitize::encodeUrlParam($cname));
 			exit;
 		}
+	} else if (isset($sessiondata['lti_selection_return']) && $sessiondata['lti_selection_return_format'] == "IMSdeeplink") {
+		if ($placementtype=='assess') {
+			$stm = $DBH->prepare("SELECT name,summary FROM imas_assessments WHERE id=:id");
+			$stm->execute(array(':id'=>$typeid));
+			list($title,$text) = $stm->fetch(PDO::FETCH_NUM);
+			$url = $GLOBALS['basesiteurl'] . "/bltilaunch.php?custom_place_aid=$typeid";
+		} else {
+			$stm = $DBH->prepare("SELECT name FROM imas_courses WHERE id=:id");
+			$stm->execute(array(':id'=>$typeid));
+			$title = $stm->fetchColumn(0);
+			$text = '';
+			$url = $GLOBALS['basesiteurl'] . "/bltilaunch.php?custom_open_folder=$typeid-0";
+		}
+		$contentitems = array(
+			'@context' => 'http://purl.imsglobal.org/ctx/lti/v1/ContentItem',
+			'@graph' => array(
+				array(
+					'@type' => 'LtiLinkItem',
+					'mediaType' => 'application/vnd.ims.lti.v1.ltilink',
+					'url' => $url,
+					'title' => $title,
+					'text' => $text
+				)	
+			)
+		);
+		echo '<html><head><script type="text/javascript"> 
+			window.onload = function() { 
+				document.getElementById("theform").submit();
+			}
+			</script></head>';
+		echo '<body><form id="theform" method="post" action="'.Sanitize::encodeStringForDisplay($sessiondata['lti_selection_return']).'">
+			<input type="hidden" name="lti_message_type" value="ContentItemSelection" />
+			<input type="hidden" name="lti_version" value="LTI-1p0" />
+			<input type="hidden" name="content_items" value="'.Sanitize::encodeStringForDisplay(json_encode($contentitems)).'" />
+			<input type="submit" value="Continue" />
+			</form></body></html>';
+		exit;
 	}
 	if ($hasplacement) {
 		//DB $query = "UPDATE imas_lti_placements SET placementtype='$placementtype',typeid='$typeid' WHERE id='$placementid'";

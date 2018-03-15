@@ -611,6 +611,11 @@ if (isset($_GET['launch'])) {
 	$_SESSION['lti_keygroupid'] = intval($requestinfo[0]->groupid);
 	if (isset($_REQUEST['selection_directive']) && $_REQUEST['selection_directive']=='select_link') {
 		$_SESSION['selection_return'] = $_REQUEST['launch_presentation_return_url'];
+		$_SESSION['selection_return_format'] = "Canvas";
+	}
+	if (isset($_REQUEST['lti_message_type']) && $_REQUEST['lti_message_type']=='ContentItemSelectionRequest') {
+		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
+		$_SESSION['selection_return_format'] = "IMSdeeplink";
 	}
 	unset($_SESSION['lti_duedate']);
 	if (isset($_REQUEST['custom_canvas_assignment_due_at'])) {
@@ -1623,6 +1628,7 @@ $sessiondata['lti_keylookup'] = $SESS['ltilookup'];
 $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
+	$sessiondata['lti_selection_return_format'] = $_SESS['selection_return_format'];
 }
 
 if (isset($setstuviewon) && $setstuviewon==true) {
@@ -2238,6 +2244,11 @@ if (isset($_GET['launch'])) {
 	$_SESSION['lti_keygroupid'] = intval($requestinfo[0]->groupid);
 	if (isset($_REQUEST['selection_directive']) && $_REQUEST['selection_directive']=='select_link') {
 		$_SESSION['selection_return'] = $_REQUEST['launch_presentation_return_url'];
+		$_SESSION['selection_return_format'] = "Canvas";
+	}
+	if (isset($_REQUEST['lti_message_type']) && $_REQUEST['lti_message_type']=='ContentItemSelectionRequest') {
+		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
+		$_SESSION['selection_return_format'] = "IMSdeeplink";
 	}
 
 	//look if we know this student
@@ -2841,6 +2852,7 @@ $sessiondata['lti_keylookup'] = $SESS['ltilookup'];
 $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
+	$sessiondata['lti_selection_return_format'] = $_SESS['selection_return_format'];
 }
 
 if (isset($setstuviewon) && $setstuviewon==true) {
