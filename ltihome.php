@@ -285,8 +285,7 @@ if (isset($_POST['createcourse'])) {
 					'@type' => 'LtiLinkItem',
 					'mediaType' => 'application/vnd.ims.lti.v1.ltilink',
 					'url' => $url,
-					'title' => $title,
-					'text' => $text
+					'title' => $title
 				)	
 			)
 		);
