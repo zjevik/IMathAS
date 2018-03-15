@@ -267,9 +267,9 @@ if (isset($_POST['createcourse'])) {
 		}
 	} else if (isset($sessiondata['lti_selection_return']) && $sessiondata['lti_selection_return_format'] == "IMSdeeplink") {
 		if ($placementtype=='assess') {
-			$stm = $DBH->prepare("SELECT name,summary FROM imas_assessments WHERE id=:id");
+			$stm = $DBH->prepare("SELECT name,summary,ptsposs FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>$typeid));
-			list($title,$text) = $stm->fetch(PDO::FETCH_NUM);
+			list($title,$text,$ptsposs) = $stm->fetch(PDO::FETCH_NUM);
 			$url = $GLOBALS['basesiteurl'] . "/bltilaunch.php?custom_place_aid=$typeid";
 		} else {
 			$stm = $DBH->prepare("SELECT name FROM imas_courses WHERE id=:id");
@@ -289,6 +289,17 @@ if (isset($_POST['createcourse'])) {
 				)	
 			)
 		);
+		if ($placementtype=='assess' && $ptsposs>0) {
+			$contentitems['lineItem'] = array(
+				'@type' => 'LineItem',
+				'label' => $title,
+				'reportingMethod' => 'res:totalScore',
+				'scoreConstraints' => array(
+					'@type' => 'NumericLimits',
+					'normalMaximum' => $ptsposs
+				)
+			);
+		}
 		echo '<html><head><script type="text/javascript"> 
 			window.onload = function() { 
 				document.getElementById("theform").submit();
