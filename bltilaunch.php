@@ -1628,7 +1628,7 @@ $sessiondata['lti_keylookup'] = $SESS['ltilookup'];
 $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
-	$sessiondata['lti_selection_return_format'] = $_SESS['selection_return_format'];
+	$sessiondata['lti_selection_return_format'] = $SESS['selection_return_format'];
 }
 
 if (isset($setstuviewon) && $setstuviewon==true) {
@@ -2852,7 +2852,7 @@ $sessiondata['lti_keylookup'] = $SESS['ltilookup'];
 $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
-	$sessiondata['lti_selection_return_format'] = $_SESS['selection_return_format'];
+	$sessiondata['lti_selection_return_format'] = $SESS['selection_return_format'];
 }
 
 if (isset($setstuviewon) && $setstuviewon==true) {

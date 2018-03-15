@@ -402,7 +402,7 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	echo "<p>If you want to create a new course, log directly into $installname to create new courses</p>";
 	echo '</form>';
 } else if (!$hasplacement || isset($_GET['chgplacement'])) {
-	echo '<h3>Link courses</h3>';
+	echo '<h3>Link Resource</h3>';
 	echo '<form method="post" action="ltihome.php">';
 	echo "<p>This placement on your LMS has not yet been linked to content on $installname. ";
 	//if (!isset($sessiondata['lti_selection_return'])) {
