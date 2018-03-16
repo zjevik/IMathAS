@@ -294,9 +294,11 @@ if (isset($_POST['createcourse'])) {
 				'@type' => 'LineItem',
 				'label' => $title,
 				'reportingMethod' => 'res:totalScore',
+				'maximumScore' => $ptsposs,
 				'scoreConstraints' => array(
 					'@type' => 'NumericLimits',
-					'normalMaximum' => $ptsposs
+					'normalMaximum' => $ptsposs,
+					'totalMaximum' => $ptsposs
 				)
 			);
 		}
