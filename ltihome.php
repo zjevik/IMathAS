@@ -296,7 +296,7 @@ if (isset($_POST['createcourse'])) {
 			)
 		);
 		if ($placementtype=='assess' && $ptsposs>0) {
-			$contentitems['@graph']['lineItem'] = array(
+			$contentitems['@graph'][0]['lineItem'] = array(
 				'@type' => 'LineItem',
 				'label' => $title,
 				'reportingMethod' => 'res:totalScore',
