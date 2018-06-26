@@ -616,6 +616,9 @@ if (isset($_GET['launch'])) {
 	if (isset($_REQUEST['lti_message_type']) && $_REQUEST['lti_message_type']=='ContentItemSelectionRequest') {
 		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
 		$_SESSION['selection_return_format'] = "IMSdeeplink";
+		if (isset($_REQUEST['data'])) {
+			$_SESSION['selection_data'] = $_REQUEST['data'];
+		}
 	}
 	unset($_SESSION['lti_duedate']);
 	if (isset($_REQUEST['custom_canvas_assignment_due_at'])) {
@@ -1629,6 +1632,7 @@ $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
 	$sessiondata['lti_selection_return_format'] = $SESS['selection_return_format'];
+	$sessiondata['lti_selection_data'] = $SESS['selection_data'];
 }
 
 if (isset($setstuviewon) && $setstuviewon==true) {

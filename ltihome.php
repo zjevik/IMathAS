@@ -266,6 +266,8 @@ if (isset($_POST['createcourse'])) {
 			exit;
 		}
 	} else if (isset($sessiondata['lti_selection_return']) && $sessiondata['lti_selection_return_format'] == "IMSdeeplink") {
+		require_once 'includes/OAuth.php';
+		require_once 'includes/ltioauthstore.php';
 		if ($placementtype=='assess') {
 			$stm = $DBH->prepare("SELECT name,summary,ptsposs FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>$typeid));
@@ -313,12 +315,28 @@ if (isset($_POST['createcourse'])) {
 				document.getElementById("theform").submit();
 			}
 			</script></head>';
-		echo '<body><form id="theform" method="post" action="'.Sanitize::encodeStringForDisplay($sessiondata['lti_selection_return']).'">
-			<input type="hidden" name="lti_message_type" value="ContentItemSelection" />
-			<input type="hidden" name="lti_version" value="LTI-1p0" />
-			<input type="hidden" name="content_items" value="'.Sanitize::encodeStringForDisplay(json_encode($contentitems)).'" />
-			<input type="submit" value="Continue" />
-			</form></body></html>';
+		$params = array(
+			'lti_message_type' => 'ContentItemSelection',
+			'lti_version' => 'LTI-1p0',
+			'content_items' => json_encode($contentitems),
+			'data' => $sessiondata['lti_selection_data']
+		);
+		$store = new IMathASLTIOAuthDataStore();
+		$consumer = $store->lookup_consumer($sessiondata['lti_origkey']);
+		$hmac_method = new OAuthSignatureMethod_HMAC_SHA1();
+		$acc_req = OAuthRequest::from_consumer_and_token($consumer, false, 'POST', $sessiondata['lti_selection_return'], $params);
+		$acc_req->sign_request($hmac_method, $consumer, false);
+		$newparms = $acc_req->get_parameters();
+		
+		echo '<body><form id="theform" method="post" action="'.Sanitize::encodeStringForDisplay($sessiondata['lti_selection_return']).'">';
+		//output form fields
+		foreach($newparms as $key => $value ) {
+			$key = Sanitize::encodeStringForDisplay($key);
+			$value = Sanitize::encodeStringForDisplay($value);
+			echo '<input type="hidden" name="'.$key.'" value="'.$value.'" />';
+		}
+		echo '<input type="submit" value="Continue" />';
+		echo '</form></body></html>';
 		exit;
 	}
 	if ($hasplacement) {
