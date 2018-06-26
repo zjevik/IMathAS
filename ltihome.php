@@ -279,7 +279,13 @@ if (isset($_POST['createcourse'])) {
 			$url = $GLOBALS['basesiteurl'] . "/bltilaunch.php?custom_open_folder=$typeid-0";
 		}
 		$contentitems = array(
-			'@context' => 'http://purl.imsglobal.org/ctx/lti/v1/ContentItem',
+			'@context' => array(
+				'http://purl.imsglobal.org/ctx/lti/v1/ContentItem',
+				array(
+					"lineItem" : "http://purl.imsglobal.org/ctx/lis/v2/LineItem",
+					"res" : "http://purl.imsglobal.org/ctx/lis/v2p1/Result#"
+				)
+			),
 			'@graph' => array(
 				array(
 					'@type' => 'LtiLinkItem',
@@ -290,7 +296,7 @@ if (isset($_POST['createcourse'])) {
 			)
 		);
 		if ($placementtype=='assess' && $ptsposs>0) {
-			$contentitems['lineItem'] = array(
+			$contentitems['@graph']['lineItem'] = array(
 				'@type' => 'LineItem',
 				'label' => $title,
 				'reportingMethod' => 'res:totalScore',
