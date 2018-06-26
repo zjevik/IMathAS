@@ -282,8 +282,8 @@ if (isset($_POST['createcourse'])) {
 			'@context' => array(
 				'http://purl.imsglobal.org/ctx/lti/v1/ContentItem',
 				array(
-					"lineItem" : "http://purl.imsglobal.org/ctx/lis/v2/LineItem",
-					"res" : "http://purl.imsglobal.org/ctx/lis/v2p1/Result#"
+					"lineItem" => "http://purl.imsglobal.org/ctx/lis/v2/LineItem",
+					"res" => "http://purl.imsglobal.org/ctx/lis/v2p1/Result#"
 				)
 			),
 			'@graph' => array(
