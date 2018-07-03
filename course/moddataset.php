@@ -561,9 +561,9 @@
 			// Don't echo or die if in quicksave mode.
 		} else {
 			if ($errmsg == '' && !isset($_GET['aid'])) {
-				header('Location: ' . $GLOBALS['basesiteurl'] . '/course/manageqset.php?cid='.$cid);
+				header('Location: ' . $GLOBALS['basesiteurl'] . '/course/manageqset.php?cid='.$cid.'&r='.Sanitize::randomQueryStringParam());
 			} else if ($errmsg == '' && $frompot==0) {
-				header('Location: ' . $GLOBALS['basesiteurl'] . '/course/addquestions.php?cid='.$cid.'&aid='.Sanitize::onlyInt($_GET['aid']));
+				header('Location: ' . $GLOBALS['basesiteurl'] . '/course/addquestions.php?cid='.$cid.'&aid='.Sanitize::onlyInt($_GET['aid']).'&r='.Sanitize::randomQueryStringParam());
 			} else {
 				require("../header.php");
 				echo $errmsg;
@@ -882,7 +882,7 @@
 	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/codemirror/imathas.js"></script>';
 	$placeinhead .= '<link rel="stylesheet" href="'.$imasroot.'/javascript/codemirror/codemirror_min.css">';
 
-	$placeinhead .= '<script src="//sagecell.sagemath.org/embedded_sagecell.js"></script>'.PHP_EOL;
+	//$placeinhead .= '<script src="//sagecell.sagemath.org/embedded_sagecell.js"></script>'.PHP_EOL;
 	$placeinhead .= '<script type="text/javascript">
 	  var editoron = 0; var seditoron = 0;
 	  var coursetheme = "'.$coursetheme.'";';
@@ -901,7 +901,7 @@
 	$placeinhead .= '
 	   var controlEditor;
 	   var qEditor;
-
+	
 	  function toggleeditor(el) {
 	     var qtextbox =  document.getElementById(el);
 	     if ((el=="qtext" && editoron==0) || (el=="solution" && seditoron==0)) {
@@ -926,28 +926,32 @@
 		qtextbox.rows -= 3;
 		qtextbox.value = qtextbox.value.replace(/<span\s+class="AM"[^>]*>(.*?)<\\/span>/g,"$1");
 		if (el=="qtext") {setupQtextEditor();}
-	     }
+	     }    
 	     if (el.match(/qtext/)) {
 	     	editoron = 1 - editoron;
-	     	document.cookie = "qeditoron="+editoron;
+	     	//document.cookie = "qeditoron="+editoron;
 	     } else if (el.match(/solution/)) {
 	     	seditoron = 1 - seditoron;
-	     	document.cookie = "seditoron="+seditoron;
+	     	//document.cookie = "seditoron="+seditoron;
 	     }
 	   }
 	   function initsolneditor() {
+	   	/*
 	   	if (document.cookie.match(/seditoron=1/)) {
 	   		var val = document.getElementById("solution").value;
 	   		if (val.length<3 || val.match(/<.*?>/)) {toggleeditor("solution");}
 	   	}
+	   	*/
 	   }
 
-	   addLoadEvent(function(){if (document.cookie.match(/qeditoron=1/)) {
+	   addLoadEvent(function(){setupQtextEditor();});
+	   /*
+	   if (document.cookie.match(/qeditoron=1/)) {
 	   	var val = document.getElementById("qtext").value;
 	   	if (val.length<3 || val.match(/<.*?>/)) {toggleeditor("qtext");}
 	   	else {setupQtextEditor();}
 	   }else {setupQtextEditor();}});
-
+	   */
 
 	   function setupQtextEditor() {
 	   	var qtextbox = document.getElementById("qtext");
@@ -1017,7 +1021,7 @@
 	   	}
 	   }
 	   </script>';
-	$placeinhead .= "<script src=\"$imasroot/javascript/solver.js?ver=230616\" type=\"text/javascript\"></script>\n";
+	//$placeinhead .= "<script src=\"$imasroot/javascript/solver.js?ver=230616\" type=\"text/javascript\"></script>\n";
 	$placeinhead .= '<style type="text/css">.CodeMirror {font-size: medium;border: 1px solid #ccc;}
 		#ccbox .CodeMirror, #qtbox .CodeMirror {height: auto;}
 		#ccbox .CodeMirror-scroll {min-height:220px; max-height:600px;}
@@ -1026,7 +1030,7 @@
 		.CodeMirror-focused .CodeMirror-selected {background: #3366AA;}
 		.CodeMirror-selected {background: #666666;}
 		</style>';
-	$placeinhead .= "<link href=\"$imasroot/course/solver.css?ver=230616\" rel=\"stylesheet\">";
+	//$placeinhead .= "<link href=\"$imasroot/course/solver.css?ver=230616\" rel=\"stylesheet\">";
 	$placeinhead .= "<style>.quickSaveButton {display:none;}</style>";
 
 	require("../header.php");
@@ -1056,7 +1060,7 @@
 	echo "<div id='outputmsgContainer'>$outputmsg</div>";
 
 	echo '<div id="headermoddataset" class="pagetitle">';
-	echo "<h2>" . Sanitize::encodeStringForDisplay($addmod) . " QuestionSet Question</h2>\n";
+	echo "<h1>" . Sanitize::encodeStringForDisplay($addmod) . " QuestionSet Question</h1>\n";
 	echo '</div>';
 
 	if (strpos($line['control'],'end stored values - Tutorial Style')!==false) {
@@ -1125,7 +1129,7 @@ if (!isset($line['ownerid']) || isset($_GET['template']) || $line['ownerid']==$u
 	} else {
 		echo '<br/><span id="addattrspan">';
 	}
-	echo 'Additional Attribution: <input type="text" size="80" name="addattr" value="'.htmlentities($line['otherattribution']).'"/>';
+	echo 'Additional Attribution: <input type="text" size="80" name="addattr" value="'.Sanitize::encodeStringForDisplay($line['otherattribution']).'"/>';
 	if ($line['otherattribution']!='') {
 		echo '<br/><span class=noticetext style="font-size:80%">You should only modify the attribution if you are SURE you are removing all portions of the question that require the attribution</span>';
 	}
@@ -1220,7 +1224,7 @@ Question type: <select name=qtype <?php if (!$myq) echo "disabled=\"disabled\"";
 </p>
 <div id=ccbox>
 Common Control: <span class="noselect"><span class=pointer onclick="incctrlboxsize('control')">[+]</span><span class=pointer onclick="decctrlboxsize('control')">[-]</span></span>
-<input type=button id="solveropenbutton" value="Solver">
+<!--<input type=button id="solveropenbutton" value="Solver">-->
 <input type=submit value="Save">
 <input type=submit name=test value="Save and Test Question" class="saveandtest" />
 <button type="button" class="quickSaveButton" onclick="quickSaveQuestion()">Quick Save and Preview</button>

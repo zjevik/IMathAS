@@ -231,7 +231,7 @@ require("../assessment/header.php");
 echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">" . Sanitize::encodeStringForDisplay($coursename) . "</a> ";
 echo "&gt; " . _("Drill Assessment") . "</div>";
 
-echo '<div id="headerdrillassess" class="pagetitle"><h2>' . _("Drill Assessment") . '</h2></div>';
+echo '<div id="headerdrillassess" class="pagetitle"><h1>' . _("Drill Assessment") . '</h1></div>';
 
 echo '<div class="intro">';
 echo '<b>' . _("Goal: ") . '</b>';
@@ -247,11 +247,11 @@ if ($mode == 'cntdown') {
 	}
 } else {
 	if ($stopattype=='a') {
-		echo sprintf(_("Attempt %d questions"), $n);
+		echo sprintf(_("Attempt %d questions"), Sanitize::onlyInt($n));
 	} else if ($stopattype=='c') {
-		echo sprintf(_("Get %d questions correct"), $n);
+	    echo sprintf(_("Get %d questions correct"), Sanitize::onlyInt($n));
 	} else if ($stopattype=='s') {
-		echo sprintf(_("Get a streak of %d questions correct in a row"), $n);
+	    echo sprintf(_("Get a streak of %d questions correct in a row"), Sanitize::onlyInt($n));
 	}
 	if ($torecord=='t') {
 		echo ' ' . _('in the shortest time possible');
@@ -263,7 +263,7 @@ echo '</div>';
 
 //display navigation header
 echo '<div class="navbar" style="width:200px">';
-echo '<h4>' . _('Drills') . '</h4>';
+echo '<h3>' . _('Drills') . '</h3>';
 echo '<ul class="qlist">';
 foreach ($itemdescr as $qn=>$descr) {
 	echo '<li>';
@@ -312,7 +312,7 @@ if ($curitem == -1) {
 
 	//are we done with this assessment?
 	if ($drillisdone) {
-		echo "<h4>" . _("Drill Complete") . "</h4>";
+		echo "<h3>" . _("Drill Complete") . "</h3>";
 		echo "<p>" . Sanitize::encodeStringForDisplay($scoremsg) . "</p>";
 		if (($showtostu&2)==2 && $isnewpbest) {
 			echo '<p>' . _("Congrats! That's a new personal best!") . '</p>';

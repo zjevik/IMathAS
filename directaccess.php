@@ -5,7 +5,7 @@
 
 	$curdir = rtrim(dirname(__FILE__), '/\\');
 	 if (!file_exists("$curdir/config.php")) {
-		 header('Location: ' . $GLOBALS['basesiteurl'] . "/install.php");
+		 header('Location: ' . $GLOBALS['basesiteurl'] . "/install.php?r=" . Sanitize::randomQueryStringParam());
 	 }
  	require_once(__DIR__ . "/init_without_validate.php");
 	require_once(__DIR__ ."/includes/newusercommon.php");
@@ -84,12 +84,12 @@
 				//DB $query = "INSERT INTO imas_students (userid,courseid,section,gbcomment,latepass) VALUES ('$userid','$cid','{$_POST['ekey2']}','$code','$deflatepass');";
 				//DB mysql_query($query) or die("Query failed : " . mysql_error());
 				$stm = $DBH->prepare("INSERT INTO imas_students (userid,courseid,section,gbcomment,latepass) VALUES (:userid, :courseid, :section, :gbcomment, :latepass)");
-				$stm->execute(array(':userid'=>$newuserid, ':courseid'=>$_GET['cid'], ':section'=>$_POST['ekey2'], ':gbcomment'=>$code, ':latepass'=>$deflatepass));
+				$stm->execute(array(':userid'=>$newuserid, ':courseid'=>$cid, ':section'=>$_POST['ekey2'], ':gbcomment'=>$code, ':latepass'=>$deflatepass));
 			} else {
 				//DB $query = "INSERT INTO imas_students (userid,courseid,gbcomment,latepass) VALUES ('$newuserid','$cid','$code','$deflatepass');";
 				//DB mysql_query($query) or die("Query failed : " . mysql_error());
 				$stm = $DBH->prepare("INSERT INTO imas_students (userid,courseid,gbcomment,latepass) VALUES (:userid, :courseid, :gbcomment, :latepass)");
-				$stm->execute(array(':userid'=>$newuserid, ':courseid'=>$_GET['cid'], ':gbcomment'=>$code, ':latepass'=>$deflatepass));
+				$stm->execute(array(':userid'=>$newuserid, ':courseid'=>$cid, ':gbcomment'=>$code, ':latepass'=>$deflatepass));
 			}
 
 			if ($emailconfirmation) {
@@ -98,7 +98,7 @@
 				$headers  = 'MIME-Version: 1.0' . "\r\n";
 				$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 				$headers .= "From: $sendfrom\r\n";
-				$message  = "<h4>This is an automated message from $installname.  Do not respond to this email</h4>\r\n";
+				$message  = "<h3>This is an automated message from $installname.  Do not respond to this email</h3>\r\n";
 				$message .= "<p>To complete your $installname registration, please click on the following link, or copy ";
 				$message .= "and paste it into your webbrowser:</p>\r\n";
 				$message .= "<a href=\"" . $GLOBALS['basesiteurl'] . "/actions.php?action=confirm&id=$id\">";
@@ -136,19 +136,19 @@
 					//DB $query = "INSERT INTO imas_students (userid,courseid,section,latepass) VALUES ('$userid','$cid','{$_REQUEST['ekey']}','$deflatepass')";
 					//DB mysql_query($query) or die("Query failed : " . mysql_error());
 					$stm = $DBH->prepare("INSERT INTO imas_students (userid,courseid,section,latepass) VALUES (:userid, :courseid, :section, :latepass)");
-					$stm->execute(array(':userid'=>$userid, ':courseid'=>$_GET['cid'], ':section'=>$_REQUEST['ekey'], ':latepass'=>$deflatepass));
+					$stm->execute(array(':userid'=>$userid, ':courseid'=>$cid, ':section'=>$_REQUEST['ekey'], ':latepass'=>$deflatepass));
 				} else {
 					//DB $query = "INSERT INTO imas_students (userid,courseid,latepass) VALUES ('$userid','$cid','$deflatepass')";
 					//DB mysql_query($query) or die("Query failed : " . mysql_error());
 					$stm = $DBH->prepare("INSERT INTO imas_students (userid,courseid,latepass) VALUES (:userid, :courseid, :latepass)");
-					$stm->execute(array(':userid'=>$userid, ':courseid'=>$_GET['cid'], ':latepass'=>$deflatepass));
+					$stm->execute(array(':userid'=>$userid, ':courseid'=>$cid, ':latepass'=>$deflatepass));
 				}
 
-				header('Location: ' . $GLOBALS['basesiteurl'] . '/course/course.php?cid='. $cid);
+				header('Location: ' . $GLOBALS['basesiteurl'] . '/course/course.php?cid='. $cid. '&r=' . Sanitize::randomQueryStringParam());
 				exit;
 			} else {
 				require("header.php");
-				echo "<h2>" . Sanitize::encodeStringForDisplay($coursename) . "</h2>";
+				echo "<h1>" . Sanitize::encodeStringForDisplay($coursename) . "</h1>";
 				echo '<form method="post" action="directaccess.php?cid='.$cid.'">';
 				echo '<p>Incorrect enrollment key.  Try again.</p>';
 				echo "<p>Course Enrollment Key:  <input type=text name=\"ekey\"></p>";
@@ -158,7 +158,7 @@
 				exit;
 			}
 		} else {
-			header('Location: ' . $GLOBALS['basesiteurl'] . '/course/course.php?cid='. $cid);
+			header('Location: ' . $GLOBALS['basesiteurl'] . '/course/course.php?cid='. $cid . '&r=' . Sanitize::randomQueryStringParam());
 			exit;
 		}
 	} else { //not verified
@@ -204,7 +204,7 @@
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 		//DB $enrollkey = mysql_result($result,0,0);
 		$stm = $DBH->prepare("SELECT enrollkey FROM imas_courses WHERE id=:id");
-		$stm->execute(array(':id'=>$_GET['cid']));
+		$stm->execute(array(':id'=>$cid));
 		$enrollkey = $stm->fetchColumn(0);
 
 ?>
@@ -213,7 +213,7 @@
 <?php
 if ($enrollkey!='closed') {
 ?>
-<h3>Do you already have an account on <?php echo $installname;?>?</h3>
+<h2>Do you already have an account on <?php echo $installname;?>?</h2>
 <p>
 <input type=radio name="curornew" value="0" onclick="setlogintype(0)" <?php if ($page_newaccounterror=='') {echo 'checked';}?> /> I already have an account on <?php echo $installname;?><br/>
 <input type=radio name="curornew" value="1" onclick="setlogintype(1)" <?php if ($page_newaccounterror!='') {echo 'checked';}?> /> I need to create a new account

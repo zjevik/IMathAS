@@ -79,7 +79,7 @@ if ($myrights<20) {
 				$stm->execute(array(':now'=>$now));
 
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 
 			exit;
 		} else {
@@ -133,7 +133,7 @@ if ($myrights<20) {
 				}
 
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 
 			exit;
 		} else {
@@ -380,7 +380,7 @@ if ($myrights<20) {
 
 				}
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 
 			exit;
 		} else {
@@ -554,7 +554,7 @@ if ($myrights<20) {
 					}
 				}
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 
 			exit;
 		} else {
@@ -606,7 +606,7 @@ if ($myrights<20) {
         }
 				//DB mysql_query($query) or die("Query failed : $query " . mysql_error());
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/manageqset.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 			exit;
 		} else {
 			$pagetitle = "Change Question Rights";
@@ -741,6 +741,7 @@ if ($myrights<20) {
 				//DB $searchlikes = "imas_questionset.id='".substr($safesearch,3)."' AND ";
 				$searchlikes = "imas_questionset.id=? AND ";
 				$searchlikevals = array(substr($safesearch,3));
+				$isIDsearch = true;
 			} else {
 				$searchterms = explode(" ",$safesearch);
 				$searchlikes = '';
@@ -772,10 +773,10 @@ if ($myrights<20) {
 		}
 
 		if (isset($_POST['libs'])) {
-			if ($_POST['libs']=='') {
-				$_POST['libs'] = $userdeflib;
-			}
-			$searchlibs = $_POST['libs'];
+		  if ($_POST['libs']=='') {
+		    $_POST['libs'] = $userdeflib;
+		  }
+		  $searchlibs = $_POST['libs'];
 			//$sessiondata['lastsearchlibs'] = implode(",",$searchlibs);
 			$sessiondata['lastsearchlibs'.$cid] = $searchlibs;
 			writesessiondata();
@@ -881,6 +882,7 @@ if ($myrights<20) {
 		if ($searchall==1 || (($isadmin || $isgrpadmin) && $llist{0}=='0')) {
 			$query .= " LIMIT 300";
 		}
+
 		//DB $resultLibs = mysql_query($query) or die("Query failed : " . mysql_error
 		$resultLibs = $DBH->prepare($query);
 		$resultLibs->execute($qarr);
@@ -911,11 +913,11 @@ if ($myrights<20) {
 
 			$page_questionTable[$i]['checkbox'] = "<input type=checkbox name='nchecked[]' value='" . Sanitize::onlyInt($line['id']) . "' id='qo$ln'>";
 			if ($line['userights']==0) {
-				$page_questionTable[$i]['desc'] = '<span class="noticetext">'.Sanitize::encodeStringForDisplay(filter($line['description'])).'</span>';
+				$page_questionTable[$i]['desc'] = '<span class="noticetext">'.filter(Sanitize::encodeStringForDisplay($line['description'])).'</span>';
 			} else if ($line['replaceby']>0 || $line['junkflag']>0) {
-				$page_questionTable[$i]['desc'] = '<span class="grey"><i>'.Sanitize::encodeStringForDisplay(filter($line['description'])).'</i></span>';
+				$page_questionTable[$i]['desc'] = '<span class="grey"><i>'.filter(Sanitize::encodeStringForDisplay($line['description'])).'</i></span>';
 			} else {
-				$page_questionTable[$i]['desc'] = Sanitize::encodeStringForDisplay(filter($line['description']));
+				$page_questionTable[$i]['desc'] = filter(Sanitize::encodeStringForDisplay($line['description']));
 			}
 
 			if ($line['extref']!='') {
@@ -1093,7 +1095,7 @@ function getnextprev(formn,loc) {
 </script>
 
 	<div class="breadcrumb"><?php echo $curBreadcrumb ?></div>
-	<div id="headermanageqset" class="pagetitle"><h2><?php echo $pagetitle; echo $helpicon; ?></h2></div>
+	<div id="headermanageqset" class="pagetitle"><h1><?php echo $pagetitle; echo $helpicon; ?></h1></div>
 
 <?php
 	if (isset($_POST['remove']) || isset($_GET['remove'])) {

@@ -21,7 +21,7 @@
 		$gbmode = $stm->fetchColumn(0);
 	}
 	if (isset($_GET['stu']) && $_GET['stu']!='') {
-		$stu = $_GET['stu'];
+		$stu = Sanitize::onlyInt($_GET['stu']);
 	} else {
 		$stu = 0;
 	}
@@ -74,7 +74,7 @@
 
 	echo '<div class="cpmid"><a href="isolateassessgrade.php?cid='.$cid.'&amp;aid='.$aid.'">View Score List</a></div>';
 
-	echo '<div id="headergb-itemanalysis" class="pagetitle"><h2>Item Analysis: ';
+	echo '<div id="headergb-itemanalysis" class="pagetitle"><h1>Item Analysis: ';
 
 	$qtotal = array();
 	$qcnt = array();
@@ -92,7 +92,7 @@
 	$stm = $DBH->prepare("SELECT defpoints,name,itemorder,defoutcome,showhints FROM imas_assessments WHERE id=:id");
 	$stm->execute(array(':id'=>$aid));
 	list($defpoints, $aname, $itemorder, $defoutcome, $showhints) = $stm->fetch(PDO::FETCH_NUM);
-	echo Sanitize::encodeStringForDisplay($aname) . '</h2></div>';
+	echo Sanitize::encodeStringForDisplay($aname) . '</h1></div>';
 
 
 	$itemarr = array();
@@ -322,15 +322,11 @@
 					$avgtota = round($timeontask[$qid]/($tcnt[$qid]),2);
 					if ($avgtot==0) {
 						$avgtot = 'N/A';
-					} else if ($avgtot<60) {
-						$avgtot .= ' sec';
 					} else {
 						$avgtot = round($avgtot/60,2) . ' min';
 					}
 					if ($avgtota==0) {
 						$avgtot = 'N/A';
-					} else if ($avgtota<60) {
-						$avgtota .= ' sec';
 					} else {
 						$avgtota = round($avgtota/60,2) . ' min';
 					}
@@ -347,7 +343,7 @@
 				$pc = 0; $pc2 = 0; $pi = "NA";
 			}
 
-			echo "<td>{$itemnum[$qid]}</td><td>";
+			echo "<td>" . Sanitize::onlyInt($itemnum[$qid]) . "</td><td>";
 			if ($withdrawn[$qid]==1) {
 				echo '<span class="noticetext">Withdrawn</span> ';
 			}
@@ -374,7 +370,7 @@
 					echo '<td class="c">N/A</td>';
 				}
 			}
-			echo sprintf("<td><input type=button value=\"Preview\" onClick=\"previewq(%d)\"/></td>\n", $qsetids[$qid]);
+			echo sprintf("<td><input type=button value=\"Preview\" onClick=\"previewq(%d)\"/></td>\n", Sanitize::onlyInt($qsetids[$qid]));
 
 			echo "</tr>\n";
 			$i++;

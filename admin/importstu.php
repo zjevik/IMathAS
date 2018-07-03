@@ -48,7 +48,7 @@ function parsecsv($data) {
 		$un = $data[$_POST['unloc']-1];
 	}
 	if ($_POST['emailloc']>0) {
-		$email = $data[$_POST['emailloc']-1];
+		$email = Sanitize::emailAddress($data[$_POST['emailloc']-1]);
 		if ($email=='') {
 			$email = 'none@none.com';
 		}
@@ -56,14 +56,14 @@ function parsecsv($data) {
 		$email = 'none@none.com';
 	}
 	if ($_POST['codetype']==1) {
-		$code = $data[$_POST['code']-1];
+		$code = Sanitize::stripHtmlTags($data[$_POST['code']-1]);
 	} else {
 		$code = 0;
 	}
 	if ($_POST['sectype']==1) {
-		$sec = $_POST['secval'];
+		$sec = Sanitize::stripHtmlTags($_POST['secval']);
 	} else if ($_POST['sectype']==2) {
-		$sec = $data[$_POST['seccol']-1];
+		$sec = Sanitize::stripHtmlTags($data[$_POST['seccol']-1]);
 	} else {
 		$sec = 0;
 	}
@@ -161,7 +161,7 @@ if (!(isset($teacherid)) && $myrights<100) {
 			//DB if (mysql_num_rows($result)>0) {
 				//DB $id = mysql_result($result,0,0);
 			$stm = $DBH->prepare("SELECT id FROM imas_users WHERE SID=:SID");
-			$stm->execute(array(':SID'=>$arr[0]));
+			$stm->execute(array(':SID'=>Sanitize::stripHtmlTags($arr[0])));
 			if ($stm->rowCount()>0) {
 				$id = $stm->fetchColumn(0);
 				echo "Username ".Sanitize::encodeStringForDisplay($arr[0])." already existed in system; using existing<br/>\n";
@@ -176,7 +176,7 @@ if (!(isset($teacherid)) && $myrights<100) {
 				//DB mysql_query($query) or die("Query failed : " . mysql_error());
 				//DB $id = mysql_insert_id();
 				$stm = $DBH->prepare("INSERT INTO imas_users (SID,FirstName,LastName,email,rights,password,forcepwreset) VALUES (:SID, :FirstName, :LastName, :email, :rights, :password, 1)");
-				$stm->execute(array(':SID'=>$arr[0], ':FirstName'=>$arr[1], ':LastName'=>$arr[2], ':email'=>$arr[3], ':rights'=>10, ':password'=>$pw));
+				$stm->execute(array(':SID'=>Sanitize::stripHtmlTags($arr[0]), ':FirstName'=>Sanitize::stripHtmlTags($arr[1]), ':LastName'=>Sanitize::stripHtmlTags($arr[2]), ':email'=>Sanitize::emailAddress($arr[3]), ':rights'=>10, ':password'=>$pw));
 				$id = $DBH->lastInsertId();
 			}
 			if ($_POST['enrollcid']!=0 || !$isadmin) {
@@ -205,8 +205,8 @@ if (!(isset($teacherid)) && $myrights<100) {
 
 				$stm = $DBH->prepare("INSERT INTO imas_students (userid,courseid,code,section,latepass) VALUES (:userid, :courseid, :code, :section, :latepass)");
 				$stm->execute(array(':userid'=>$id, ':courseid'=>$ncid,
-					':code'=>($_POST['codetype']==1)?$arr[4]:null,
-					':section'=>($_POST['sectype']>0)?$arr[5]:null,
+					':code'=>($_POST['codetype']==1)?Sanitize::stripHtmlTags($arr[4]):null,
+					':section'=>($_POST['sectype']>0)?Sanitize::stripHtmlTags($arr[5]):null,
 					':latepass'=>$deflatepass));
 			}
 
@@ -301,7 +301,7 @@ if ($overwriteBody==1) {
 		echo $page_fileHiddenInput;
 ?>
 
-		<div id="headerimportstu" class="pagetitle"><h2>Import Students</h2></div>
+		<div id="headerimportstu" class="pagetitle"><h1>Import Students</h1></div>
 		<p>The first 5 students in the file are listed below.  Check the columns were identified correctly</p>
 			<table class=gb>
 			<thead>
@@ -336,7 +336,7 @@ if ($overwriteBody==1) {
 		echo "<p><input type=submit name=\"process\" value=\"Accept and Enroll\"></p>\n";
 	} else { //STEP 1 DISPLAY
 ?>
-		<div id="headerimportstu" class="pagetitle"><h2>Import Students from File</h2></div>
+		<div id="headerimportstu" class="pagetitle"><h1>Import Students from File</h1></div>
 		<p>Register and enroll students from a CSV (comma separated values) file</p>
 
 		<span class=form>Import File: </span>

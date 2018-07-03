@@ -144,7 +144,7 @@
 	}
 
 	if (isset($_POST['score']) || isset($_POST['newscore']) || isset($_POST['name'])) {
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gradebook.php?stu=" . Sanitize::encodeUrlParam($_GET['stu']) . "&gbmode=" . Sanitize::encodeUrlParam($_GET['gbmode']) . "&cid=".Sanitize::courseId($_GET['cid']));
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gradebook.php?stu=" . Sanitize::encodeUrlParam($_GET['stu']) . "&gbmode=" . Sanitize::encodeUrlParam($_GET['gbmode']) . "&cid=".Sanitize::courseId($_GET['cid']) . "&r=".Sanitize::randomQueryStringParam());
 		exit;
 	}
 
@@ -162,8 +162,8 @@
 	}
 	echo "&gt; External Tool Grades</div>";
 
-	echo "<div id=\"headerexttoolgrades\" class=\"pagetitle\"><h2>Modify External Tool Grades</h2></div>";
-	echo '<h3>' . Sanitize::encodeStringForDisplay($name) . '</h3>';
+	echo "<div id=\"headerexttoolgrades\" class=\"pagetitle\"><h1>Modify External Tool Grades</h1></div>";
+	echo '<h2>' . Sanitize::encodeStringForDisplay($name) . '</h2>';
 
 	echo "<form id=\"mainform\" method=post action=\"edittoolscores.php?stu=" . Sanitize::onlyInt($_GET['stu']) . "&gbmode=" . Sanitize::encodeUrlParam($_GET['gbmode']) . "&cid=$cid&lid=$lid&uid=" . Sanitize::encodeUrlParam($_GET['uid']) . "\">";
 

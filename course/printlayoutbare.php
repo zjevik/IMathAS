@@ -60,7 +60,7 @@ if ($overwriteBody==1) {
 	}
 	echo '</div>';
 
-	echo "<h2>Copy-and-Paste Print Version</h2>";
+	echo "<h1>Copy-and-Paste Print Version</h1>";
 
 	echo '<p>This page will help you create a copy of this assessment that you should be able to cut and ';
 	echo 'paste into Word or another word processor and adjust layout for printing</p>';
@@ -261,9 +261,9 @@ if ($overwriteBody==1) {
 					for ($i=0; $i<$numq; $i++) {
 						echo '<li>';
 						if (is_array($sa[$j][$i])) {
-							echo printfilter(filter(implode(' ~ ',$sa[$j][$i])));
+							echo Sanitize::outgoingHTML(printfilter(filter(implode(' ~ ',$sa[$j][$i]))));
 						} else {
-							echo printfilter(filter($sa[$j][$i]));
+						  echo Sanitize::outgoingHTML(printfilter(filter($sa[$j][$i])));
 						}
 						echo "</li>\n";
 					}
@@ -303,9 +303,9 @@ if ($overwriteBody==1) {
 				for ($i=0; $i<count($sa); $i++) {
 					echo '<li>';
 					if (is_array($sa[$i])) {
-						echo printfilter(filter(implode(' ~ ',$sa[$i])));
+					  echo Sanitize::outgoingHTML(printfilter(filter(implode(' ~ ',$sa[$i]))));
 					} else {
-						echo printfilter(filter($sa[$i]));
+					  echo Sanitize::outgoingHTML(printfilter(filter($sa[$i])));
 					}
 					echo "</li>\n";
 				}
@@ -422,11 +422,11 @@ function printq($qn,$qsetid,$seed,$pts,$showpts) {
 	if (strpos($toevalqtxt,'$answerbox')===false) {
 		if (is_array($answerbox)) {
 			foreach($answerbox as $iidx=>$abox) {
-				echo printfilter(filter("<div>$abox</div>\n"));
+			  echo Sanitize::outgoingHTML(printfilter(filter("<div>$abox</div>\n")));
 				echo "<div class=spacer>&nbsp;</div>\n";
 			}
 		} else {  //one question only
-			echo printfilter(filter("<div>$answerbox</div>\n"));
+		  echo Sanitize::outgoingHTML(printfilter(filter("<div>$answerbox</div>\n")));
 		}
 
 

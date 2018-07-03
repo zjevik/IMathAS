@@ -44,7 +44,7 @@ if (!(isset($teacherid))) {
 			//DB $row = mysql_fetch_row($result);
 			//DB $tocopyarr = explode(',',$tocopy);
 			$stm = $DBH->prepare("SELECT $tocopy FROM imas_assessments WHERE id=:id");
-			$stm->execute(array(':id'=>$_POST['copyopt']));
+			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['copyopt'])));
 			$qarr = $stm->fetch(PDO::FETCH_ASSOC);
 			$tocopyarr = explode(',',$tocopy);
 			foreach ($tocopyarr as $k=>$item) {
@@ -56,10 +56,14 @@ if (!(isset($teacherid))) {
 			$turnonshuffle = 0;
 			$turnoffshuffle = 0;
 			if (isset($_POST['chgshuffle'])) {
-				if (isset($_POST['shuffle'])) {
+				if ($_POST['shuffle']==1) {
 					$turnonshuffle += 1;
+					$turnoffshuffle += 16;
+				} else if ($_POST['shuffle']==16) {
+					$turnonshuffle += 16;
+					$turnoffshuffle += 1;
 				} else {
-					$turnoffshuffle +=1;
+					$turnoffshuffle += 17;
 				}
 			}
 			if (isset($_POST['chgsameseed'])) {
@@ -84,7 +88,8 @@ if (!(isset($teacherid))) {
 				}
 			}
 			if (isset($_POST['chgallowlate'])) {
-				$allowlate = intval($_POST['allowlate']);
+
+				$allowlate = Sanitize::onlyInt($_POST['allowlate']);
 				if (isset($_POST['latepassafterdue']) && $allowlate>0) {
 					$allowlate += 10;
 				}
@@ -97,14 +102,15 @@ if (!(isset($teacherid))) {
 				}
 			}
 
-
 			if ($_POST['skippenalty']==10) {
 				$_POST['defpenalty'] = 'L'.$_POST['defpenalty'];
 			} else if ($_POST['skippenalty']>0) {
 				$_POST['defpenalty'] = 'S'.$_POST['skippenalty'].$_POST['defpenalty'];
 			}
-			if ($_POST['deffeedback']=="Practice" || $_POST['deffeedback']=="Homework") {
-				$deffeedback = $_POST['deffeedback'].'-'.$_POST['showansprac'];
+			$feedback = Sanitize::simpleASCII($_POST['deffeedback']);
+			if ($feedback=="Practice" || $feedback=="Homework") {
+				$showanswerprac = Sanitize::simpleASCII($_POST['showansprac']);
+				$deffeedback = $feedback.'-'.$showanswerprac;
 				if (($turnoffshuffle&8)!=8) {
 					$turnoffshuffle += 8;
 				}
@@ -112,12 +118,13 @@ if (!(isset($teacherid))) {
 					$turnonshuffle -= 8;
 				}
 			} else {
-				$deffeedback = $_POST['deffeedback'].'-'.$_POST['showans'];
+				$showanswer = Sanitize::simpleASCII($_POST['showans']);
+				$deffeedback = $feedback.'-'.$showanswer;
 			}
 
 
 			if (isset($_POST['chgtimelimit'])) {
-				$timelimit = $_POST['timelimit']*60;
+				$timelimit = Sanitize::onlyInt($_POST['timelimit'])*60;
 				if (isset($_POST['timelimitkickout'])) {
 					$timelimit = -1*$timelimit;
 				}
@@ -128,27 +135,27 @@ if (!(isset($teacherid))) {
 			if (isset($_POST['chgtutoredit'])) {
 				//DB $sets[] = "tutoredit='{$_POST['tutoredit']}'";
 				$sets[] = "tutoredit=:tutoredit";
-				$qarr[':tutoredit'] = $_POST['tutoredit'];
+				$qarr[':tutoredit'] = Sanitize::onlyInt($_POST['tutoredit']);
 			}
 			if (isset($_POST['chgdisplaymethod'])) {
 				//DB $sets[] = "displaymethod='{$_POST['displaymethod']}'";
 				$sets[] = "displaymethod=:displaymethod";
-				$qarr[':displaymethod'] = $_POST['displaymethod'];
+				$qarr[':displaymethod'] = Sanitize::simpleASCII($_POST['displaymethod']);
 			}
 			if (isset($_POST['chgdefpoints'])) {
 				//DB $sets[] = "defpoints='{$_POST['defpoints']}'";
 				$sets[] = "defpoints=:defpoints";
-				$qarr[':defpoints'] = $_POST['defpoints'];
+				$qarr[':defpoints'] = Sanitize::onlyInt($_POST['defpoints']);
 			}
 			if (isset($_POST['chgdefattempts'])) {
 				//DB $sets[] = "defattempts='{$_POST['defattempts']}'";
 				$sets[] = "defattempts=:defattempts";
-				$qarr[':defattempts'] = $_POST['defattempts'];
+				$qarr[':defattempts'] = Sanitize::onlyInt($_POST['defattempts']);
 			}
 			if (isset($_POST['chgdefpenalty'])) {
 				//DB $sets[] = "defpenalty='{$_POST['defpenalty']}'";
 				$sets[] = "defpenalty=:defpenalty";
-				$qarr[':defpenalty'] = $_POST['defpenalty'];
+				$qarr[':defpenalty'] = Sanitize::onlyInt($_POST['defpenalty']);
 			}
 			if (isset($_POST['chgfeedback'])) {
 				//DB $sets[] = "deffeedback='$deffeedback'";
@@ -158,7 +165,7 @@ if (!(isset($teacherid))) {
 			if (isset($_POST['chggbcat'])) {
 				//DB $sets[] = "gbcategory='{$_POST['gbcat']}'";
 				$sets[] = "gbcategory=:gbcategory";
-				$qarr[':gbcategory'] = $_POST['gbcat'];
+				$qarr[':gbcategory'] = Sanitize::onlyInt($_POST['gbcat']);
 			}
 			if (isset($_POST['chgallowlate'])) {
 				//DB $sets[] = "allowlate='$allowlate'";
@@ -168,12 +175,12 @@ if (!(isset($teacherid))) {
 			if (isset($_POST['chgexcpen'])) {
 				//DB $sets[] = "exceptionpenalty='{$_POST['exceptionpenalty']}'";
 				$sets[] = "exceptionpenalty=:exceptionpenalty";
-				$qarr[':exceptionpenalty'] = $_POST['exceptionpenalty'];
+				$qarr[':exceptionpenalty'] = Sanitize::onlyInt($_POST['exceptionpenalty']);
 			}
 			if (isset($_POST['chgpassword'])) {
 				//DB $sets[] = "password='{$_POST['assmpassword']}'";
 				$sets[] = "password=:password";
-				$qarr[':password'] = $_POST['assmpassword'];
+				$qarr[':password'] = Sanitize::stripHtmlTags($_POST['assmpassword']);
 			}
 			if (isset($_POST['chghints'])) {
 				//DB $sets[] = "showhints='$showhints'";
@@ -183,27 +190,27 @@ if (!(isset($teacherid))) {
 			if (isset($_POST['chgshowtips'])) {
 				//DB $sets[] = "showtips='{$_POST['showtips']}'";
 				$sets[] = "showtips=:showtips";
-				$qarr[':showtips'] = $_POST['showtips'];
+				$qarr[':showtips'] = Sanitize::onlyInt($_POST['showtips']);
 			}
 			if (isset($_POST['chgnoprint'])) {
 				//DB $sets[] = "noprint='{$_POST['noprint']}'";
 				$sets[] = "noprint=:noprint";
-				$qarr[':noprint'] = $_POST['noprint'];
+				$qarr[':noprint'] = Sanitize::onlyInt($_POST['noprint']);
 			}
 			if (isset($_POST['chgisgroup'])) {
 				//DB $sets[] = "isgroup='{$_POST['isgroup']}'";
 				$sets[] = "isgroup=:isgroup";
-				$qarr[':isgroup'] = $_POST['isgroup'];
+				$qarr[':isgroup'] = Sanitize::onlyInt($_POST['isgroup']);
 			}
 			if (isset($_POST['chggroupmax'])) {
 				//DB $sets[] = "groupmax='{$_POST['groupmax']}'";
 				$sets[] = "groupmax=:groupmax";
-				$qarr[':groupmax'] = $_POST['groupmax'];
+				$qarr[':groupmax'] = Sanitize::onlyInt($_POST['groupmax']);
 			}
 			if (isset($_POST['chgcntingb'])) {
 				//DB $sets[] = "cntingb='{$_POST['cntingb']}'";
 				$sets[] = "cntingb=:cntingb";
-				$qarr[':cntingb'] = $_POST['cntingb'];
+				$qarr[':cntingb'] = Sanitize::onlyInt($_POST['cntingb']);
 			}
 			if (isset($_POST['chgminscore'])) {
 				if ($_POST['minscoretype']==1 && trim($_POST['minscore'])!='' && $_POST['minscore']>0) {
@@ -211,25 +218,25 @@ if (!(isset($teacherid))) {
 				}
 				//DB $sets[] = "minscore='{$_POST['minscore']}'";
 				$sets[] = "minscore=:minscore";
-				$qarr[':minscore'] = $_POST['minscore'];
+				$qarr[':minscore'] = Sanitize::onlyInt($_POST['minscore']);
 			}
 			if (isset($_POST['chgshowqcat'])) {
 				//DB $sets[] = "showcat='{$_POST['showqcat']}'";
 				$sets[] = "showcat=:showcat";
-				$qarr[':showcat'] = $_POST['showqcat'];
+				$qarr[':showcat'] = Sanitize::onlyInt($_POST['showqcat']);
 			}
 			if (isset($_POST['chgeqnhelper'])) {
 				//DB $sets[] = "eqnhelper='{$_POST['eqnhelper']}'";
 				$sets[] = "eqnhelper=:eqnhelper";
-				$qarr[':eqnhelper'] = $_POST['eqnhelper'];
+				$qarr[':eqnhelper'] = Sanitize::onlyInt($_POST['eqnhelper']);	
 			}
 
 			if (isset($_POST['chgcaltag'])) {
-				$caltag = $_POST['caltagact'];
+				$caltag = Sanitize::stripHtmlTags($_POST['caltagact']);
 				//DB $sets[] = "caltag='$caltag'";
 				$sets[] = "caltag=:caltag";
 				$qarr[':caltag'] = $caltag;
-				$calrtag = $_POST['caltagrev'];
+				$calrtag = Sanitize::stripHtmlTags($_POST['caltagrev']);
 				//DB $sets[] = "calrtag='$calrtag'";
 				$sets[] = "calrtag=:calrtag";
 				$qarr[':calrtag'] = $calrtag;
@@ -245,7 +252,7 @@ if (!(isset($teacherid))) {
 				if (isset($_POST['doposttoforum'])) {
 					//DB $sets[] = "posttoforum='{$_POST['posttoforum']}'";
 					$sets[] = "posttoforum=:posttoforum";
-					$qarr[':posttoforum'] = $_POST['posttoforum'];
+					$qarr[':posttoforum'] = Sanitize::onlyInt($_POST['posttoforum']);
 				} else {
 					$sets[] = "posttoforum=0";
 				}
@@ -254,7 +261,7 @@ if (!(isset($teacherid))) {
 				if (isset($_POST['usedeffb'])) {
 					//DB $sets[] = "deffeedbacktext='{$_POST['deffb']}'";
 					$sets[] = "deffeedbacktext=:deffeedbacktext";
-					$qarr[':deffeedbacktext'] = $_POST['deffb'];
+					$qarr[':deffeedbacktext'] = Sanitize::incomingHtml($_POST['deffb']);
 				} else {
 					$sets[] = "deffeedbacktext=''";
 				}
@@ -287,8 +294,8 @@ if (!(isset($teacherid))) {
 		}
 		if (isset($_POST['chgavail'])) {
 			//DB $sets[] = "avail='{$_POST['avail']}'";
-			$sets[] = "avail=:avail";
-			$qarr[':avail'] = $_POST['avail'];
+			$sets[] = "avail=:avail";	
+			$qarr[':avail'] = Sanitize::onlyInt($_POST['avail']);
 		}
 		if (isset($_POST['chgreqscoretype'])) {
 			if ($_POST['reqscoretype']==0) {
@@ -303,7 +310,7 @@ if (!(isset($teacherid))) {
 			//DB $query = "SELECT summary FROM imas_assessments WHERE id='{$_POST['summary']}'";
 			//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("SELECT summary FROM imas_assessments WHERE id=:id");
-			$stm->execute(array(':id'=>$_POST['summary']));
+			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['summary'])));
 			//DB $sets[] = "summary='".addslashes(mysql_result($result,0,0))."'";
 			//DB $sets[] = "summary=$summary";
 			$sets[] = "summary=:summary";
@@ -314,7 +321,7 @@ if (!(isset($teacherid))) {
 			//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 			//DB $row = mysql_fetch_row($result);
 			$stm = $DBH->prepare("SELECT startdate,enddate,reviewdate FROM imas_assessments WHERE id=:id");
-			$stm->execute(array(':id'=>$_POST['dates']));
+			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['dates'])));
 			$row = $stm->fetch(PDO::FETCH_NUM);
 			//DB $sets[] = "startdate='{$row[0]}',enddate='{$row[1]}',reviewdate='{$row[2]}'";
 			$sets[] = "startdate=:startdate";
@@ -323,11 +330,11 @@ if (!(isset($teacherid))) {
 			$qarr[':enddate'] = $row[1];
 			$sets[] = "reviewdate=:reviewdate";
 			$qarr[':reviewdate'] = $row[2];
-		} if (isset($_POST['chgcopyendmsg'])) {
+		} if (isset($_POST['chgcopyendmsg'])) {	
 			//DB $query = "SELECT endmsg FROM imas_assessments WHERE id='{$_POST['copyendmsg']}'";
 			//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("SELECT endmsg FROM imas_assessments WHERE id=:id");
-			$stm->execute(array(':id'=>$_POST['copyendmsg']));
+			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['copyendmsg'])));
 			//DB $sets[] = "endmsg='".addslashes(mysql_result($result,0,0))."'";
 			$sets[] = "endmsg=:endmsg";
 			$qarr[':endmsg'] = $stm->fetchColumn(0);
@@ -343,7 +350,7 @@ if (!(isset($teacherid))) {
 			//DB $query = "SELECT intro FROM imas_assessments WHERE id='{$_POST['intro']}'";
 			//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("SELECT intro FROM imas_assessments WHERE id=:id");
-			$stm->execute(array(':id'=>$_POST['intro']));
+			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['intro'])));
 			$cpintro = $stm->fetchColumn(0);
 			if (($introjson=json_decode($cpintro))!==null) { //is json intro
 				$newintro = $introjson[0];
@@ -378,7 +385,7 @@ if (!(isset($teacherid))) {
 		if (isset($_POST['chgendmsg'])) {
 			include("assessendmsg.php");
 		} else {
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=" . Sanitize::courseId($_GET['cid']));
+		  header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=" . Sanitize::courseId($_GET['cid']) . "&r=" . Sanitize::randomQueryStringParam());
 		}
 		exit;
 
@@ -591,9 +598,9 @@ $(function() {
 </script>
 
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
-	<div id="headerchgassessments" class="pagetitle"><h2>Mass Change Assessment Settings
+	<div id="headerchgassessments" class="pagetitle"><h1>Mass Change Assessment Settings
 		<img src="<?php echo $imasroot ?>/img/help.gif" alt="Help" onClick="window.open('<?php echo $imasroot ?>/help.php?section=assessments','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))"/>
-	</h2></div>
+	</h1></div>
 
 	<p>This form will allow you to change the assessment settings for several or all assessments at once.</p>
 	<p><b>Be aware</b> that changing default points or penalty after an assessment has been
@@ -601,7 +608,7 @@ $(function() {
 	 This page will <i>always</i> show the system default settings; it does not show the current settings for your assessments.</p>
 
 	<form id="qform" method=post action="chgassessments.php?cid=<?php echo $cid; ?>" onsubmit="return valform();">
-		<h3>Assessments to Change</h3>
+		<h2>Assessments to Change</h2>
 
 		Check: <a href="#" onclick="document.getElementById('selbygbcat').selectedIndex=0;return chkAllNone('qform','checked[]',true)">All</a> <a href="#" onclick="document.getElementById('selbygbcat').selectedIndex=0;return chkAllNone('qform','checked[]',false)">None</a>
 		Check by gradebook category:
@@ -871,7 +878,7 @@ $(function() {
 				<?php
 				writeHtmlSelect("allowlate",$page_allowlateSelect['val'],$page_allowlateSelect['label'],1);
 				?>
-				<label><input type="checkbox" name="latepassafterdue"> Allow LatePasses after due date, within 1 LatePass period</label>
+				<label><input type="checkbox" name="latepassafterdue"> Allow LatePasses after due date</label>
 				</td>
 			</tr>
 			<tr class="coptr">
@@ -885,7 +892,11 @@ $(function() {
 				<td><input type="checkbox" name="chgshuffle" class="chgbox"/></td>
 				<td class="r">Shuffle item order: </td>
 				<td>
-				<span class=formright><input type="checkbox" name="shuffle" <?php writeHtmlChecked($line['shuffle']&1,1); ?>>
+				<select name="shuffle">
+					<option value="0" <?php writeHtmlSelected($line['shuffle']&(1+16),0) ?>>No</option>
+					<option value="1" <?php writeHtmlSelected($line['shuffle']&1,1) ?>>All</option>
+					<option value="16" <?php writeHtmlSelected($line['shuffle']&16,16) ?>>All but first</option>
+				</select>
 				</td>
 			</tr>
 
@@ -1031,7 +1042,7 @@ $deffb = _("This assessment contains items that are not automatically graded.  Y
 		</table>
 	</fieldset>
 	<div class=submit><input type=submit value="<?php echo _('Apply Changes')?>"></div>
-
+	</form>
 <?php
 }
 require("../footer.php");

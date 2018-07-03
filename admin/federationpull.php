@@ -97,7 +97,7 @@ if (!$continuing) {  //start a fresh pull
 	require("../header.php");
 	print_header();
 
-	echo '<h2>Updating Libraries</h2>';
+	echo '<h1>Updating Libraries</h1>';
 
 	$data = json_decode(file_get_contents(getfopenloc($pullstatus['fileurl'])), true);
 
@@ -180,7 +180,7 @@ if (!$continuing) {  //start a fresh pull
 			}
 		}
 
-		echo '<h3>Libraries to Add</h3>';
+		echo '<h2>Libraries to Add</h2>';
 		if (count($toadd)==0) {
 			echo '<p>No libraries to add</p>';
 		} else {
@@ -209,7 +209,7 @@ if (!$continuing) {  //start a fresh pull
 			echo '</tbody></table>';
 		}
 
-		echo '<h3>Libraries to Change</h3>';
+		echo '<h2>Libraries to Change</h2>';
 		if (count($tochg)==0) {
 			echo '<p>No libraries to change</p>';
 		} else {
@@ -498,7 +498,7 @@ if (!$continuing) {  //start a fresh pull
 	require("../header.php");
 	print_header();
 
-	echo '<h2>Updating Questions Batch</h2>';
+	echo '<h1>Updating Questions Batch</h1>';
 
 	echo '<input type="hidden" name="nextoffset" value="'.Sanitize::onlyInt($data['nextoffset']).'"/>';
 
@@ -695,7 +695,7 @@ if (!$continuing) {  //start a fresh pull
 		//handle any new questions
 		//we've unset any $quidref that were used, so loop over unused
 		if (count($quidref)>0) {
-			echo '<h3>Adding Questions</h3>';
+			echo '<h2>Adding Questions</h2>';
 		}
 		foreach ($quidref as $uqid=>$i) {
 			$remote = $data['data'][$i];
@@ -718,7 +718,7 @@ if (!$continuing) {  //start a fresh pull
 				//is in. No point asking about questions where we didn't bring in the library
 				continue;
 			}
-			echo '<h4><b>Question UID '.$remote['uniqueid'].'</b>.</h4> ';
+			echo '<h3><b>Question UID '.$remote['uniqueid'].'</b>.</h3> ';
 			echo '<p>Description: '.Sanitize::encodeStringForDisplay($remote['description']);
 			echo '. Check <a href="#" onclick="chkall2('.$remote['uniqueid'].');return false;">All</a> ';
 			echo '<a href="#" onclick="chknone2('.$remote['uniqueid'].');return false;">None</a></p>';
@@ -1018,7 +1018,7 @@ if (!$continuing) {  //start a fresh pull
 		$libdata[$row['uniqueid']] = array('id'=>$row['id'], 'name'=>$row['name']);
 	}
 
-	echo '<h2>Updating Library Assignments for Unchanged Questions</h2>';
+	echo '<h1>Updating Library Assignments for Unchanged Questions</h1>';
 	$lookups = array();
 	$qlookups = array();
 	foreach ($data['data']['libitems'] AS $i=>$rli) {
@@ -1103,7 +1103,7 @@ if (!$continuing) {  //start a fresh pull
 		}
 	}
 
-	echo '<h2>Updating ReplaceBy Records</h2>';
+	echo '<h1>Updating ReplaceBy Records</h1>';
 	$lookups = array();
 	$qlookups = array();
 	foreach ($data['data']['replacebys'] AS $i=>$rb) {
@@ -1207,13 +1207,19 @@ if (!$continuing) {  //start a fresh pull
 
 	//now, resolve any unassigned issues
 	//first, try to undelete the unassigned library item for any question with no undeleted library items
-	$query = "UPDATE imas_library_items AS ili, (SELECT qsetid FROM imas_library_items GROUP BY qsetid HAVING min(deleted)=1) AS tofix ";
-	$query .= "SET ili.deleted=0 WHERE ili.qsetid=tofix.qsetid AND ili.libid=0";
+	$query = "UPDATE imas_library_items AS ili JOIN (SELECT qsetid FROM imas_library_items GROUP BY qsetid HAVING min(deleted)=1) AS tofix ON ili.qsetid=tofix.qsetid ";
+	$query .= "JOIN imas_questionset AS iq ON ili.qsetid=iq.id ";
+	$query .= "SET ili.deleted=0 WHERE ili.libid=0 AND iq.deleted=0";
 	$stm = $DBH->query($query);
 	
 	//if any still have no undeleted library items, then they must not have an unassigned entry to undelete, so add it
 	$query = "INSERT INTO imas_library_items (libid,qsetid,ownerid,junkflag,deleted,lastmoddate) ";
-	$query .= "(SELECT 0,ili.qsetid,iq.ownerid,0,0,iq.lastmoddate FROM imas_library_items AS ili JOIN imas_questionset AS iq ON iq.id=ili.qsetid GROUP BY ili.qsetid HAVING min(ili.deleted)=1)";
+	$query .= "(SELECT 0,ili.qsetid,iq.ownerid,0,0,iq.lastmoddate FROM imas_library_items AS ili JOIN imas_questionset AS iq ON iq.id=ili.qsetid WHERE iq.deleted=0 GROUP BY ili.qsetid HAVING min(ili.deleted)=1)";
+	$stm = $DBH->query($query);
+	
+	//if there are any questions with NO library items, add an unassigned one
+	$query = "INSERT INTO imas_library_items (libid,qsetid,ownerid,junkflag,deleted,lastmoddate) ";
+	$query .= "(SELECT 0,iq.id,iq.ownerid,0,iq.deleted,iq.lastmoddate FROM imas_questionset AS iq LEFT JOIN imas_library_items AS ili ON iq.id=ili.qsetid WHERE ili.id IS NULL)";
 	$stm = $DBH->query($query);
 	
 	//make unassigned deleted if there's also an undeleted other library

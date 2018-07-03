@@ -30,7 +30,7 @@
 		require("../header.php");
 		echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 		echo "&gt; <a href=\"gradebook.php?stu=0&cid=$cid\">Gradebook</a> &gt; Export Gradebook</div>";
-		echo '<div id="headergb-export" class="pagetitle"><h2>Export Gradebook</h2></div>';
+		echo '<div id="headergb-export" class="pagetitle"><h1>Export Gradebook</h1></div>';
 
 		echo "<form method=post action=\"gb-export.php?cid=$cid&stu=" . Sanitize::encodeUrlParam($stu) . "&gbmode=" . Sanitize::encodeUrlParam($gbmode);
 		if (isset($_GET['export'])) {
@@ -123,7 +123,7 @@
 					  if(preg_match("/[\,\"\n\r]/", $val)) {
 						  $val = '"'.str_replace('"', '""', $val).'"';
 					  }
-					  $line .= $val.',';
+					  $line .= Sanitize::stripHtmlTags($val).',';
 				}
 				# strip the last deliminator
 				$line = substr($line, 0, -1);

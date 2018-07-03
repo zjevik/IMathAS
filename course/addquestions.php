@@ -33,9 +33,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 
 	$cid = Sanitize::courseId($_GET['cid']);
 	$aid = Sanitize::onlyInt($_GET['aid']);
-	if (isset($_GET['grp'])) { $sessiondata['groupopt'.$aid] = $_GET['grp']; writesessiondata();}
+	if (isset($_GET['grp'])) { $sessiondata['groupopt'.$aid] = Sanitize::onlyInt($_GET['grp']); writesessiondata();}
 	if (isset($_GET['selfrom'])) {
-		$sessiondata['selfrom'.$aid] = $_GET['selfrom'];
+		$sessiondata['selfrom'.$aid] = Sanitize::stripHtmlTags($_GET['selfrom']);
 		writesessiondata();
 	} else {
 		if (!isset($sessiondata['selfrom'.$aid])) {
@@ -51,7 +51,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		} else if (isset($_POST['add'])) {
 			include("modquestiongrid.php");
 			if (isset($_GET['process'])) {
-				header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid");
+				header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid&r=" .Sanitize::randomQueryStringParam());
 				exit;
 			}
 		} else {
@@ -106,11 +106,11 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("UPDATE imas_assessments SET itemorder=:itemorder,viddata=:viddata WHERE id=:id");
 			$stm->execute(array(':itemorder'=>$itemorder, ':viddata'=>$viddata, ':id'=>$aid));
-			
+
 			require_once("../includes/updateptsposs.php");
 			updatePointsPossible($aid, $itemorder, $row['defpoints']);
-			
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid");
+
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid&r=" .Sanitize::randomQueryStringParam());
 			exit;
 		}
 	}
@@ -121,7 +121,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		} else {
 			include("modquestiongrid.php");
 			if (isset($_GET['process'])) {
-				header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid");
+				header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid&r=" .Sanitize::randomQueryStringParam());
 				exit;
 			}
 		}
@@ -142,7 +142,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			//DB mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("UPDATE imas_questions SET withdrawn=0 WHERE assessmentid=:assessmentid");
 			$stm->execute(array(':assessmentid'=>$aid));
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid&r=" .Sanitize::randomQueryStringParam());
 			exit;
 		} else {
 			$overwriteBody = 1;
@@ -153,7 +153,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$stm->execute(array(':id'=>$aid));
 			$assessmentname = $stm->fetchColumn(0);
 			$body = "<div class=breadcrumb>$curBreadcrumb</div>\n";
-			$body .= "<h3>".Sanitize::encodeStringForDisplay($assessmentname)."</h3>";
+			$body .= "<h2>".Sanitize::encodeStringForDisplay($assessmentname)."</h2>";
 			$body .= "<p>Are you SURE you want to delete all attempts (grades) for this assessment?</p>";
 			$body .= '<form method="POST" action="'.sprintf('addquestions.php?cid=%s&aid=%d',$cid, $aid).'">';
 			$body .= '<p><button type=submit name=clearattempts value=confirmed>'._('Yes, Clear').'</button>';
@@ -355,7 +355,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				require_once("../includes/updateptsposs.php");
 				updatePointsPossible($aid, $itemorder, $defpoints);
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid");
+
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid&r=" .Sanitize::randomQueryStringParam());
 			exit;
 
 		} else {
@@ -366,7 +367,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			}
 			$overwriteBody = 1;
 			$body = "<div class=breadcrumb>$curBreadcrumb</div>\n";
-			$body .= "<h3>Withdraw Question</h3>";
+			$body .= "<h2>Withdraw Question</h2>";
 			$body .= "<form method=post action=\"addquestions.php?cid=$cid&aid=$aid&withdraw=".Sanitize::encodeStringForDisplay($_GET['withdraw'])."\">";
 			if ($isingroup) {
 				$body .= '<p><b>This question is part of a group of questions</b>.  </p>';
@@ -393,7 +394,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		var addqaddr = '$address';
 		</script>";
 	$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/addquestions.js?v=030818\"></script>";
-	$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/addqsort.js?v=011118\"></script>";
+	$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/addqsort.js?v=061918\"></script>";
 	$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/junkflag.js\"></script>";
 	$placeinhead .= "<script type=\"text/javascript\">var JunkFlagsaveurl = '". $GLOBALS['basesiteurl'] . "/course/savelibassignflag.php';</script>";
 	$placeinhead .= "<link rel=\"stylesheet\" href=\"$imasroot/course/addquestions.css?v=100517\" type=\"text/css\" />";
@@ -858,9 +859,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 						$i = $line['id'];
 						$page_questionTable[$i]['checkbox'] = "<input type=checkbox name='nchecked[]' value='" . Sanitize::onlyInt($line['id']) . "' id='qo$ln'>";
 						if (in_array($i,$existingq)) {
-							$page_questionTable[$i]['desc'] = '<span style="color: #999">'.Sanitize::encodeStringForDisplay(filter($line['description'])).'</span>';
+							$page_questionTable[$i]['desc'] = '<span style="color: #999">'.filter(Sanitize::encodeStringForDisplay($line['description'])).'</span>';
 						} else {
-							$page_questionTable[$i]['desc'] = Sanitize::encodeStringForDisplay(filter($line['description']));
+							$page_questionTable[$i]['desc'] = filter(Sanitize::encodeStringForDisplay($line['description']));
 						}
 						$page_questionTable[$i]['preview'] = "<input type=button value=\"Preview\" onClick=\"previewq('selq','qo$ln',".Sanitize::onlyInt($line['id']).",true,false)\"/>";
 						$page_questionTable[$i]['type'] = $line['qtype'];
@@ -1051,7 +1052,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 					}
 				}
 
-				$page_assessmentQuestions['desc'][$x] = $aidnames[$aidq];
+				$page_assessmentQuestions['aiddesc'][$x] = $aidnames[$aidq];
 				$y=0;
 				foreach($aiditems[$aidq] as $qid) {
 					if (strpos($qid,'|')!==false) { continue;}
@@ -1162,7 +1163,7 @@ if ($overwriteBody==1) {
 	<script type="text/javascript">
 		var curcid = <?php echo $cid ?>;
 		var curaid = <?php echo $aid ?>;
-		var defpoints = <?php echo Sanitize::encodeStringForDisplay($defpoints); ?>;
+		var defpoints = <?php echo (int) Sanitize::onlyInt($defpoints); ?>;
 		var AHAHsaveurl = '<?php echo $GLOBALS['basesiteurl'] ?>/course/addquestionssave.php?cid=<?php echo $cid ?>&aid=<?php echo $aid ?>';
 		var curlibs = '<?php echo Sanitize::encodeStringForJavascript($searchlibs); ?>';
 	</script>
@@ -1170,14 +1171,14 @@ if ($overwriteBody==1) {
 
 	<div class="breadcrumb"><?php echo $curBreadcrumb ?></div>
 
-	<div id="headeraddquestions" class="pagetitle"><h2>Add/Remove Questions
+	<div id="headeraddquestions" class="pagetitle"><h1>Add/Remove Questions
 		<img src="<?php echo $imasroot ?>/img/help.gif" alt="Help" onClick="window.open('<?php echo $imasroot ?>/help.php?section=addingquestionstoanassessment','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))"/>
-	</h2></div>
+	</h1></div>
 <?php
 	echo '<div class="cp"><a href="addassessment.php?id='.Sanitize::onlyInt($_GET['aid']).'&amp;cid='.$cid.'">'._('Assessment Settings').'</a></div>';
 	if ($beentaken) {
 ?>
-	<h3>Warning</h3>
+	<h2>Warning</h2>
 	<p>This assessment has already been taken.  Adding or removing questions, or changing a
 		question's settings (point value, penalty, attempts) now would majorly mess things up.
 		If you want to make these changes, you need to clear all existing assessment attempts
@@ -1187,7 +1188,7 @@ if ($overwriteBody==1) {
 <?php
 	}
 ?>
-	<h3>Questions in Assessment - <?php echo Sanitize::encodeStringForDisplay($page_assessmentName); ?></h3>
+	<h2>Questions in Assessment - <?php echo Sanitize::encodeStringForDisplay($page_assessmentName); ?></h2>
 
 <?php
 	if ($itemorder == '') {
@@ -1252,17 +1253,19 @@ if ($overwriteBody==1) {
 	<p>Assessment points total: <span id="pttotal"></span></p>
 	<?php if (isset($introconvertmsg)) {echo $introconvertmsg;}?>
 	<script>
-		var itemarray = <?php echo json_encode($jsarr); ?>;
+		var itemarray = <?php echo json_encode($jsarr, JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS); ?>;
 		var beentaken = <?php echo ($beentaken) ? 1:0; ?>;
 		var displaymethod = "<?php echo Sanitize::encodeStringForDisplay($displaymethod); ?>";
 		document.getElementById("curqtbl").innerHTML = generateTable();
 		initeditor("selector","div.textsegment",null,true /*inline*/,editorSetup);
 		tinymce.init({
 			selector: "h4.textsegment",
-			inline: 1,
+			inline: true,
 			menubar: false,
+			statusbar: false,
+			branding: false,
 			plugins: ["charmap"],
-			toolbar1: "charmap saveclose",
+			toolbar: "charmap saveclose",
 			setup: editorSetup
 		});
 	</script>
@@ -1296,7 +1299,7 @@ if ($overwriteBody==1) {
 		if (!$beentaken) {
 ?>
 
-	<h3>Potential Questions</h3>
+	<h2>Potential Questions</h2>
 	<form method=post action="addquestions.php?aid=<?php echo $aid ?>&cid=<?php echo $cid ?>">
 
 		In Libraries:
@@ -1426,7 +1429,7 @@ if ($overwriteBody==1) {
 	} else if ($sessiondata['selfrom'.$aid]=='assm') { //select from assessments
 ?>
 
-	<h3>Potential Questions</h3>
+	<h2>Potential Questions</h2>
 
 <?php
 		if (isset($_POST['achecked']) && (count($_POST['achecked'])==0)) {
@@ -1453,11 +1456,11 @@ if ($overwriteBody==1) {
 			<tbody>
 <?php
 			$alt=0;
-			for ($i=0; $i<count($page_assessmentQuestions['desc']);$i++) {
+			for ($i=0; $i<count($page_assessmentQuestions['aiddesc']);$i++) {
 				if ($alt==0) {echo "<tr class=even>"; $alt=1;} else {echo "<tr class=odd>"; $alt=0;}
 ?>
 				<td></td>
-				<td><b><?php echo $page_assessmentQuestions['desc'][$i]; ?></b></td>
+				<td><b><?php echo Sanitize::encodeStringForDisplay($page_assessmentQuestions['aiddesc'][$i]); ?></b></td>
 				<td></td>
 				<td></td>
 				<td></td>
@@ -1501,7 +1504,7 @@ if ($overwriteBody==1) {
 <?php
 		} else {  //choose assessments
 ?>
-		<h4>Choose assessments to take questions from</h4>
+		<h3>Choose assessments to take questions from</h3>
 		<form id="sela" method=post action="addquestions.php?cid=<?php echo $cid ?>&aid=<?php echo $aid ?>">
 		Check: <a href="#" onclick="return chkAllNone('sela','achecked[]',true)">All</a> <a href="#" onclick="return chkAllNone('sela','achecked[]',false)">None</a>
 		<input type=submit value="Use these Assessments" /> or

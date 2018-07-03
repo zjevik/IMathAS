@@ -23,10 +23,10 @@ function printlist($parent) {
 		if (!in_array($child,$parents)) { //if no children
 			echo "<li><span class=dd>-</span><input type=checkbox name=\"libs[]\" value=\"".Sanitize::encodeStringForDisplay($child)."\" CHECKED>".Sanitize::encodeStringForDisplay($names[$child])."</li>";
 		} else { // if children
-			echo "<li class=lihdr><span class=dd>-</span><span class=hdr onClick=\"toggle(".Sanitize::encodeStringForJavascript($child).")\"><span class=btn id=\"b$child\">+</span> ";
+			echo "<li class=lihdr><span class=dd>-</span><span class=hdr onClick=\"toggle(".Sanitize::encodeStringForJavascript($child).")\"><span class=btn id=\"b" . Sanitize::encodeStringForDisplay($child) . "\">+</span> ";
 			echo "</span><input type=checkbox name=\"libs[]\" value=\"".Sanitize::encodeStringForDisplay($child)."\" CHECKED>";
 			echo "<span class=hdr onClick=\"toggle(".Sanitize::encodeStringForJavascript($child).")\">".Sanitize::encodeStringForDisplay($names[$child])."</span>";
-			echo "<ul class=hide id=$child>\n";
+			echo "<ul class=hide id=\"" . Sanitize::encodeStringForDisplay($child) . "\">\n";
 			printlist($child);
 			echo "</ul></li>\n";
 		}
@@ -351,7 +351,7 @@ if ($myrights < 100) {
 	if (isset($_POST['process'])) {
 		$filename = rtrim(dirname(__FILE__), '/\\') .'/import/' . Sanitize::sanitizeFilenameAndCheckBlacklist($_POST['filename']);
 
-		$libstoadd = $_POST['libs'];
+		$libstoadd = array_map('intval',$_POST['libs']);
 
 		list($packname,$names,$parents,$libitems,$unique,$lastmoddate,$ownerid,$userights,$sourceinstall) = parselibs($filename);
 		//DB //need to addslashes before SQL insert
@@ -361,8 +361,8 @@ if ($myrights < 100) {
 		//DB $unique = array_map('addslashes_deep', $unique);
 		//DB $lastmoddate = array_map('addslashes_deep', $lastmoddate);
 
-		$root = $_POST['parent'];
-		$librights = $_POST['librights'];
+		$root = Sanitize::onlyInt(trim($_POST['parent']));
+        $librights = Sanitize::onlyInt(trim($_POST['librights']));
 		$qrights = $_POST['qrights'];
 		$touse = '';
 		//write libraries
@@ -395,6 +395,7 @@ if ($myrights < 100) {
 		$DBH->beginTransaction();
 
 		foreach ($libstoadd as $libid) {
+
 			if ($parents[$libid]==0) {  //use given root parent
 				$parent = $root;
 			} else if (isset($libs[$parents[$libid]])) { //if parent has been set
@@ -407,7 +408,7 @@ if ($myrights < 100) {
 			if (isset($exists[$unique[$libid]]) && $deleted[$exists[$unique[$libid]]]==1) {
 				//if lib is deleted, undelete it
 				$stm = $DBH->prepare("UPDATE imas_libraries SET deleted=0,name=:name,adddate=:adddate,lastmoddate=:lastmoddate WHERE id=:id");
-				$stm->execute(array(':name'=>$names[$libid], ':adddate'=>$now, ':lastmoddate'=>$now, ':id'=>$exists[$unique[$libid]]));
+				$stm->execute(array(':name'=>Sanitize::stripHtmlTags($names[$libid]), ':adddate'=>$now, ':lastmoddate'=>$now, ':id'=>$exists[$unique[$libid]]));
 				if ($stm->rowCount()>0) {
 					$newl++;
 				}
@@ -415,7 +416,7 @@ if ($myrights < 100) {
 				//lib exists and we're updating it (if possible)
 				if ($lastmoddate[$libid]>$adddate[$exists[$unique[$libid]]]) { //if library has changed
 					$stm = $DBH->prepare("UPDATE imas_libraries SET name=:name,adddate=:adddate,lastmoddate=:lastmoddate WHERE id=:id");
-					$stm->execute(array(':name'=>$names[$libid], ':adddate'=>$now, ':lastmoddate'=>$now, ':id'=>$exists[$unique[$libid]]));
+					$stm->execute(array(':name'=>Sanitize::stripHtmlTags($names[$libid]), ':adddate'=>$now, ':lastmoddate'=>$now, ':id'=>$exists[$unique[$libid]]));
 
 					if ($stm->rowCount()>0) {
 						$updatel++;
@@ -449,8 +450,8 @@ if ($myrights < 100) {
 				$query = "INSERT INTO imas_libraries (uniqueid,adddate,lastmoddate,name,ownerid,userights,parent,groupid) VALUES ";
 				$query .= "(:uniqueid, :adddate, :lastmoddate, :name, :ownerid, :userights, :parent, :groupid)";
 				$stm = $DBH->prepare($query);
-				$stm->execute(array(':uniqueid'=>$unique[$libid], ':adddate'=>$now, ':lastmoddate'=>$now, ':name'=>$names[$libid], ':ownerid'=>$thisownerid,
-					':userights'=>$thislibrights, ':parent'=>$parent, ':groupid'=>$thisgroupid));
+				$stm->execute(array(':uniqueid'=>Sanitize::onlyInt($unique[$libid]), ':adddate'=>$now, ':lastmoddate'=>$now, ':name'=>Sanitize::stripHtmlTags($names[$libid]), ':ownerid'=>Sanitize::onlyInt($thisownerid),
+					':userights'=>Sanitize::onlyInt($thislibrights), ':parent'=>Sanitize::onlyInt($parent), ':groupid'=>Sanitize::onlyInt($thisgroupid)));
 				$libs[$libid] = $DBH->lastInsertId();
 				$newl++;
 			}
@@ -486,7 +487,7 @@ if ($myrights < 100) {
 				$includedbackref = array();
 				$toundel = array();
 				if (count($includedqs)>0) {
-					$includedlist = implode(',', $includedqs);  //known decimal values from above
+					$includedlist = implode(',', array_map('Sanitize::onlyInt', $includedqs));  //known decimal values from above
 					//DB $query = "SELECT id,uniqueid FROM imas_questionset WHERE uniqueid IN ($includedlist)";
 					//DB $result = mysql_query($query) or die("Query failed : $query"  . mysql_error());
 					//DB while ($row = mysql_fetch_row($result)) {
@@ -544,11 +545,11 @@ if ($myrights < 100) {
 				foreach ($qidlist as $qid) {
 					if (isset($qids[$qid]) && (array_search($qids[$qid],$deletedli)!==false)) {
 						$stm = $DBH->prepare("UPDATE imas_library_items SET ownerid=:ownerid,lastmoddate=:now,deleted=0 WHERE libid=:libid AND qsetid=:qsetid");
-						$stm->execute(array(':libid'=>$libs[$libid], ':qsetid'=>$qids[$qid], ':ownerid'=>$userid, ':now'=>$now));
+						$stm->execute(array(':libid'=>$libs[$libid], ':qsetid'=>Sanitize::onlyInt($qids[$qid]), ':ownerid'=>$userid, ':now'=>$now));
 						$newli += count($deletedli);
 					} else if (isset($qids[$qid]) && (array_search($qids[$qid],$existingli)===false)) {
 						$stm = $DBH->prepare("INSERT INTO imas_library_items (libid,qsetid,ownerid,lastmoddate) VALUES (:libid, :qsetid, :ownerid, :now)");
-						$stm->execute(array(':libid'=>$libs[$libid], ':qsetid'=>$qids[$qid], ':ownerid'=>$userid, ':now'=>$now));
+						$stm->execute(array(':libid'=>$libs[$libid], ':qsetid'=>Sanitize::onlyInt($qids[$qid]), ':ownerid'=>$userid, ':now'=>$now));
 						$newli++;
 					}
 				}
@@ -635,7 +636,7 @@ if ($overwriteBody==1) {
 		echo $page_uploadSuccessMsg;
 	} else { //STEP 1 or 2
 ?>
-	<div id="headerimportlib" class="pagetitle"><h2>Import Question Libraries</h2></div>
+	<div id="headerimportlib" class="pagetitle"><h1>Import Question Libraries</h1></div>
 	<form enctype="multipart/form-data" method=post action="importlib.php?cid=<?php echo $cid ?>">
 
 <?php
@@ -660,7 +661,7 @@ if ($overwriteBody==1) {
 
 <?php echo Sanitize::encodeStringForDisplay($packname); ?>
 
-			<h3>Select Libraries to import</h3>
+			<h2>Select Libraries to import</h2>
 			<p>Note:  If a parent library is not selected, NONE of the children libraries will be added,
 			regardless of whether they're checked or not
 			</p>

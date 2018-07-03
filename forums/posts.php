@@ -21,6 +21,11 @@ $cid = Sanitize::courseId($_GET['cid']);
 $forumid = Sanitize::onlyInt($_GET['forum']);
 $threadid = Sanitize::onlyInt($_GET['thread']);
 $page = Sanitize::onlyInt($_GET['page']);
+if (!empty($_GET['embed'])) {
+	$flexwidth = true;
+	$nologo = true;
+}
+	
 //special "page"s
 //-1 new posts from forum page
 //-2 tagged posts from forum page
@@ -42,7 +47,7 @@ if (isset($_GET['markunread'])) {
 	//DB $result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 	$stm = $DBH->prepare("DELETE FROM imas_forum_views WHERE userid=:userid AND threadid=:threadid");
 	$stm->execute(array(':userid'=>$userid, ':threadid'=>$threadid));
-	header('Location: ' . $redirecturl);
+	header('Location: ' . $redirecturl . "&r=" . Sanitize::randomQueryStringParam());
 	exit;
 }
 if (isset($_GET['marktagged'])) {
@@ -50,14 +55,14 @@ if (isset($_GET['marktagged'])) {
 	//DB $result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 	$stm = $DBH->prepare("UPDATE imas_forum_views SET tagged=1 WHERE userid=:userid AND threadid=:threadid");
 	$stm->execute(array(':userid'=>$userid, ':threadid'=>$threadid));
-	header('Location: ' . $redirecturl);
+	header('Location: ' . $redirecturl . "&r=" . Sanitize::randomQueryStringParam());
 	exit;
 } else if (isset($_GET['markuntagged'])) {
 	//DB $query = "UPDATE imas_forum_views SET tagged=0 WHERE userid='$userid' AND threadid='$threadid'";
 	//DB $result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 	$stm = $DBH->prepare("UPDATE imas_forum_views SET tagged=0 WHERE userid=:userid AND threadid=:threadid");
 	$stm->execute(array(':userid'=>$userid, ':threadid'=>$threadid));
-	header('Location: ' . $redirecturl);
+	header('Location: ' . $redirecturl . "&r=" . Sanitize::randomQueryStringParam());
 	exit;
 }
 //DB $query = "SELECT settings,replyby,defdisplay,name,points,groupsetid,postby,rubric,tutoredit,enddate,avail,allowlate FROM imas_forums WHERE id='$forumid'";
@@ -363,23 +368,24 @@ if ($oktoshow) {
 		$stm->execute(array(':userid'=>$userid, ':threadid'=>$threadid, ':lastview'=>$now));
 	}
 }
-
-echo "<div class=breadcrumb>$breadcrumbbase <a href=\"../course/course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> &gt; ";
-if ($page==-4) {
-	echo "<a href=\"forums.php?cid=$cid\">Forum Search</a> ";
-} else if ($page==-3) {
-	echo "<a href=\"newthreads.php?cid=$cid\">New Threads</a> ";
-} else if ($page==-5) {
-	echo "<a href=\"flaggedthreads.php?cid=$cid\">Flagged Threads</a> ";
-} else {
-	echo "<a href=\"thread.php?cid=$cid&forum=$forumid&page=$page\">".Sanitize::encodeStringForDisplay($forumname)."</a> ";
+if (empty($_GET['embed'])) {
+	echo "<div class=breadcrumb>$breadcrumbbase <a href=\"../course/course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> &gt; ";
+	if ($page==-4) {
+		echo "<a href=\"forums.php?cid=$cid\">Forum Search</a> ";
+	} else if ($page==-3) {
+		echo "<a href=\"newthreads.php?cid=$cid\">New Threads</a> ";
+	} else if ($page==-5) {
+		echo "<a href=\"flaggedthreads.php?cid=$cid\">Flagged Threads</a> ";
+	} else {
+		echo "<a href=\"thread.php?cid=$cid&forum=$forumid&page=$page\">".Sanitize::encodeStringForDisplay($forumname)."</a> ";
+	}
+	echo "&gt; Posts</div>\n";
 }
-echo "&gt; Posts</div>\n";
 
 if (!$oktoshow) {
 	echo '<p>This post is blocked. In this forum, you must post your own thread before you can read those posted by others.</p>';
 } else {
-	echo '<div id="headerposts" class="pagetitle"><h2>Forum: '.Sanitize::encodeStringForDisplay($forumname).'</h2></div>';
+	echo '<div id="headerposts" class="pagetitle"><h1>Forum: '.Sanitize::encodeStringForDisplay($forumname).'</h1></div>';
 	echo "<b style=\"font-size: 120%\">"._('Post').': '. $re[$threadid] . Sanitize::encodeStringForDisplay($subject[$threadid]) . "</b><br/>\n";
 
 	//DB $query = "SELECT id FROM imas_forum_threads WHERE forumid='$forumid' AND id<'$threadid' ";
@@ -495,7 +501,8 @@ function printchildren($base,$restricttoowner=false) {
 			echo "<input type=button class=\"shbtn\" value=\"Hide\" onClick=\"toggleitem(this)\">\n";
 		}
 		if ($posttype[$child]!=2 && $myrights > 5 && $allowreply) {
-			echo "<a href=\"posts.php?view=$view&cid=$cid&forum=$forumid&thread=$threadid&page=$page&modify=reply&replyto=$child\" onclick=\"return checkchgstatus(0,$child)\">Reply</a> ";
+			$embedstr = isset($_GET['embed'])?'&embed=true':'';
+			echo "<a href=\"posts.php?view=$view&cid=$cid&forum=$forumid&thread=$threadid&page=$page&modify=reply&replyto=$child$embedstr\" onclick=\"return checkchgstatus(0,$child)\">Reply</a> ";
 		}
 		if ($isteacher || ($ownerid[$child]==$userid && $allowmod && (($base==0 && time()<$postby) || ($base>0 && time()<$replyby))) || ($allowdel && $ownerid[$child]==$userid && !isset($children[$child]))) {
 			echo '<span class="dropdown">';
@@ -546,9 +553,9 @@ function printchildren($base,$restricttoowner=false) {
 				//DB if (mysql_num_rows($result)>0) {
 				//DB $r = mysql_fetch_row($result);
 				$query = "SELECT ias.id FROM imas_assessment_sessions AS ias JOIN imas_assessments AS ia ON ia.id=ias.assessmentid ";
-				$query .= "WHERE ia.courseid=:courseid AND ia.name=:name AND ias.userid=:ownerid";
+				$query .= "WHERE ia.courseid=:courseid AND (ia.name=:name OR ia.name=:name2) AND ias.userid=:ownerid";
 				$stm = $DBH->prepare($query);
-				$stm->execute(array(':courseid'=>$cid, ':name'=>$matches[2], ':ownerid'=>intval($ownerid[$child])));
+				$stm->execute(array(':courseid'=>$cid, ':name'=>$matches[2], ':name2'=>htmlentities($matches[2]), ':ownerid'=>intval($ownerid[$child])));
 				if ($stm->rowCount()>0) {
 					$qn = $matches[1];
 					$r = $stm->fetch(PDO::FETCH_NUM);
@@ -701,6 +708,10 @@ echo "<img src=\"$imasroot/img/expand.gif\" style=\"visibility:hidden\" alt=\"Ex
 echo "<img src=\"$imasroot/img/collapse.gif\" style=\"visibility:hidden\" alt=\"Collapse\" />";
 
 }
-echo "<div class=right><a href=\"thread.php?cid=$cid&forum=$forumid&page=$page\">Back to Forum Topics</a></div>\n";
+if (empty($_GET['embed'])) {
+	echo "<div class=right><a href=\"thread.php?cid=$cid&forum=$forumid&page=$page\">Back to Forum Topics</a></div>\n";
+} else {
+	echo '<div class=right><button type="button" onclick="parent.GB_hide()">'._('Close').'</button></div>';
+}
 require("../footer.php");
 ?>

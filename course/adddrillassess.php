@@ -73,7 +73,7 @@ if (isset($_GET['clearatt'])) {
 	//DB mysql_query($query) or die("Query failed : " . mysql_error());
 	$stm = $DBH->prepare("DELETE FROM imas_drillassess_sessions WHERE drillassessid=:drillassessid");
 	$stm->execute(array(':drillassessid'=>$daid));
-	header(sprintf('Location: %s/course/adddrillassess.php?cid=%s&daid=%d', $GLOBALS['basesiteurl'], $cid, $daid));
+	header(sprintf('Location: %s/course/adddrillassess.php?cid=%s&daid=%d&r=%s', $GLOBALS['basesiteurl'], $cid, $daid, Sanitize::randomQueryStringParam()));
 	exit;
 }
 if (isset($_GET['record'])) {
@@ -302,9 +302,9 @@ if (isset($_GET['record'])) {
 		writesessiondata();
 	}
 	if (isset($_POST['save']) && $_POST['save']=='Save') {
-		header(sprintf('Location: %s/course/course.php?cid=%s', $GLOBALS['basesiteurl'], $cid));
+		header(sprintf('Location: %s/course/course.php?cid=%s&r=%s', $GLOBALS['basesiteurl'], $cid, Sanitize::randomQueryStringParam()));
 	} else {
-		header(sprintf('Location: %s/course/adddrillassess.php?cid=%s&daid=%d', $GLOBALS['basesiteurl'], $cid, $daid));
+		header(sprintf('Location: %s/course/adddrillassess.php?cid=%s&daid=%d&r=%s', $GLOBALS['basesiteurl'], $cid, $daid, Sanitize::randomQueryStringParam()));
 	}
 	exit;
 }
@@ -649,7 +649,7 @@ function updateorder(el) {
 <?php
 
 echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> &gt; Add/Modify Drill Assessment</div>";
-echo "<h2>Add/Modify Drill Assessment</h2>";
+echo "<h1>Add/Modify Drill Assessment</h1>";
 
 printf("<form id=\"selform\" method=\"post\" action=\"adddrillassess.php?cid=%s&daid=%d&block=%s&tb=%s&record=true\">",
     $cid, $daid, Sanitize::encodeUrlParam($block), Sanitize::encodeUrlParam($totb));
@@ -763,7 +763,7 @@ echo '<table>';
 if (!$beentaken) {
 ?>
 
-	<h3>Potential Questions</h3>
+	<h2>Potential Questions</h2>
 
 		In Libraries:
 		<span id="libnames"><?php echo Sanitize::encodeStringForDisplay($lnames) ?></span>

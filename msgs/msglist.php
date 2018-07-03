@@ -43,6 +43,7 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 	$threadsperpage = intval($listperpage);
 
 	$cid = Sanitize::courseId($_GET['cid']);
+    $cidP = Sanitize::courseId($_POST['courseid']);
 	if (!isset($_GET['page']) || $_GET['page']=='') {
 		$page = 1;
 	} else {
@@ -151,8 +152,9 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 	}
 	if (isset($_GET['add'])) {
 		if (isset($_POST['subject']) && isset($_POST['to']) && $_POST['to']!='0') {
-      $_POST['message'] = Sanitize::incomingHtml($_POST['message']);
-			$_POST['subject'] = Sanitize::stripHtmlTags($_POST['subject']);
+      $messagePost = Sanitize::incomingHtml($_POST['message']);
+			$subjectPost = Sanitize::stripHtmlTags($_POST['subject']);
+			$msgToPost = Sanitize::onlyInt($_POST['to']);
 
       $now = time();
 			//DB $query = "INSERT INTO imas_msgs (title,message,msgto,msgfrom,senddate,isread,courseid) VALUES ";
@@ -162,8 +164,8 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 			$query = "INSERT INTO imas_msgs (title,message,msgto,msgfrom,senddate,isread,courseid) VALUES ";
 			$query .= "(:title, :message, :msgto, :msgfrom, :senddate, :isread, :courseid)";
 			$stm = $DBH->prepare($query);
-			$stm->execute(array(':title'=>$_POST['subject'], ':message'=>$_POST['message'], ':msgto'=>$_POST['to'],
-        ':msgfrom'=>$userid, ':senddate'=>$now, ':isread'=>0, ':courseid'=>$_POST['courseid']));
+			$stm->execute(array(':title'=>$subjectPost, ':message'=>$messagePost, ':msgto'=>$msgToPost,
+        ':msgfrom'=>$userid, ':senddate'=>$now, ':isread'=>0, ':courseid'=>$cidP));
 			$msgid = $DBH->lastInsertId();
 
 			if ($_GET['replyto']>0) {
@@ -214,10 +216,10 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 				$headers  = 'MIME-Version: 1.0' . "\r\n";
 				$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 				$headers .= "From: $sendfrom\r\n";
-				$message  = "<h4>This is an automated message.  Do not respond to this email</h4>\r\n";
+				$message  = "<h3>This is an automated message.  Do not respond to this email</h3>\r\n";
 				$message .= "<p>You've received a new message</p><p>From: $userfullname<br />Course: $cname.</p>\r\n";
 				//DB $message .= "<p>Subject: ".stripslashes($_POST['subject'])."</p>";
-        $message .= "<p>Subject: ". Sanitize::encodeStringForDisplay($_POST['subject'])."</p>";
+				$message .= "<p>Subject: ". Sanitize::encodeStringForDisplay($_POST['subject'])."</p>";
 				$message .= "<a href=\"" . $GLOBALS['basesiteurl'] . "/msgs/viewmsg.php?cid=" . Sanitize::courseId($_POST['courseid']) . "&msgid=$msgid\">";
 				$message .= "View Message</a></p>\r\n";
 				$message .= "<p>If you do not wish to receive email notification of new messages, please ";
@@ -228,12 +230,12 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 			if ($FCMtokenTo != '') {
 				require_once("../includes/FCM.php");
 				$url = $GLOBALS['basesiteurl'] . "/msgs/viewmsg.php?cid=".Sanitize::courseId($_POST['courseid'])."&msgid=$msgid";
-				sendFCM($FCMtokenTo,"Msg from: $userfullname",$_POST['subject'],$url);
+				sendFCM($FCMtokenTo,"Msg from: $userfullname", $_POST['subject'], $url);
 			}
 			if ($type=='new') {
-				header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid");
+				header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid&r=" .Sanitize::randomQueryStringParam());
 			} else {
-				header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/msglist.php?page=$page&cid=$cid&filtercid=$filtercid");
+				header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/msglist.php?page=$page&cid=$cid&filtercid=$filtercid&r=" .Sanitize::randomQueryStringParam());
 			}
 			exit;
 		} else {
@@ -256,9 +258,9 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 						$(el).after($("<img>", {src: imasroot+"/img/updating.gif", alt: "Loading recipients..."}));
 						$.ajax({
 							url: "msglist.php?cid=0&getstulist="+newcid,
-							dataType: "json"
+							dataType: "json",
 						}).done(function(optarr) {
-							$("#to").empty().append("<option value=\"0\">Select a recipient...</option>");
+							$("#to").empty().append("<option value=\'0\'>Select a recipient...</option>");
 							for (var i=0;i<optarr.length;i++) {
 								$("#to").append($(optarr[i]));
 							}
@@ -296,10 +298,10 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 			if ($replyto > 0) {
 				echo "&gt; <a href=\"viewmsg.php?page=$page&type=".Sanitize::encodeUrlParam($type)."&cid=$cid&filtercid=$filtercid&msgid=".Sanitize::onlyInt($replyto)."\">Message</a> ";
 				echo "&gt; Reply</div>";
-				echo "<h2>Reply</h2>\n";
+				echo "<h1>Reply</h1>\n";
 			} else {
 				echo "&gt; New Message</div>";
-				echo "<h2>New Message</h2>\n";
+				echo "<h1>New Message</h1>\n";
 			}
 
 
@@ -395,8 +397,8 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 					    }, $message);
 				}
 				$message = preg_replace('/(`[^`]*`)/',"<span class=\"AM\">$1</span>",$message);
-
-				$message = '<br/><hr/>'.$message;
+				$qinfo = 'Question ID '.Sanitize::onlyInt($parts[1]).', seed '.Sanitize::onlyInt($parts[2]);
+				$message = '<br/><hr/>'.$qinfo.'<br/><br/>'.$message;
 				//$message .= '<span class="hidden">QREF::'.htmlentities($_GET['quoteq']).'</span>';
 				if (isset($parts[3]) && $parts[3] === 'reperr') {
 					$title = "Problem with question ID ".Sanitize::onlyInt($parts[1]);
@@ -480,7 +482,7 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 				echo "<input type=hidden name=courseid value=\"".Sanitize::courseId($courseid)."\"/>\n";
 			} else {
 				if ($filtercid>0) {
-					echo "<select name=\"to\" id=\"to\">";
+					echo '<select name="to" id="to" aria-label="'._('Select an individual').'">';
 					echo '<option value="0">Select a recipient...</option>';
 					if ($isteacher || $msgset<2) {
 						//DB $query = "SELECT imas_users.id,imas_users.FirstName,imas_users.LastName FROM ";
@@ -551,11 +553,11 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 					echo "</select>";
 					echo "<input type=hidden name=courseid value=\"".Sanitize::courseId($courseid)."\"/>\n";
 				} else {
-					echo '<select name="courseid" onchange="updateTo(this)" aria-label="Select a course">';
+					echo '<select name="courseid" onchange="updateTo(this)" aria-label="'._('Select a course').'">';
 					echo '<option value="0">Select a course...</option>';
 					echo $courseopts;
 					echo '</select><br/>';
-					echo '<select name="to" id="to" style="display:none;" aria-label="Select an individual ">';
+					echo '<select name="to" id="to" style="display:none;" aria-label="'._('Select an individual').'">';
 					echo '<option value="0">Select an individual...</option></select>';
 				}
 
@@ -569,7 +571,7 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 			echo "<span class=formright><input type=text size=50 name=subject id=subject value=\"".Sanitize::encodeStringForDisplay($title)."\"></span><br class=form>\n";
 			echo "<span class=form><label for=\"message\">Message:</label></span>";
 			echo "<span class=left><div class=editor><textarea id=message name=message style=\"width: 100%;\" rows=20 cols=70>";
-			echo htmlentities($message);
+			echo Sanitize::encodeStringForDisplay($message);
 			echo "</textarea></div></span><br class=form>\n";
 			if ($replyto>0) {
 				echo '<span class="form"></span><span class="formright"><input type="checkbox" name="sendunread" id="sendunread" value="1"/> <label for="sendunread">'._('Mark original message unread').'</label></span><br class="form"/>';
@@ -615,9 +617,9 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
       //DB mysql_query($query) or die("Query failed : $query " . mysql_error());
       $DBH->query($query);
   		if ($type=='new') {
-  			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid");
+  			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid&r=" .Sanitize::randomQueryStringParam());
   		} else {
-  			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/msglist.php?page=$page&cid=$cid&filtercid=$filtercid");
+  			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/msglist.php?page=$page&cid=$cid&filtercid=$filtercid&r=" .Sanitize::randomQueryStringParam());
   		}
   		exit;
   	}
@@ -648,7 +650,7 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 		echo " <a href=\"../course/course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> &gt; ";
 	}
 	echo " Message List</div>";
-	echo '<div id="headermsglist" class="pagetitle"><h2>';
+	echo '<div id="headermsglist" class="pagetitle"><h1>';
 	if ($limittotagged) {
 		echo _('Tagged Messages');
 	} else if ($limittonew) {
@@ -656,7 +658,7 @@ If (isread&2)==2 && (isread&4)==4  then should be deleted
 	} else {
 		echo _('Messages');
 	}
-	echo '</h2></div>';
+	echo '</h1></div>';
 
 	if ($myrights > 5 && $filtercid>0) {
 		//DB $query = "SELECT msgset FROM imas_courses WHERE id='$filtercid'";
@@ -815,7 +817,7 @@ function chgfilter() {
 }
 </script>
 	<form id="qform" method=post action="msglist.php?page=<?php echo $page;?>&cid=<?php echo $cid;?>">
-	<p>Filter by course: <select id="filtercid" onchange="chgfilter()">
+	<p><label for="filtercid">Filter by course</label>: <select id="filtercid" onchange="chgfilter()">
 <?php
 
 	$query = "SELECT DISTINCT imas_courses.id,imas_courses.name,";
@@ -857,7 +859,7 @@ function chgfilter() {
 	}
 	echo "</select> ";
 	
-	echo 'By sender: <select id="filteruid" onchange="chgfilter()"><option value="0" ';
+	echo '<label for="filteruid">By sender</label>: <select id="filteruid" onchange="chgfilter()"><option value="0" ';
 	if ($filteruid==0) {
 		echo 'selected="selected" ';
 	}

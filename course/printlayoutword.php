@@ -28,7 +28,7 @@ if (!(isset($teacherid))) {
 $aid = Sanitize::onlyInt($_GET['aid']);
 $sessiondata['texdisp'] = true;
 $sessiondata['texdoubleescape'] = true;
-$sessiondata['texalignformatrix'] = true;
+$texusealignsformatrix = true;
 
 $sessiondata['graphdisp'] = 1;
 $sessiondata['mathdisp'] = 2;
@@ -49,7 +49,7 @@ if ($overwriteBody==1) {
 
 	echo '<div class="cpmid"><a href="printtest.php?cid='.$cid.'&amp;aid='.$aid.'">Generate for in-browser printing</a> | <a href="printlayoutbare.php?cid='.$cid.'&amp;aid='.$aid.'">Generate for cut-and-paste</a></div>';
 
-	echo "<h2>"._('Generate Word Version')."</h2>";
+	echo "<h1>"._('Generate Word Version')."</h1>";
 
 	echo '<p>This page will help you create a copy of this assessment as a Word 2007+ file that you can then edit for printing.</p>';
 
@@ -296,14 +296,14 @@ if ($overwriteBody==1) {
 
 	echo '<div class="cpmid"><a href="printtest.php?cid='.$cid.'&amp;aid='.$aid.'">Generate for in-browser printing</a> | <a href="printlayoutbare.php?cid='.$cid.'&amp;aid='.$aid.'">Generate for cut-and-paste</a></div>';
 
-	echo "<h2>"._('Generate Word Version')."</h2>";
+	echo "<h1>"._('Generate Word Version')."</h1>";
 	echo '<p>'._('Assessment is prepared, and ready for conversion').'.</p>';
 	echo '<p>NOTE: In some versions of Word, variables in equations may appear incorrectly at first.  To fix this, ';
 	echo 'select everything (Control-A), then under the Equation Tools menu, click Linear then Professional.</p>';
 	echo '<form id="theform" method="post" action="http://'.$CFG['GEN']['pandocserver'].'/html2docx.php">';
 	echo '<input type="submit" value="'._("Convert to Word").'"/> ';
 	echo '<a href="printlayoutword.php?cid='.$cid.'&amp;aid='.$aid.'">'._('Change print settings').'</a>';
-	echo '<textarea name="html" style="visibility:hidden">'.htmlentities($out).'</textarea>';
+	echo '<textarea name="html" style="visibility:hidden">'.Sanitize::encodeStringForDisplay($out).'</textarea>';
 	echo '</form>';
 
 	/*
@@ -418,9 +418,19 @@ function printq($qn,$qsetid,$seed,$pts,$showpts) {
 		}
 		$laparts = explode("&",$la);
 		foreach ($anstypes as $kidx=>$anstype) {
+			if (($anstype=='matrix' || $anstype=='calcmatrix') && isset($answersize)) {
+				$oldoptionsanswersize = $options['answersize'];
+				unset($options['answersize']);
+			}
 			list($answerbox[$kidx],$tips[$kidx],$shans[$kidx]) = makeanswerbox($anstype,$kidx,$laparts[$kidx],$options,$qn+1);
+			if (($anstype=='matrix' || $anstype=='calcmatrix') && isset($answersize)) {
+				$options['answersize'] = $oldoptionsanswersize;
+			}
 		}
 	} else {
+		if ($qdata['qtype']=='matrix' || $qdata['qtype']=='calcmatrix') {
+			unset($options['answersize']); //pandoc doesn't like nested tables
+		}
 		list($answerbox,$tips[0],$shans[0]) = makeanswerbox($qdata['qtype'],$qn,$la,$options,0);
 	}
 

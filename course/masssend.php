@@ -89,7 +89,7 @@
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 			$headers .= "From: $sendfrom\r\n";
-			$messagep1 = "<h4>This is an automated message.  Do not respond to this email</h4>\r\n";
+			$messagep1 = "<h3>This is an automated message.  Do not respond to this email</h3>\r\n";
 			$messagep1 .= "<p>You've received a new message</p><p>From: ".Sanitize::encodeStringForDisplay($from)."<br />Course: ".Sanitize::encodeStringForDisplay($coursename).".</p>\r\n";
 			//DB $messagep1 .= "<p>Subject: ".stripslashes($_POST['subject'])."</p>";
 			$messagep1 .= "<p>Subject: ".$_POST['subject']."</p>"; // Sanitized by htmLawed near line 40.
@@ -251,11 +251,11 @@
 			}
 		}
 		if ($calledfrom=='lu') {
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/listusers.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/listusers.php?cid=$cid&r=" . Sanitize::randomQueryStringParam());
 		} else if ($calledfrom=='gb') {
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gradebook.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gradebook.php?cid=$cid&r=" . Sanitize::randomQueryStringParam());
 		} else if ($calledfrom=='itemsearch') {
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/admin2.php");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/admin2.php?r=" . Sanitize::randomQueryStringParam());
 		} else if ($calledfrom=='embed') {
 			require("../header.php");
 			echo '<p>'._('Messages Sent').'.';
@@ -295,7 +295,7 @@
 			exit;
 		}
 		echo '<div id="headermasssend" class="pagetitle">';
-		echo "<h3>Send Mass ".Sanitize::encodeStringForDisplay($sendtype)."</h3>\n";
+		echo "<h2>Send Mass ".Sanitize::encodeStringForDisplay($sendtype)."</h2>\n";
 		echo '</div>';
 		if ($calledfrom=='lu') {
 			echo "<form method=post action=\"listusers.php?cid=$cid&masssend=".Sanitize::encodeUrlParam($sendtype)."\">\n";

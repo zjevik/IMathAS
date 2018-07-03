@@ -48,9 +48,9 @@
 		$stm = $DBH->prepare("UPDATE imas_msgs SET isread=isread-1 WHERE id=:id and isread>0");
 		$stm->execute(array(':id'=>$msg));
 		if ($type=='new') {
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid&r=" .Sanitize::randomQueryStringParam());
 		} else {
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/msglist.php?page=$page&cid=$cid&filtercid=$filtercid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/msglist.php?page=$page&cid=$cid&filtercid=$filtercid&r=" .Sanitize::randomQueryStringParam());
 		}
 		exit;
 	}
@@ -81,7 +81,7 @@
 	} else {
 		echo " <a href=\"msglist.php?page=$page&cid=$cid&filtercid=$filtercid\">Message List</a> &gt; Message</div>";
 	}
-	echo '<div id="headerviewmsg" class="pagetitle"><h2>Message</h2></div>';
+	echo '<div id="headerviewmsg" class="pagetitle"><h1>Message</h1></div>';
 
 
 
@@ -148,10 +148,11 @@
 			//DB $aname = addslashes($matches[2]);
 			$qn = $matches[1];
 			$aname = $matches[2];
+
 			//DB $query = "SELECT id,enddate FROM imas_assessments WHERE name='$aname' AND courseid='{$line['courseid']}'";
 			//DB $res = mysql_query($query) or die("Query failed : $query " . mysql_error());
-			$stm = $DBH->prepare("SELECT id,startdate,enddate,allowlate FROM imas_assessments WHERE name=:name AND courseid=:courseid");
-			$stm->execute(array(':name'=>$aname, ':courseid'=>$line['courseid']));
+			$stm = $DBH->prepare("SELECT id,startdate,enddate,allowlate FROM imas_assessments WHERE (name=:name OR name=:name2) AND courseid=:courseid");
+			$stm->execute(array(':name'=>$aname, ':name2'=>htmlentities($aname), ':courseid'=>$line['courseid']));
 			//DB if (mysql_num_rows($res)>0) {
 			if ($stm->rowCount()>0) {
 

@@ -15,9 +15,9 @@ $overwriteBody = 0;
 $body = "";
 $pagetitle = "Make Exception";
 $cid = Sanitize::courseId($_GET['cid']);
-$asid = $_GET['asid'];
+$asid = Sanitize::onlyInt($_GET['asid']);
 $aid = Sanitize::onlyInt($_GET['aid']);
-$uid = $_GET['uid'];
+$uid = Sanitize::onlyInt($_GET['uid']);
 if (isset($_GET['stu'])) {
 	$stu = $_GET['stu'];
 } else {
@@ -167,34 +167,36 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 
 		}
 
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gb-viewasid.php?cid=$cid&asid=" . Sanitize::onlyInt($asid) . "&uid=" . Sanitize::onlyInt($uid) . "&stu=" . Sanitize::onlyInt($stu) . "&from=" . Sanitize::encodeUrlParam($from));
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gb-viewasid.php?cid=$cid&asid=" . Sanitize::onlyInt($asid) . "&uid=" . Sanitize::onlyInt($uid) . "&stu=" . Sanitize::onlyInt($stu) . "&from=" . Sanitize::encodeUrlParam($from) . "&r=" . Sanitize::randomQueryStringParam());
 
 	} else if (isset($_GET['clear'])) {
 		//DB $query = "DELETE FROM imas_exceptions WHERE id='{$_GET['clear']}'";
 		//DB mysql_query($query) or die("Query failed :$query " . mysql_error());
 		$stm = $DBH->prepare("DELETE FROM imas_exceptions WHERE id=:id");
 		$stm->execute(array(':id'=>$_GET['clear']));
+		$rpq =  Sanitize::randomQueryStringParam();
 		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gb-viewasid.php?"
 			. Sanitize::generateQueryStringFromMap(array('cid' => $cid, 'asid' => $asid, 'uid' => $uid,
-				'stu' => $stu, 'from' => $from,)));
+				'stu' => $stu, 'from' => $from, 'r' => $rpq)));
 	} elseif (isset($_GET['aid']) && $_GET['aid']!='') {
 		//DB $query = "SELECT LastName,FirstName FROM imas_users WHERE id='{$_GET['uid']}'";
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 		//DB $stuname = implode(', ', mysql_fetch_row($result));
 		$stm = $DBH->prepare("SELECT LastName,FirstName FROM imas_users WHERE id=:id");
-		$stm->execute(array(':id'=>$_GET['uid']));
+		$stm->execute(array(':id'=>$uid));
 		$stuname = implode(', ', $stm->fetch(PDO::FETCH_NUM));
 
 		//DB $query = "SELECT startdate,enddate FROM imas_assessments WHERE id='{$_GET['aid']}'";
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 		//DB $row = mysql_fetch_row($result);
-		$stm = $DBH->prepare("SELECT startdate,enddate FROM imas_assessments WHERE id=:id");
+		$stm = $DBH->prepare("SELECT startdate,enddate,date_by_lti FROM imas_assessments WHERE id=:id");
 		$stm->execute(array(':id'=>Sanitize::onlyInt($_GET['aid'])));
 		$row = $stm->fetch(PDO::FETCH_NUM);
 		$sdate = tzdate("m/d/Y",$row[0]);
 		$edate = tzdate("m/d/Y",$row[1]);
 		$stime = tzdate("g:i a",$row[0]);
 		$etime = tzdate("g:i a",$row[1]);
+		$isDateByLTI = ($row[2]>0);
 
 		//check if exception already exists
 		//DB $query = "SELECT id,startdate,enddate,waivereqscore,exceptionpenalty FROM imas_exceptions WHERE userid='{$_GET['uid']}' AND assessmentid='{$_GET['aid']}'";
@@ -214,6 +216,11 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$etime = tzdate("g:i a",$erow[2]);
 			$curwaive = $erow[3];
 			$curepenalty = $erow[4];
+		}
+		if ($isDateByLTI) {
+			$page_isExceptionMsg .= '<p class="noticetext">Note: You have opted to allow your LMS to set assessment dates.  If you need to give individual ';
+			$page_isExceptionMsg .=  'students different due dates, you should do so in your LMS, not here, as the date from the LMS will be given ';
+			$page_isExceptionMsg .= 'priority.  Only create a manual exception here if it is for a special purpose, like waiving a prerequisite.</p>';
 		}
 	}
 	//DEFAULT LOAD DATA MANIPULATION
@@ -260,10 +267,10 @@ if ($overwriteBody==1) {
 
 
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
-	<div id="headerexception" class="pagetitle"><h2>Make Start/Due Date Exception</h2></div>
+	<div id="headerexception" class="pagetitle"><h1>Make Start/Due Date Exception</h1></div>
 
 <?php
-	echo '<h3>'.Sanitize::encodeStringForDisplay($stuname).'</h3>';
+	echo '<h2>'.Sanitize::encodeStringForDisplay($stuname).'</h2>';
 	echo $page_isExceptionMsg;
 	echo '<p><span class="form">Assessment:</span><span class="formright">';
 	writeHtmlSelect ("aidselect",$page_courseSelect['val'],$page_courseSelect['label'],Sanitize::onlyInt($_GET['aid']),"Select an assessment","", " onchange='nextpage()'");

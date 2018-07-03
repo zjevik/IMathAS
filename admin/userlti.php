@@ -23,7 +23,7 @@ if ($myrights < 100) {
   }
   exit;
 } else if (isset($_POST['removecourselti'])) {
-  $id = intval($_POST['removecourselti']);
+  $id = Sanitize::onlyInt($_POST['removecourselti']);
   $stm = $DBH->prepare("SELECT org,contextid FROM imas_lti_courses WHERE id=:id");
   $stm->execute(array(':id'=>$id));
   $row = $stm->fetch(PDO::FETCH_ASSOC);
@@ -38,6 +38,31 @@ if ($myrights < 100) {
   $stm->execute(array(':id'=>$id));
   echo "OK";
   exit;
+} else if (isset($_POST['removeplacementlti'])) {
+  $id = intval($_POST['removeplacementlti']);
+  //DB $query = "DELETE FROM imas_ltiusers WHERE id=$id";
+  //DB mysql_query($query) or die("Query failed : " . mysql_error());
+  $stm = $DBH->prepare("DELETE FROM imas_lti_placements WHERE id=:id");
+  $stm->execute(array(':id'=>$id));
+  if ($stm->rowCount()>0) {
+    echo "OK";
+  } else {
+    echo "ERROR";
+  }
+  exit;
+} else if (!empty($_GET['contextid'])) {
+  $contextid = Sanitize::simpleString($_GET['contextid']);
+  $query = "SELECT ilp.id,ilp.linkid,ilp.typeid,ilp.placementtype,ia.name FROM ";
+  $query .= "imas_lti_placements AS ilp LEFT JOIN imas_assessments AS ia ON ilp.typeid=ia.id AND ilp.placementtype='assess' ";
+  $query .= "WHERE ilp.contextid=? UNION ";
+  $query .= "SELECT ilp.id,ilp.linkid,ilp.typeid,ilp.placementtype,ic.name FROM ";
+  $query .= "imas_lti_placements AS ilp LEFT JOIN imas_courses AS ic ON ilp.typeid=ic.id AND ilp.placementtype='course'";
+  $query .= "WHERE ilp.contextid=?";
+  $stm = $DBH->prepare($query);
+  $stm->execute(array($contextid, $contextid));
+  echo json_encode($stm->fetchAll(PDO::FETCH_ASSOC), JSON_HEX_TAG);
+  exit;
+
 } else if (empty($_GET['id'])) {
   $overwriteBody = 1;
   $body = 'No id provided';
@@ -56,7 +81,7 @@ if ($myrights < 100) {
     $user_lti = array();
   }
 
-  $query = "SELECT ilc.org,ilc.id,ilc.courseid,ilc.contextid,ic.name FROM imas_lti_courses AS ilc ";
+  $query = "SELECT ilc.org,ilc.id,ilc.courseid,ilc.contextid,ilc.contextlabel,ic.name FROM imas_lti_courses AS ilc ";
   $query .= "JOIN imas_teachers AS it ON ilc.courseid=it.courseid ";
   $query .= "JOIN imas_courses AS ic ON it.courseid=ic.id WHERE it.userid=:userid ";
   $query .= "ORDER BY ic.name";
@@ -81,6 +106,9 @@ function removeuserlti(el,id) {
 function removecourselti(el,id) {
   return removelti(el,"course",id);
 }
+function removeplacement(el,id) {
+  return removelti(el,"placement",id);
+}
 function removelti(el,type,id) {
   if (confirm("'._('Are you SURE?').'")) {
     $.ajax({
@@ -103,6 +131,36 @@ function removelti(el,type,id) {
   }
   return false;
 }
+$(function() {
+  $(".contextid").on("click", function(event) {
+    var contextid = $(event.target).html().split("<br")[0];
+    $.ajax({
+      url: "userlti.php",
+      data: "contextid="+contextid,
+      dataType: "json"
+    }).done(function(msg) {
+      $("#placements tbody").empty();
+      $.each(msg, function (i, item) {
+        var tr = $("<tr>").append(
+          $("<td>").text(item.placementtype),
+          $("<td>").text(item.name),
+          $("<td>").text(item.typeid),
+          $("<td>").text(item.linkid),
+          $("<td>").append(
+            $("<a>").text("Remove connection")
+             .attr("href","#")
+             .attr("onclick","return removeplacement(this,"+item.id+")")
+          )
+        )
+        $("#placements tbody").append(tr);
+      });
+      $("#placementwrap h4").text(_("LTI placements in contextid: ")+contextid);
+      $("#placements").find("tbody tr:even").addClass("even");
+      $("#placements").find("tbody tr:odd").addClass("odd");
+      $("#placementwrap").show();
+    });
+  });
+})
 </script>';
 require("../header.php");
 
@@ -110,13 +168,13 @@ if ($overwriteBody==1) {
   echo $body;
 } else {
   echo '<div class=breadcrumb>',$curBreadcrumb, '</div>';
-	echo '<div id="headeruserdetail" class="pagetitle"><h2>'._('LTI Connections').': ';
+	echo '<div id="headeruserdetail" class="pagetitle"><h1>'._('LTI Connections').': ';
   echo Sanitize::encodeStringForDisplay($userinfo['LastName'].', '.$userinfo['FirstName']);
-  echo '</h2></div>';
+  echo '</h1></div>';
 
   echo '<p>'._('Group').': '.Sanitize::encodeStringForDisplay($userinfo['gname']).'</p>';
 
-  echo '<h4>'._('LTI user connections').'</h4>';
+  echo '<h3>'._('LTI user connections').'</h3>';
   echo '<table class="gb" id="ltiusers"><thead><tr>';
   echo '<th>'._('Key:org').'</th>';
   echo '<th>'._('Remote Userid').'</th>';
@@ -136,12 +194,12 @@ if ($overwriteBody==1) {
     initSortTable("ltiusers",Array("S","S",false),true);
     </script>';
 
-  echo '<h4>'._('LTI course connections').'</h4>';
+  echo '<h3>'._('LTI course connections').'</h3>';
   echo '<table class="gb" id="lticourses"><thead><tr>';
   echo '<th>'._('Course').'</th>';
   echo '<th>'._('Course ID').'</th>';
   echo '<th>'._('Key:org').'</th>';
-  echo '<th>'._('contextid').'</th>';
+  echo '<th>'._('contextid / label').'</th>';
   echo '<th>'._('Remove').'</th>';
   echo '</tr></thead><tbody>';
   $alt = 0;
@@ -150,7 +208,11 @@ if ($overwriteBody==1) {
     echo '<td>',Sanitize::encodeStringForDisplay($u['name']),'</td>';
     echo '<td>',Sanitize::encodeStringForDisplay($u['courseid']),'</td>';
     echo '<td>',Sanitize::encodeStringForDisplay($u['org']),'</td>';
-    echo '<td>',Sanitize::encodeStringForDisplay($u['contextid']),'</td>';
+    echo '<td class="contextid pointer">',Sanitize::encodeStringForDisplay($u['contextid']);
+    if ($u['contextlabel'] != '') {
+    	    echo '<br/>',Sanitize::encodeStringForDisplay($u['contextlabel']);
+    }
+    echo '</td>';
     echo '<td><a onclick="return removecourselti(this,'.Sanitize::encodeStringForJavascript($u['id']).')" href="#">';
     echo _('Remove connection').'</a></td>';
     echo '</tr>';
@@ -159,5 +221,14 @@ if ($overwriteBody==1) {
   echo '<script type="text/javascript">
     initSortTable("lticourses",Array("S","N","S","S",false),true);
     </script>';
+  echo '<p>'._('Click a contextid above to list the associated placements').'</p>';
+  echo '<div id="placementwrap" style="display:none"><h3></h3>';
+  echo '<table id="placements" class="gb"><caption></caption><thead><tr>';
+  echo '<th>',_('Type'),'</th>';
+  echo '<th>',_('Item'),'</th>';
+  echo '<th>',_('Item ID'),'</th>';
+  echo '<th>',_('Linkid'),'</th>';
+  echo '<th>',_('Remove'),'</th>';
+  echo '</tr></thead><tbody></tbody></table></div>';
 }
 require("../footer.php");

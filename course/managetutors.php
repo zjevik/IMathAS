@@ -121,7 +121,7 @@
 			$promoteable = array_intersect($existingstusids, $sids);
 			if (count($promoteable)>0) {
 				$err .= '<form id="curform2" method=post action="managetutors.php?cid='.$cid.'">';
-				$err .= '<h3>Warning</h3>';
+				$err .= '<h2>Warning</h2>';
 				$err .= '<p>At least one of your potential tutors is currently enrolled in the course as a student.</p>';
 				$err .= '<p>To promote them to a tutor, they will have to be un-enrolled as a student, ';
 				$err .= '<span class="noticetext">which will DELETE ALL their student data</span>, including assessment scores. ';
@@ -137,7 +137,7 @@
 			}
 		} else {
 			//if not adding new, redirect back to listusers
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/listusers.php?cid=$cid");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/listusers.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 			exit;
 		}
 	}
@@ -200,7 +200,7 @@
 
 ?>
 
-	<div id="headermanagetutors" class="pagetitle"><h2>Manage Tutors</h2></div>
+	<div id="headermanagetutors" class="pagetitle"><h1>Manage Tutors</h1></div>
 	
 <?php
 	echo $err;

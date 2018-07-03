@@ -39,7 +39,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			//DB mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("DELETE FROM imas_wiki_revisions WHERE wikiid=:wikiid");
 			$stm->execute(array(':wikiid'=>$id));
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addwiki.php?cid=$cid&id=$id");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addwiki.php?cid=$cid&id=$id&r=" .Sanitize::randomQueryStringParam());
 			exit;
 		} else {
 			$curBreadcrumb .= " &gt; <a href=\"addwiki.php?cid=$cid&id=$id\">Modify Wiki</a>";
@@ -144,7 +144,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 
 
 		}
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=".Sanitize::courseId($_GET['cid']));
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=".Sanitize::courseId($_GET['cid']). "&r=" .Sanitize::randomQueryStringParam());
 
 		exit;
 	} else { //INITIAL LOAD DATA PROCESS
@@ -264,7 +264,7 @@ if ($overwriteBody==1) {
 
 ?>
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
-	<div id="headeraddwiki" class="pagetitle"><h2><?php echo $pagetitle ?></h2></div>
+	<div id="headeraddwiki" class="pagetitle"><h1><?php echo $pagetitle ?></h1></div>
 <?php
 if (isset($_GET['clearattempts'])) {
 	$id = Sanitize::onlyInt($_GET['id']);
@@ -294,7 +294,7 @@ if ($started) {
 		Description:<BR>
 		<div class=editor>
 		<textarea cols=60 rows=20 id=description name=description style="width: 100%">
-		<?php echo htmlentities($line['description']);?></textarea>
+		<?php echo Sanitize::encodeStringForDisplay($line['description']);?></textarea>
 		</div>
 
 		<span class=form>Show:</span>

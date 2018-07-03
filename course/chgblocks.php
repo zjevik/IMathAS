@@ -40,7 +40,13 @@ function updateBlocksArray(&$items,$tochg,$sets) {
 		if (is_array($item)) {
 			if (in_array($item['id'], $tochg)) {
 				foreach ($sets as $k=>$v) {
-					$items[$n][$k] = $v;
+					if (is_array($v)) {
+						foreach ($v as $kk=>$vv) {
+							$items[$n][$k][$kk] = $vv;
+						}
+					} else {
+						$items[$n][$k] = $v;
+					}
 				}
 			}
 			if (count($item['items'])>0) {
@@ -53,14 +59,15 @@ function updateBlocksArray(&$items,$tochg,$sets) {
 
 $overwriteBody = 0;
 $body = "";
-$pagetitle = "Mass Change Block Settings";
-$curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid=".Sanitize::courseId($_GET['cid']).'">'.Sanitize::encodeStringForDisplay($coursename)."</a> &gt; Mass Change Block Settings";
 
+$cid = Sanitize::courseId($_GET['cid']);
+$pagetitle = "Mass Change Block Settings";
+$curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid=".$cid.'">'.Sanitize::encodeStringForDisplay($coursename)."</a> &gt; Mass Change Block Settings";
 //DB $query = "SELECT itemorder FROM imas_courses WHERE id='{$_GET['cid']}'";
 //DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 //DB $items = unserialize(mysql_result($result,0,0));
 $stm = $DBH->prepare("SELECT itemorder FROM imas_courses WHERE id=:id");
-$stm->execute(array(':id'=>$_GET['cid']));
+$stm->execute(array(':id'=>$cid));
 $items = unserialize($stm->fetchColumn(0));
 
 if (!(isset($teacherid))) { // loaded by a NON-teacher
@@ -79,8 +86,17 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	if (isset($_POST['chgavail'])) {
 		$sets['avail'] = intval($_POST['avail']);
 	}
+	if (isset($_POST['chgshowhide']) || isset($_POST['chgavailbeh']) || isset($_POST['chggreyout'])) {
+		$sets['SH'] = array();
+	}
+	if (isset($_POST['chgshowhide'])) {
+		$sets['SH'][0] = $_POST['showhide'];
+	}
 	if (isset($_POST['chgavailbeh'])) {
-		$sets['SH'] = $_POST['showhide'] . $_POST['availbeh'];
+		$sets['SH'][1] = $_POST['availbeh'];
+	}
+	if (isset($_POST['chggreyout'])) {
+		$sets['SH'][2] = $_POST['contentbehavior'];
 	}
 	if (isset($_POST['chggrouplimit'])) {
 		$grouplimit = array();
@@ -113,7 +129,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 	$stm = $DBH->prepare("UPDATE imas_courses SET itemorder=:itemorder WHERE id=:id");
 	$stm->execute(array(':itemorder'=>$itemorder, ':id'=>$cid));
-	header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=$cid");
+	header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=$cid&r=" . Sanitize::randomQueryStringParam());
 
 	exit;
 
@@ -179,7 +195,7 @@ if ($overwriteBody==1) {
 	<?php echo $curBreadcrumb; ?>
 </div>
 <form id="qform" method="post" action="chgblocks.php?cid=<?php echo $cid;?>">
-<h3><?php echo _('Blocks to Change');?></h3>
+<h2><?php echo _('Blocks to Change');?></h2>
 Check: <a href="#" onclick="return chkAllNone('qform','checked[]',true)"><?php echo _('All');?></a>
 <a href="#" onclick="return chkAllNone('qform','checked[]',false)"><?php echo _('None');?></a>
 <ul class="nomark">
@@ -210,21 +226,41 @@ foreach ($existblocks as $pos=>$name) {
 	</tr>
 	<tr>
 		<td><input type="checkbox" name="chgavailbeh" class="chgbox"/></td>
-		<td class="r">When available:<br/>
-		When not available:</td>
+		<td class="r">When available:</td>
 		<td>
 			<select name="availbeh">
 			<option value="O" selected="selected">Show Expanded</option>
 			<option value="C">Show Collapsed</option>
 			<option value="F">Show as Folder</option>
 			<option value="T">Show as TreeReader</option>
-			</select><br/>
+			</select>
+		</td>
+	</tr>
+	<tr>
+		<td><input type="checkbox" name="chgshowhide" class="chgbox"/></td>
+		<td class="r">When not available:</td>
+		<td>
 			<select name="showhide">
 			<option value="H" selected="selected">Hide from Students</option>
 			<option value="S">Show Collapsed/as folder</option>
 			</select>
 		</td>
 	</tr>
+	
+	<tr>
+		<td><input type="checkbox" name="chggreyout" class="chgbox"/></td>
+		<td class="r">For assignments within this block,<br/>when they are not available:</td>
+		<td>
+		<?php
+			writeHtmlSelect('contentbehavior',array(0,1,2,3),array(
+				_('Hide'),
+				_('Show greyed out before start date, hide after end date'),
+				_('Hide before start date, show greyed out after end date'),
+				_('Show greyed out before and after'),
+			), 0); 
+		?>
+		</td>
+	</tr>	
 	<tr>
 		<td><input type="checkbox" name="chggrouplimit" class="chgbox"/></td>
 		<td class="r">Restrict access to students in section:</td>
@@ -277,6 +313,7 @@ foreach ($existblocks as $pos=>$name) {
 </tbody>
 </table>
 <div class=submit><input type=submit value="<?php echo _('Apply Changes')?>"></div>
+</form>
 <?php
 }
 require("../footer.php");

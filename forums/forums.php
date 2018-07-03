@@ -67,19 +67,33 @@
 	//DB $query = "SELECT * FROM imas_forums WHERE imas_forums.courseid='$cid'";
 	$query = "SELECT * FROM imas_forums WHERE imas_forums.courseid=:courseid";
 	if (!$teacherid) {
-		//DB $query .= "AND (imas_forums.avail=2 OR (imas_forums.avail=1 AND imas_forums.startdate<$now AND imas_forums.enddate>$now)) ";
-		$query .= " AND (imas_forums.avail=2 OR (imas_forums.avail=1 AND imas_forums.startdate<$now AND imas_forums.enddate>$now))";
+		//check for avail or past startdate; we'll do an enddate check later
+		$query .= " AND (imas_forums.avail=2 OR (imas_forums.avail=1 AND imas_forums.startdate<$now))";
 	}
 	$stm = $DBH->prepare($query);
 	$stm->execute(array(':courseid'=>$cid));
-	$line = $stm->fetchALL(PDO::FETCH_ASSOC);
+	$lines = $stm->fetchALL(PDO::FETCH_ASSOC);
 	$anyforumsgroup = false;
 	$forumdata = array();
 	$anyforumsgroup = false;
-	foreach ($line as  $line) {
+	foreach ($lines as $line) {
 		$forumdata[$line['id']] = $line;
 		if ($line['groupsetid']>0) {
 			$anyforumsgroup = true;
+		}
+	}
+	
+	//pull exceptions, as they may extend the enddate
+	$exceptions = array();
+	if (isset($studentid) && count($forumdata)>0) {
+		require_once("../includes/exceptionfuncs.php");
+		$exceptionfuncs = new ExceptionFuncs($userid, $cid, true, $studentinfo['latepasses'], $latepasshrs);
+		$ph = Sanitize::generateQueryPlaceholders($forumdata);
+		$stm = $DBH->prepare("SELECT startdate,enddate,islatepass,waivereqscore,itemtype,assessmentid FROM imas_exceptions WHERE assessmentid in ($ph) AND userid=? AND (itemtype='F' OR itemtype='P' OR itemtype='R')");
+		$stm->execute(array_merge(array_keys($forumdata), array($userid)));
+		while ($row = $stm->fetch(PDO::FETCH_NUM)) {
+			$exceptionresult = $exceptionfuncs->getCanUseLatePassForums($row, $forumdata[$row[5]]);
+			$forumdata[$row[5]]['enddate'] = $exceptionresult[7];
 		}
 	}
 
@@ -172,9 +186,9 @@
 	echo '</div>';
 
 	if ($searchtype=='none') {
-		echo '<div id="headerforums" class="pagetitle"><h2>Forums</h2></div>';
+		echo '<div id="headerforums" class="pagetitle"><h1>Forums</h1></div>';
 	} else {
-		echo '<div id="headerforums" class="pagetitle"><h2>Forum Search Results</h2></div>';
+		echo '<div id="headerforums" class="pagetitle"><h1>Forum Search Results</h1></div>';
 	}
 ?>
 
@@ -182,9 +196,11 @@
 	<div id="forumsearch">
 	<form method="post" action="forums.php?cid=<?php echo $cid;?>">
 		<p>
-		Search: <input type=text name="search" value="<?php echo Sanitize::encodeStringForDisplay($searchstr);?>" />
-		<input type="radio" name="searchtype" value="thread" <?php if ($searchtype!='posts') {echo 'checked="checked"';}?>/>All thread subjects
-		<input type="radio" name="searchtype" value="posts" <?php if ($searchtype=='posts') {echo 'checked="checked"';}?>/>All posts.
+		<label for="search">Search</label>: <input type=text id="search" name="search" value="<?php echo Sanitize::encodeStringForDisplay($searchstr);?>" />
+		<span role="radiogroup" aria-label="what to search">
+		<label><input type="radio" name="searchtype" value="thread" <?php if ($searchtype!='posts') {echo 'checked="checked"';}?>/>All thread subjects</label>
+		<label><input type="radio" name="searchtype" value="posts" <?php if ($searchtype=='posts') {echo 'checked="checked"';}?>/>All posts</label>
+		</span>
 		<?php
 		if ($tagfilterselect != '') {
 			echo "Limit by $tagfilterselect";
@@ -413,7 +429,7 @@ if ($searchtype == 'thread') {
 			//if (count($fl)>2) {echo '</ul>';}
 			echo '</p>';
 		}
-		echo filter($line['message']);
+		echo Sanitize::outgoingHtml(filter($line['message']));
 		echo "<p><a href=\"posts.php?cid=" . Sanitize::courseId($cid) . "&forum=" . Sanitize::onlyInt($line['forumid']) . "&thread=" . Sanitize::onlyInt($line['threadid']) . "&page=-4\">Show full thread</a></p>";
 		echo "</div>\n";
 	}
@@ -439,11 +455,17 @@ if ($searchtype == 'thread') {
 	//DB $query = "SELECT imas_forums.id,COUNT(imas_forum_posts.id) FROM imas_forums LEFT JOIN imas_forum_posts ON ";
 	//DB $query .= "imas_forums.id=imas_forum_posts.forumid WHERE imas_forum_posts.parent=0 AND imas_forums.courseid='$cid' GROUP BY imas_forum_posts.forumid ORDER BY imas_forums.id";
 	//DB $result = mysql_query($query) or die("Query failed : $query " . mysql_error());
-  $query = "SELECT imas_forums.id,COUNT(imas_forum_threads.id) FROM imas_forums LEFT JOIN imas_forum_threads ON ";
+	$query = "SELECT imas_forums.id,COUNT(imas_forum_threads.id) FROM imas_forums LEFT JOIN imas_forum_threads ON ";
 	$query .= "imas_forums.id=imas_forum_threads.forumid AND imas_forum_threads.lastposttime<:now ";
-	$query .= "WHERE imas_forums.courseid=:courseid GROUP BY imas_forum_threads.forumid ORDER BY imas_forums.id";
+	$query .= "WHERE imas_forums.courseid=:courseid ";
+	$qarr = array(':now'=>$now, ':courseid'=>$cid);
+	if (!isset($teacherid)) {
+		$query .= "AND (imas_forum_threads.stugroupid=0 OR imas_forum_threads.stugroupid IN (SELECT stugroupid FROM imas_stugroupmembers WHERE userid=:userid )) ";
+		$qarr[':userid']=$userid;
+	}
+	$query .= "GROUP BY imas_forum_threads.forumid ORDER BY imas_forums.id";
 	$stm = $DBH->prepare($query);
-	$stm->execute(array(':now'=>$now, ':courseid'=>$cid));
+	$stm->execute($qarr);
 	$result=$stm->fetchALL(PDO::FETCH_NUM);
 	foreach ($result as $row) {
 		$threadcount[$row[0]] = $row[1];
@@ -459,9 +481,19 @@ if ($searchtype == 'thread') {
 	// 	$maxdate[$row[0]] = $row[2];
 	//NOT WORKING
 	$query = "SELECT imas_forums.id,COUNT(imas_forum_posts.id) AS postcount,MAX(imas_forum_posts.postdate) AS maxdate FROM imas_forums LEFT JOIN imas_forum_posts ON ";
-	$query .= "imas_forums.id=imas_forum_posts.forumid WHERE imas_forums.courseid=:courseid GROUP BY imas_forum_posts.forumid ORDER BY imas_forums.id";
+	$query .= "imas_forums.id=imas_forum_posts.forumid ";
+	if (!isset($teacherid)) {
+		$query .= "JOIN imas_forum_threads ON imas_forum_posts.threadid=imas_forum_threads.id ";
+	}
+	$query .= "WHERE imas_forums.courseid=:courseid ";
+	$qarr = array(':courseid'=> $cid);
+	if (!isset($teacherid)) {
+		$query .= "AND (imas_forum_threads.stugroupid=0 OR imas_forum_threads.stugroupid IN (SELECT stugroupid FROM imas_stugroupmembers WHERE userid=:userid )) ";
+		$qarr[':userid']=$userid;
+	}
+	$query .= "GROUP BY imas_forum_posts.forumid ORDER BY imas_forums.id";
 	$stm = $DBH->prepare($query);
-	$stm->execute(array(':courseid'=> $cid));
+	$stm->execute($qarr);
 
 	// $result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 	$result=$stm->fetchALL(PDO::FETCH_NUM);
@@ -489,8 +521,8 @@ if ($searchtype == 'thread') {
 	$query .= "JOIN imas_forums ON imas_forum_threads.forumid=imas_forums.id AND imas_forums.courseid=:courseid ";
 	$query .= "LEFT JOIN imas_forum_views as mfv ON mfv.threadid=imas_forum_threads.id AND mfv.userid=:userid ";
 	$query .= "WHERE imas_forum_threads.lastposttime<:now  AND (imas_forum_threads.lastposttime>mfv.lastview OR (mfv.lastview IS NULL)) ";
-  $array = array(':now'=>$now, ':courseid'=>$cid, ':userid'=>$userid);
-if (!isset($teacherid)) {
+	$array = array(':now'=>$now, ':courseid'=>$cid, ':userid'=>$userid);
+	if (!isset($teacherid)) {
 		$query .= "AND (imas_forum_threads.stugroupid=0 OR imas_forum_threads.stugroupid IN (SELECT stugroupid FROM imas_stugroupmembers WHERE userid=:userid )) ";
 		$array[':userid']=$userid;
 	}

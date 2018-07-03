@@ -43,9 +43,9 @@ $curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::en
 $curBreadcrumb .= (isset($_GET['id'])) ? "&gt; Modify Block\n" : "&gt; Add Block\n";
 
 if (isset($_GET['id'])) {
-	$formTitle = "<div id=\"headeraddblock\" class=\"pagetitle\"><h2>Modify Block <img src=\"$imasroot/img/help.gif\" alt=\"Help\" onClick=\"window.open('$imasroot/help.php?section=blocks','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))\"/></h2></div>\n";
+	$formTitle = "<div id=\"headeraddblock\" class=\"pagetitle\"><h1>Modify Block <img src=\"$imasroot/img/help.gif\" alt=\"Help\" onClick=\"window.open('$imasroot/help.php?section=blocks','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))\"/></h1></div>\n";
 } else {
-	$formTitle = "<div id=\"headeraddblock\" class=\"pagetitle\"><h2>Add Block <img src=\"$imasroot/img/help.gif\" alt=\"Help\" onClick=\"window.open('$imasroot/help.php?section=blocks','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))\"/></h2></div>\n";
+	$formTitle = "<div id=\"headeraddblock\" class=\"pagetitle\"><h1>Add Block <img src=\"$imasroot/img/help.gif\" alt=\"Help\" onClick=\"window.open('$imasroot/help.php?section=blocks','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))\"/></h1></div>\n";
 }
 if (isset($_GET['tb'])) {
 	$totb = $_GET['tb'];
@@ -143,7 +143,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		$sub[$existingid]['startdate'] = $startdate;
 		$sub[$existingid]['enddate'] = $enddate;
 		$sub[$existingid]['avail'] = $_POST['avail'];
-		$sub[$existingid]['SH'] = $_POST['showhide'] . $_POST['availbeh'];
+		$sub[$existingid]['SH'] = $_POST['showhide'] . $_POST['availbeh'] . $_POST['contentbehavior'];
 		$sub[$existingid]['colors'] = $colors;
 		$sub[$existingid]['public'] = $public;
 		$sub[$existingid]['fixedheight'] = $fixedheight;
@@ -156,7 +156,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		$blockitems['startdate'] = $startdate;
 		$blockitems['enddate'] = $enddate;
 		$blockitems['avail'] = $_POST['avail'];
-		$blockitems['SH'] = $_POST['showhide'] . $_POST['availbeh'];
+		$blockitems['SH'] = $_POST['showhide'] . $_POST['availbeh'] . $_POST['contentbehavior'];;
 		$blockitems['colors'] = $colors;
 		$blockitems['public'] = $public;
 		$blockitems['fixedheight'] = $fixedheight;
@@ -176,7 +176,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 	$stm = $DBH->prepare("UPDATE imas_courses SET itemorder=:itemorder,blockcnt=:blockcnt WHERE id=:id");
 	$stm->execute(array(':itemorder'=>$itemorder, ':blockcnt'=>$blockcnt, ':id'=>$cid));
-	header(sprintf('Location: %s/course/course.php?cid=%s', $GLOBALS['basesiteurl'], $cid));
+	header(sprintf('Location: %s/course/course.php?cid=%s&r=' .Sanitize::randomQueryStringParam() , $GLOBALS['basesiteurl'], $cid));
 
 	exit;
 } else { //it is a teacher but the form has not been posted
@@ -186,7 +186,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 		//DB $items = unserialize(mysql_result($result,0,0));
 		$stm = $DBH->prepare("SELECT itemorder FROM imas_courses WHERE id=:id");
-		$stm->execute(array(':id'=>$_GET['cid']));
+		$stm->execute(array(':id'=>$cid));
 		$items = unserialize($stm->fetchColumn(0));
 
 		$blocktree = explode('-',$_GET['id']);
@@ -213,10 +213,15 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$public = 0;
 		}
 		$showhide = $blockitems[$existingid]['SH'][0];
-		if (strlen($blockitems[$existingid]['SH'])==1) {
-			$availbeh = 'O';
-		} else {
+		if (strlen($blockitems[$existingid]['SH'])>1) {
 			$availbeh = $blockitems[$existingid]['SH'][1];
+		} else {
+			$availbeh = 'O';
+		}
+		if (strlen($blockitems[$existingid]['SH'])>2) {
+			$contentbehavior = $blockitems[$existingid]['SH'][2];
+		} else {
+			$contentbehavior = 0;
 		}
 		if ($blockitems[$existingid]['colors']=='') {
 			$titlebg = "#DDDDFF";
@@ -239,6 +244,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		$enddate = time() + 7*24*60*60;
 		$availbeh = 'O';
 		$showhide = 'H';
+		$contentbehavior = 0;
 		$avail = 1;
 		$public = 0;
 		$titlebg = "#DDDDFF";
@@ -251,7 +257,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 		//DB $items = unserialize(mysql_result($result,0,0));
 		$stm = $DBH->prepare("SELECT itemorder FROM imas_courses WHERE id=:id");
-		$stm->execute(array(':id'=>$_GET['cid']));
+		$stm->execute(array(':id'=>$cid));
 		$items = unserialize($stm->fetchColumn(0));
 		$savetitle = _("Create Block");
 	}
@@ -388,6 +394,17 @@ if ($overwriteBody==1) {
 	<input type=radio name=showhide value="S" <?php writeHtmlChecked($showhide,'S') ?> />Show Collapsed/as folder
 	</span><br class=form />
 
+	<span class=form>For assignments within this block, when they are not available:</span
+	<span class=formright>
+	<?php
+		writeHtmlSelect('contentbehavior',array(0,1,2,3),array(
+			_('Hide'),
+			_('Show greyed out before start date, hide after end date'),
+			_('Hide before start date, show greyed out after end date'),
+			_('Show greyed out before and after'),
+		), $contentbehavior); 
+	?>
+	</span><br class=form />
 	<span class="form">If expanded, limit height to:</span>
 	<span class="formright">
 	<input type="text" name="fixedheight" size="4" value="<?php if ($fixedheight>0) {echo Sanitize::onlyInt($fixedheight);};?>" />pixels (blank for no limit)

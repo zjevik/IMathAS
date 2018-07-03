@@ -16,7 +16,7 @@ array_push($allowedmacros,"matrix","matrixformat","matrixsystemdisp","matrixsum"
 	"matrixIsRowsLinInd","matrixIsColsLinInd","matrixIsEigVec","matrixIsEigVal",
 	"matrixGetRowSpace","matrixGetColumnSpace",
 	"matrixAxbHasSolution","matrixAspansB","matrixAbasisForB",
-	"matrixGetMinor","matrixDet","matrixRandomMatrix");
+	"matrixGetMinor","matrixDet","matrixRandomMatrix","matrixParseStuans");
 
 //matrix(vals,rows,cols)
 //Creates a new matrix item.  
@@ -1061,7 +1061,7 @@ function matrixAspansB($A,$B){
 //matrixAbasisForB(matrix A, matrix B)
 //tests if the rows of A are a basis for the row space of B
 function matrixAbasisForB($A,$B){
-	if(count($A[0]!=$B[0])){
+	if(count($A[0])!=count($B[0])){
 		echo("The number of columns of A must equal to the number of columns of B");
 	}
 	$retVal = true;
@@ -1156,5 +1156,15 @@ function matrixNumberOfRows($m){
 // returns the number of columns of a matrix
 function matrixNumberOfColumns($m){
 	return(count($m[0]));
+}
+
+function matrixParseStuans($stu) {
+	if (substr($stu,0,2)=='[(') {
+		$ansr = substr($stu,2,-2);
+		$ansr = preg_replace('/\)\s*\,\s*\(/',',',$ansr);
+		return explode(',',$ansr);
+	} else {
+		return explode('|', $stu);
+	}
 }
 ?>

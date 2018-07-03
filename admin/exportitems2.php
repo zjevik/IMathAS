@@ -510,7 +510,7 @@ if (!(isset($teacherid))) {   //NO PERMISSIONS
 	}
 
 	//dump it!
-	echo json_encode($output, JSON_FORCE_OBJECT);
+	echo json_encode($output, JSON_FORCE_OBJECT|JSON_HEX_TAG);
 	exit;
 
 } else { //STEP 1 DATA PROCESSING, INITIAL LOAD
@@ -542,7 +542,7 @@ if ($overwriteBody==1) {
 	<?php echo $curBreadcrumb; ?>
 	<div class="cpmid"><a href="ccexport.php?cid=<?php echo $cid ?>">Export for another Learning Management System</a></div>
 
-	<h2>Export Course Items</h2>
+	<h1>Export Course Items</h1>
 
 	<p>This page will let you export your course items for backup or transfer to
 	another server running this software.</p>

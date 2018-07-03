@@ -52,7 +52,7 @@ if (isset($_POST['vidid'])) {
 	$stm = $DBH->prepare("UPDATE imas_assessments SET viddata=:viddata WHERE id=:id");
 	$stm->execute(array(':viddata'=>$data, ':id'=>$aid));
 
-	header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid");
+	header('Location: ' . $GLOBALS['basesiteurl'] . "/course/addquestions.php?cid=$cid&aid=$aid&r=" .Sanitize::randomQueryStringParam());
 	exit;
 }
 
@@ -366,7 +366,7 @@ div.vidsegblock {
 echo '<script type="text/javascript">var curnumseg = '.$n.';</script>';
 ?>
 
-<h2>Video Navigation and Question Cues</h2>
+<h1>Video Navigation and Question Cues</h1>
 <div style="float:right;"><div id="player" style="width: 453px; height: <?php echo ceil(453/$aspectRatio);?>px;"></div></div>
 <p>This page allows you to setup your assessment to be cued to a video.  For each
 question, give a title to the video segment that leads up to that question, and select

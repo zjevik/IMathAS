@@ -78,7 +78,7 @@ function showUserPrefsForm() {
 		writeHtmlSelect($key,array_keys($prefs[$key]), array_values($prefs[$key]), isset($sessiondata['userprefs'][$key])?$sessiondata['userprefs'][$key]:$prefdefaults[$key]);
 		if ($key=='tztype') {
 			echo '<span id="tzset" style="display:none;"><br/>';
-			echo _('Set timezone to:').' <select name="settimezone" id="settimezone">';
+			echo '<label for="settimezone">'._('Set timezone to:').'</label> <select name="settimezone" id="settimezone">';
 			foreach ($timezones as $tz) {
 				echo '<option value="'.$tz.'" '.($tz==$tzname?'selected':'').'>'.$tz.'</option>';
 			}
@@ -149,9 +149,9 @@ function storeUserPrefs() {
 		}
 	}
 	//use timezone from form - either browser reported or set val
-
+    $tzname = Sanitize::stripHtmlTags($_POST['settimezone']);
 	if (date_default_timezone_set($_POST['settimezone'])) {
-		$tzname = $_POST['settimezone'];
+		//$tzname = $_POST['settimezone'];
 		$stm = $DBH->prepare("UPDATE imas_sessions SET tzname=:tzname WHERE sessionid=:sessionid");
 		$stm->execute(array(':tzname'=>$tzname, ':sessionid'=>$sessionid));
 	}
@@ -159,10 +159,10 @@ function storeUserPrefs() {
 		$sessiondata['userprefs']['tzname'] = $tzname;
 		if (isset($currentuserprefs['tzname'])) {
 			$stm = $DBH->prepare("UPDATE imas_user_prefs SET value=:value WHERE id=:id");
-			$stm->execute(array(':value'=>$_POST['settimezone'], ':id'=>$currentuserprefs['tzname'][0]));
+			$stm->execute(array(':value'=>$tzname, ':id'=>$currentuserprefs['tzname'][0]));
 		} else {
 			$stm = $DBH->prepare("INSERT INTO imas_user_prefs (item,value,userid) VALUES ('tzname',:value,:userid)");
-			$stm->execute(array(':value'=>$_POST['settimezone'], ':userid'=>$userid));
+			$stm->execute(array(':value'=>$tzname, ':userid'=>$userid));
 		}
 	} else { //no permanant fixed timezone, delete tzname record if exists
 		unset($sessiondata['userprefs']['tzname']);

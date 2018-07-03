@@ -185,12 +185,12 @@
 		} else if ($page == -1) {
 			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gb-itemanalysis.php?"
 				. Sanitize::generateQueryStringFromMap(array('stu' => $stu, 'cid' => $cid, 'aid' => $aid,
-                    'asid' => 'average',)));
+                    'asid' => 'average', 'r' => Sanitize::randomQueryStringParam(),)));
 		} else {
 			$page++;
 			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/gradeallq.php?"
 				. Sanitize::generateQueryStringFromMap(array('stu' => $stu, 'cid' => $cid, 'aid' => $aid,
-					'qid' => $qid, 'page' => $page,)));
+					'qid' => $qid, 'page' => $page, 'r' => Sanitize::randomQueryStringParam(),)));
 		}
 		exit;
 	}
@@ -231,7 +231,7 @@
 	$stm = $DBH->prepare($query);
 	$stm->execute(array(':id'=>$qid));
 	$qdatafordisplayq = $stm->fetch(PDO::FETCH_ASSOC);
-	$points = $qdatafordisplayq['points'];
+	$points = Sanitize::onlyFloat($qdatafordisplayq['points']);
 	$rubric = $qdatafordisplayq['rubric'];
 	$qsetid = $qdatafordisplayq['id'];
 	$qtype = $qdatafordisplayq['qtype'];
@@ -241,7 +241,7 @@
 		$points = $defpoints;
 	}
 
-	$useeditor='noinit';
+	$useeditor='review';
 	$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/rubric.js?v=113016"></script>';
 	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/gb-scoretools.js?v=120617"></script>';
 	$placeinhead .= "<script type=\"text/javascript\">";
@@ -265,7 +265,7 @@
 	echo "&gt; <a href=\"gradebook.php?stu=0&cid=$cid\">Gradebook</a> ";
 	echo "&gt; <a href=\"gb-itemanalysis.php?stu=" . Sanitize::encodeUrlParam($stu) . "&cid=$cid&aid=" . Sanitize::onlyInt($aid) . "\">Item Analysis</a> ";
 	echo "&gt; Grading a Question</div>";
-	echo "<div id=\"headergradeallq\" class=\"pagetitle\"><h2>Grading a Question in ".Sanitize::encodeStringForDisplay($aname)."</h2></div>";
+	echo "<div id=\"headergradeallq\" class=\"pagetitle\"><h1>Grading a Question in ".Sanitize::encodeStringForDisplay($aname)."</h1></div>";
 	echo "<p><b>Warning</b>: This page may not work correctly if the question selected is part of a group of questions</p>";
 	echo '<div class="cpmid">';
 	if ($page==-1) {
@@ -440,11 +440,11 @@
 			}
 			echo '</p>';
 			if (!$groupdup) {
-				echo '<h4 class="group" style="display:none">'.Sanitize::encodeStringForDisplay($groupnames[$line['agroupid']]);
+				echo '<h3 class="group" style="display:none">'.Sanitize::encodeStringForDisplay($groupnames[$line['agroupid']]);
 				if (isset($groupmembers[$line['agroupid']]) && count($groupmembers[$line['agroupid']])>0) {
-					echo ' ('.Sanitize::encodeStringForDisplay(implode(', ',$groupmembers[$line['agroupid']])).')</h4>';
+					echo ' ('.Sanitize::encodeStringForDisplay(implode(', ',$groupmembers[$line['agroupid']])).')</h3>';
 				} else {
-					echo ' (empty)</h4>';
+					echo ' (empty)</h3>';
 				}
 			}
 
@@ -517,7 +517,7 @@
 				}
 
 			}
-			printf(" out of %d ", $points);
+			printf(" out of %d ", Sanitize::onlyInt($points));
 
 			if ($parts!='') {
 				$answeights = implode(', ',$answeights);
@@ -528,7 +528,7 @@
 				$togr = array();
 				foreach ($qtypes as $k=>$t) {
 					if ($t=='essay' || $t=='file') {
-						$togr[] = $k;
+					  $togr[] = Sanitize::onlyInt($k);
 					}
 				}
 				echo '<br/>Quick grade: <a href="#" class="fullcredlink" onclick="quickgrade('.$cnt.',0,\'scorebox\','.count($prts).',['.$answeights.']);return false;">Full credit all parts</a>';
@@ -550,7 +550,7 @@
 						echo "  <b>$cntb:</b> " ;
 						if (preg_match('/@FILE:(.+?)@/',$laarr[$k],$match)) {
 							$url = getasidfileurl($match[1]);
-							echo "<a href=\"$url\" target=\"_new\">".basename($match[1])."</a>";
+							echo "<a href=\"" . Sanitize::encodeUrlForHref($url) . "\" target=\"_new\">".Sanitize::encodeStringForDisplay(basename($match[1]))."</a>";
 						} else {
 							if (strpos($laarr[$k],'$f$')) {
 								if (strpos($laarr[$k],'&')) { //is multipart q

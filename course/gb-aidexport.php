@@ -135,7 +135,7 @@ if (isset($_POST['options'])) {
 
 		$query_placeholders = Sanitize::generateQueryPlaceholders(array_values($qsetids));
 		$stm = $DBH->prepare("SELECT id,qtype,control,answer FROM imas_questionset WHERE id IN ($query_placeholders)"); //INT vals from DB
-    $stm->execute(array_values($qsetids));
+    	$stm->execute(array_values($qsetids));
 		while ($row = $stm->fetch(PDO::FETCH_NUM)) {
 			$qcontrols[$row[0]] = interpret('control',$row[1],$row[2]);
 			$qanswers[$row[0]] = interpret('answer',$row[1],$row[3]);
@@ -378,7 +378,7 @@ if (isset($_POST['options'])) {
 			  if(preg_match("/[\,\"\n\r]/", $val)) {
 				  $val = '"'.str_replace('"', '""', $val).'"';
 			  }
-			  $line .= $val.',';
+			  $line .= Sanitize::stripHtmlTags($val).',';
 		}
 		# strip the last deliminator
 		$line = substr($line, 0, -1);
@@ -393,7 +393,7 @@ if (isset($_POST['options'])) {
 	echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 	echo "&gt; <a href=\"gradebook.php?stu=0&cid=$cid\">Gradebook</a> &gt; <a href=\"gb-itemanalysis.php?aid=$aid&cid=$cid\">Item Analysis</a> ";
 	echo '&gt; Assessment Export</div>';
-	echo '<div id="headergb-aidexport" class="pagetitle"><h2>Assessment Results Export</h2></div>';
+	echo '<div id="headergb-aidexport" class="pagetitle"><h1>Assessment Results Export</h1></div>';
 
 	echo "<form method=\"post\" action=\"gb-aidexport.php?aid=$aid&cid=$cid\">";
 	echo 'What do you want to include in the export:<br/>';

@@ -124,9 +124,10 @@ if (isset($_GET['launch'])) {
 		$stm = $DBH->prepare('SELECT courseid FROM imas_assessments WHERE id=:aid');
 		$stm->execute(array(':aid'=>$aid));
 		$cid = $stm->fetchColumn(0);
-    if ($cid===false) {
-      reporterror("This assignment does not appear to exist anymore");
-    }
+		if ($cid===false) {
+			$diaginfo = "(Debug info: 1-$aid)";
+			reporterror("This assignment does not appear to exist anymore. $diaginfo");
+		}
 		if ($sessiondata['ltirole'] == 'learner') {
 			//DB $query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime,info) VALUES ";
 			//DB $query .= "('$userid','$cid','assesslti','$aid',$now,'')";
@@ -165,7 +166,7 @@ if (isset($_GET['launch'])) {
 	$nologo = true;
 	$placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/jstz_min.js\" ></script>";
 	require("header.php");
-	echo "<h4>Connecting to $installname</h4>";
+	echo "<h3>Connecting to $installname</h3>";
 	echo "<form id=\"postbackform\" method=\"post\" action=\"" . $imasroot . "/bltilaunch.php?launch=true\" ";
 	if ($sessiondata['ltiitemtype']==0 && $sessiondata['ltitlwrds'] != '') {
 		echo "onsubmit='return confirm(\"This assessment has a time limit of "
@@ -526,7 +527,7 @@ if (isset($_GET['launch'])) {
 		session_regenerate_id();
 		$sessionid = session_id();
 		$_SESSION = array();
-		setcookie(session_name(),session_id());
+		setcookie(session_name(),session_id(),0,'','',false,true );
 	}
 
 	/*if (empty($_REQUEST['roles'])) {
@@ -776,7 +777,7 @@ $shortorg = $orgparts[0];
 //DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 //DB if (mysql_num_rows($result)==0) {
 $query = "SELECT placementtype,typeid FROM imas_lti_placements WHERE ";
-$query .= "contextid=:contextid AND linkid=:linkid AND org LIKE :org";
+$query .= "contextid=:contextid AND linkid=:linkid AND typeid>0 AND org LIKE :org";
 $stm = $DBH->prepare($query);
 $stm->execute(array(':contextid'=>$_SESSION['lti_context_id'], ':linkid'=>$_SESSION['lti_resource_link_id'], ':org'=>"$shortorg:%"));
 if ($stm->rowCount()==0) {
@@ -788,7 +789,8 @@ if ($stm->rowCount()==0) {
 		$stm->execute(array(':aid'=>$_SESSION['place_aid']));
 		list($aidsourcecid,$aidsourcename) = $stm->fetch(PDO::FETCH_NUM);
 		if ($aidsourcecid===false) {
-			reporterror("This assignment does not appear to exist anymore");
+			$diaginfo = "(Debug info: 2-{$_SESSION['place_aid']})";
+			reporterror("This assignment does not appear to exist anymore. $diaginfo");
 		}
 
 		//look to see if we've already linked this context_id with a course
@@ -815,6 +817,11 @@ if ($stm->rowCount()==0) {
 						$copycourse = "no";
 					}
 				}
+				$stm = $DBH->prepare('SELECT jsondata FROM imas_courses WHERE id=:aidsourcecid');
+				$stm->execute(array(':aidsourcecid'=>$aidsourcecid));
+				$aidsourcejsondata = json_decode($stm->fetchColumn(0), true);
+				$blockLTICopyOfCopies = ($aidsourcejsondata!==null && !empty($aidsourcejsondata['blockLTICopyOfCopies']));
+				
 				if (isset($_POST['docoursecopy']) && $_POST['docoursecopy']=="useother" && !empty($_POST['useothercoursecid'])) {
 					$destcid = $_POST['useothercoursecid'];
 					$copycourse = "no";
@@ -869,7 +876,7 @@ if ($stm->rowCount()==0) {
 							<ul class=nomark>
 							<li><input name=\"docoursecopy\" type=\"radio\" value=\"useexisting\" checked />Associate this LMS course with my existing course (ID $aidsourcecid) on $installname</li>
 							<li><input name=\"docoursecopy\" type=\"radio\" value=\"makecopy\" />Create a copy of my existing course (ID $aidsourcecid) on $installname</li>";
-						if (count($othercourses)>0) {
+						if (count($othercourses)>0 && !$blockLTICopyOfCopies) {
 							echo '<li><input name="docoursecopy" type="radio" value="copyother" />Create a copy of another course: <select name="othercoursecid">';
 							foreach ($othercourses as $k=>$v) {
 								echo '<option value="'.$k.'">'.Sanitize::encodeStringForDisplay($v.' (Course ID '.$k.')').'</option>';
@@ -889,7 +896,7 @@ if ($stm->rowCount()==0) {
 							and this LMS course will be associated with that copy in $installname.  This will allow you to make changes to the assignments
 							without affecting the original course, and will ensure your student records are housed in your own
 							$installname course.</p>";
-						if (count($othercourses)>0) {
+						if (count($othercourses)>0 && !$blockLTICopyOfCopies) {
 							echo "<ul class=nomark><li><input name=\"docoursecopy\" type=\"radio\" value=\"makecopy\" />Create a copy of the original course (ID $aidsourcecid) on $installname</li>";
 							echo '<li><input name="docoursecopy" type="radio" value="copyother" />Create a copy of another course: <select name="othercoursecid">';
 							foreach ($othercourses as $k=>$v) {
@@ -1110,14 +1117,15 @@ if ($stm->rowCount()==0) {
 			}
 			//DB $query = "INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES ";
 			//DB $query .= "('{$_SESSION['ltiorg']}','{$_SESSION['lti_context_id']}',$destcid)";
-			$query = "INSERT INTO imas_lti_courses (org,contextid,courseid,copiedfrom) VALUES ";
-			$query .= "(:org, :contextid, :courseid, :copiedfrom)";
+			$query = "INSERT INTO imas_lti_courses (org,contextid,courseid,copiedfrom,contextlabel) VALUES ";
+			$query .= "(:org, :contextid, :courseid, :copiedfrom, :contextlabel)";
 			$stm = $DBH->prepare($query);
 			$stm->execute(array(
 				':org'=>$_SESSION['ltiorg'], 
 				':contextid'=>$_SESSION['lti_context_id'], 
 				':courseid'=>$destcid,
-				':copiedfrom'=>($copycourse == "yes")?$sourcecid:0));
+				':copiedfrom'=>($copycourse == "yes")?$sourcecid:0,
+				':contextlabel'=>$_SESSION['lti_context_label']));
 		} else {
 			//DB $destcid = mysql_result($result,0,0);
 			list($destcid, $copiedfromcid) = $stm->fetch(PDO::FETCH_NUM);
@@ -1125,6 +1133,7 @@ if ($stm->rowCount()==0) {
 		if ($destcid==$aidsourcecid) {
 			//aid is in destination course - just make placement
 			$aid = $_SESSION['place_aid'];
+			//echo "here 1: $aid";
 		} else {
 			$foundaid = false;
 			$aidtolookfor = intval($_SESSION['place_aid']);
@@ -1135,6 +1144,7 @@ if ($stm->rowCount()==0) {
 				$stm->execute(array(':ancestors'=>$anregex, ':destcid'=>$destcid));
 				if ($stm->rowCount()>0) {
 					$aid = $stm->fetchColumn(0);
+					//echo "here 2: $aid";
 					$foundaid = true;
 					//echo "found 1";
 					//exit;
@@ -1162,6 +1172,7 @@ if ($stm->rowCount()==0) {
 					if ($foundsubaid) {
 						$aid = $aidtolookfor;
 						$foundaid = true;
+						//echo "here 3: $aid";
 						//echo "found 2";
 						//exit;
 					}
@@ -1175,6 +1186,7 @@ if ($stm->rowCount()==0) {
 				if (count($res)==1) {  //only one result - we found it
 					$aid = $res[0]['id'];
 					$foundaid = true;
+					//echo "here 4: $aid";
 					//echo "found 3";
 					//exit;
 				}
@@ -1184,6 +1196,7 @@ if ($stm->rowCount()==0) {
 						if ($row['name']==$aidsourcename) {
 							$aid = $row['id'];
 							$foundaid = true;
+							//echo "here 5: $aid";
 							//echo "found 4";
 							//exit;
 							break;
@@ -1193,6 +1206,7 @@ if ($stm->rowCount()==0) {
 				if (!$foundaid && count($res)>0) { //no name match. pick the one with the assessment closest to the start
 					usort($res, function($a,$b) { return $a['loc'] - $b['loc'];});
 					$aid = $res[0]['id'];
+					//echo "here 6: $aid";
 					$foundaid = true;
 					//echo "found 5";
 					//exit;
@@ -1206,6 +1220,7 @@ if ($stm->rowCount()==0) {
 				$stm->execute(array(':name'=>$aidsourcename, ':courseid'=>$destcid));
 				if ($stm->rowCount()>0) {
 					$aid = $stm->fetchColumn(0);
+					//echo "here 7: $aid";
 				} else {
 					// no assessment with same title - need to copy assessment from destination to source course
 					require_once("includes/copyiteminc.php");
@@ -1217,6 +1232,7 @@ if ($stm->rowCount()==0) {
 					if ($stm->rowCount()==0) {
 						reporterror("Error.  Assessment ID '{$_SESSION['place_aid']}' not found.");
 					}
+					$sourceitemid = $stm->fetchColumn(0);
 					$cid = $destcid;
 					
 					$stm = $DBH->prepare("SELECT itemorder,dates_by_lti FROM imas_courses WHERE id=:id");
@@ -1225,7 +1241,7 @@ if ($stm->rowCount()==0) {
 					$items = unserialize($items);
 					
 					//DB $newitem = copyitem(mysql_result($result,0,0),array());
-					$newitem = copyitem($stm->fetchColumn(0),array());
+					$newitem = copyitem($sourceitemid,array());
 
 					//DB $query = "SELECT typeid FROM imas_items WHERE id=$newitem";
 					//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
@@ -1240,7 +1256,7 @@ if ($stm->rowCount()==0) {
 					//DB mysql_query($query) or die("Query failed : " . mysql_error());
 					$stm = $DBH->prepare("UPDATE imas_courses SET itemorder=:itemorder WHERE id=:id");
 					$stm->execute(array(':itemorder'=>$items, ':id'=>$cid));
-
+					//echo "here 8: $aid";
 				}
 			}
 		}
@@ -1303,8 +1319,12 @@ if ($_SESSION['lti_keytype']=='cc-of') {
 			if ($stm->rowCount()>0) {
 				//DB $query = "INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES ";
 				//DB $query .= "('{$_SESSION['ltiorg']}','{$_SESSION['lti_context_id']}',$linkcid)";
-				$stm = $DBH->prepare("INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES (:org, :contextid, :courseid)");
-				$stm->execute(array(':org'=>$_SESSION['ltiorg'], ':contextid'=>$_SESSION['lti_context_id'], ':courseid'=>$linkcid));
+				$stm = $DBH->prepare("INSERT INTO imas_lti_courses (org,contextid,courseid,contextlabel) VALUES (:org, :contextid, :courseid, :contextlabel)");
+				$stm->execute(array(
+					':org'=>$_SESSION['ltiorg'], 
+					':contextid'=>$_SESSION['lti_context_id'], 
+					':courseid'=>$linkcid,
+					':contextlabel'=>$_SESSION['lti_context_label']));
 			} else {
 				reporterror("You are not an instructor on the course and folder this link is pointing to. Auto-copying is not currently supported for folder-level links.");
 			}
@@ -1343,7 +1363,8 @@ if ($linkparts[0]=='cid') {
 	$stm->execute(array(':id'=>$aid));
 	$line = $stm->fetch(PDO::FETCH_ASSOC);
 	if ($line===false) {
-		reporterror("This assignment does not appear to exist anymore");
+		$diaginfo = "(Debug info: 3-$aid)";
+		reporterror("This assignment does not appear to exist anymore. $diaginfo");
 	}
 	$cid = $line['courseid'];
 	if (isset($_SESSION['lti_duedate']) && ($line['date_by_lti']==1 || $line['date_by_lti']==2)) {
@@ -1356,6 +1377,21 @@ if ($linkparts[0]=='cid') {
 		$stm = $DBH->prepare("UPDATE imas_assessments SET enddate=:enddate,date_by_lti=:datebylti WHERE id=:id");
 		$stm->execute(array(':enddate'=>$_SESSION['lti_duedate'], ':datebylti'=>$newdatebylti, ':id'=>$aid));
 		$line['enddate'] = $_SESSION['lti_duedate'];
+	}
+	if (!isset($_SESSION['lti_duedate']) && $line['date_by_lti']==1) {
+		//assessment is set to use dates sent by LTI, but none was sent.  Give error for instructor.
+		if ($_SESSION['ltirole'] == 'instructor') {
+			$err = 'Your '.$installname.' course is set to use dates sent by the LMS, but the LMS did not send a date. ';
+			$err .= 'Your "App Config" may be old and not contain the necessary info. ';
+			$err .= 'In Canvas, go to Settings -> Apps -> View App Configurations ';
+			$err .= 'and edit the '.$installname.' app. (If you cannot edit it, you may have to ask your ';
+			$err .= 'Canvas admin to edit the app). In the "Custom Fields" box, ';
+			$err .= 'enter this: canvas_assignment_due_at=$Canvas.assignment.dueAt.iso8601';
+			reporterror($err);
+		} else {
+			$err = 'Tell your teacher that Canvas is not sending due dates.';
+			reporterror($err);
+		}
 	}
 	
 	if ($_SESSION['ltirole']!='instructor') {
@@ -1386,7 +1422,7 @@ if ($linkparts[0]=='cid') {
 			$useexception = $exceptionfuncs->getCanUseAssessException($exceptionrow, $line, true);
 		} else if ($line['date_by_lti']==3 && $line['enddate']!=$_SESSION['lti_duedate']) {
 			//default dates already set by LTI, and users's date doesn't match - create new exception
-			$exceptionrow = array($now, $_SESSION['lti_duedate'], 0, 1);
+			$exceptionrow = array(min($now,$_SESSION['lti_duedate']), $_SESSION['lti_duedate'], 0, 1);
 			$stm = $DBH->prepare("INSERT INTO imas_exceptions (startdate,enddate,islatepass,is_lti,userid,assessmentid,itemtype) VALUES (?,?,?,?,?,?,'A')");
 			$stm->execute(array_merge($exceptionrow, array($userid, $aid)));
 			$useexception = true;
@@ -1537,7 +1573,7 @@ if ($stm->rowCount()>0) {	//check that same userid, and that we're not jumping o
 		session_start();
 		session_regenerate_id();
 		$sessionid = session_id();
-		setcookie(session_name(),session_id());
+		setcookie(session_name(),session_id(),0,'','',false,true );
 		$sessiondata = array();
 		$createnewsession = true;
 	} else {
@@ -1743,9 +1779,10 @@ if (isset($_GET['launch'])) {
 		$stm = $DBH->prepare("SELECT courseid FROM imas_assessments WHERE id=:id");
 		$stm->execute(array(':id'=>$aid));
 		$cid = $stm->fetchColumn(0);
-    if ($cid===false) {
-      reporterror("This assignment does not appear to exist anymore");
-    }
+		if ($cid===false) {
+			$diaginfo = "(Debug info: 4-$aid)";
+			reporterror("This assignment does not appear to exist anymore. $diaginfo");
+		}
 		if ($sessiondata['ltirole'] == 'learner') {
 			//DB $query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime,info) VALUES ";
 			//DB $query .= "('$userid','$cid','assesslti','$aid',$now,'')";
@@ -1795,7 +1832,7 @@ if (isset($_GET['launch'])) {
 	$nologo = true;
 	$placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/jstz_min.js\" ></script>";
 	require("header.php");
-	echo "<h4>Connecting to $installname</h4>";
+	echo "<h3>Connecting to $installname</h3>";
 	echo "<form id=\"postbackform\" method=\"post\" action=\"".$imasroot."/bltilaunch.php?launch=true\" ";
 	if ($sessiondata['ltiitemtype']==0 && $sessiondata['ltitlwrds'] != '') {
 		echo "onsubmit='return confirm(\"This assessment has a time limit of ".Sanitize::encodeStringForDisplay($sessiondata['ltitlwrds']).".  Click OK to start or continue working on the assessment.\")' >";
@@ -2103,7 +2140,7 @@ if (isset($_GET['launch'])) {
 		session_regenerate_id();
 		$sessionid = session_id();
 		$_SESSION = array();
-		setcookie(session_name(),session_id());
+		setcookie(session_name(),session_id(),0,'','',false,true );
 	}
 
 	/*if (empty($_REQUEST['roles'])) {
@@ -2160,9 +2197,10 @@ if (isset($_GET['launch'])) {
 			$stm = $DBH->prepare("SELECT courseid FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>$placeaid));
 			$sourcecid = $stm->fetchColumn(0);
-      if ($sourcecid===false) {
-        reporterror("This assignment does not appear to exist anymore");
-      }
+			if ($sourcecid===false) {
+				$diaginfo = "(Debug info: 5-$placeaid)";
+				reporterror("This assignment does not appear to exist anymore. $diaginfo");
+			}
 			if ($keyparts[1]==$sourcecid) { //is key is for source course; treat like aid_### placement
 				$keyparts[0] = 'aid';
 				$keyparts[1] = $placeaid;
@@ -2205,9 +2243,10 @@ if (isset($_GET['launch'])) {
 			$stm = $DBH->prepare("SELECT courseid FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>$placeaid));
 			$sourcecid = $stm->fetchColumn(0);
-      if ($sourcecid===false) {
-        reporterror("This assignment does not appear to exist anymore");
-      }
+			if ($sourcecid===false) {
+				$diaginfo = "(Debug info: 6-$placeaid)";
+				reporterror("This assignment does not appear to exist anymore. $diaginfo");
+			}
 			$_SESSION['place_aid'] = array($sourcecid,$_REQUEST['custom_place_aid']);
 		} else if (isset($_REQUEST['custom_view_folder'])) {
 			$keytype = 'cc-vf';
@@ -2394,7 +2433,7 @@ if (((count($keyparts)==1 || $_SESSION['lti_keytype']=='gc') && $_SESSION['ltiro
 	//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 	//DB if (mysql_num_rows($result)==0) {
 	$query = "SELECT placementtype,typeid FROM imas_lti_placements WHERE ";
-	$query .= "contextid=:contextid AND linkid=:linkid AND org LIKE :org";
+	$query .= "contextid=:contextid AND linkid=:linkid AND typeid>0 AND org LIKE :org";
 	$stm = $DBH->prepare($query);
 	$stm->execute(array(':contextid'=>$_SESSION['lti_context_id'], ':linkid'=>$_SESSION['lti_resource_link_id'], ':org'=>"$shortorg:%"));
 	if ($stm->rowCount()==0) {
@@ -2457,17 +2496,24 @@ if (((count($keyparts)==1 || $_SESSION['lti_keytype']=='gc') && $_SESSION['ltiro
 					//DB $query = "INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES ";
 					//DB $query .= "('{$_SESSION['ltiorg']}','{$_SESSION['lti_context_id']}',$destcid)";
 					//DB mysql_query($query) or die("Query failed : " . mysql_error());
-					$stm = $DBH->prepare("INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES (:org, :contextid, :courseid)");
-					$stm->execute(array(':org'=>$_SESSION['ltiorg'], ':contextid'=>$_SESSION['lti_context_id'], ':courseid'=>$destcid));
+					$stm = $DBH->prepare("INSERT INTO imas_lti_courses (org,contextid,courseid,contextlabel) VALUES (:org, :contextid, :courseid, :contextlabel)");
+					$stm->execute(array(
+						':org'=>$_SESSION['ltiorg'], 
+						':contextid'=>$_SESSION['lti_context_id'], 
+						':courseid'=>$destcid,
+						':contextlabel'=>$_SESSION['lti_context_label']));
+
 				} else if ($_SESSION['lti_keytype']=='cc-c') {
 					$copyaid = true;
 					//link up key/secret course
-					//DB $query = "INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES ";
-					//DB $query .= "('{$_SESSION['ltiorg']}','{$_SESSION['lti_context_id']}','{$keyparts[1]}')";
-					//DB mysql_query($query) or die("Query failed : " . mysql_error());
-					$stm = $DBH->prepare("INSERT INTO imas_lti_courses (org,contextid,courseid) VALUES (:org, :contextid, :courseid)");
-					$stm->execute(array(':org'=>$_SESSION['ltiorg'], ':contextid'=>$_SESSION['lti_context_id'], ':courseid'=>$keyparts[1]));
 					$destcid = $keyparts[1];
+					$stm = $DBH->prepare("INSERT INTO imas_lti_courses (org,contextid,courseid,contextlabel) VALUES (:org, :contextid, :courseid, :contextlabel)");
+					$stm->execute(array(
+						':org'=>$_SESSION['ltiorg'], 
+						':contextid'=>$_SESSION['lti_context_id'], 
+						':courseid'=>$destcid,
+						':contextlabel'=>$_SESSION['lti_context_label']));
+
 				}
 			} else {
 				//DB $destcid = mysql_result($result,0,0);
@@ -2589,9 +2635,10 @@ if ($keyparts[0]=='cid' || $keyparts[0]=='placein' || $keyparts[0]=='LTIkey') {
 	$stm = $DBH->prepare("SELECT courseid,startdate,enddate,reviewdate,avail,ltisecret,allowlate FROM imas_assessments WHERE id=:id");
 	$stm->execute(array(':id'=>$aid));
 	$line = $stm->fetch(PDO::FETCH_ASSOC);
-  if ($line===false) {
-    reporterror("This assignment does not appear to exist anymore");
-  }
+	if ($line===false) {
+		$diaginfo = "(Debug info: 7-$aid)";
+		reporterror("This assignment does not appear to exist anymore. $diaginfo");
+	}
 	$cid = $line['courseid'];
 	if ($_SESSION['ltirole']!='instructor') {
 		//if ($line['avail']==0 || $now>$line['enddate'] || $now<$line['startdate']) {
@@ -2775,7 +2822,7 @@ if ($stm->rowCount()>0) {
 		session_start();
 		session_regenerate_id();
 		$sessionid = session_id();
-		setcookie(session_name(),session_id());
+		setcookie(session_name(),session_id(),0,'','',false,true );
 		$sessiondata = array();
 		$createnewsession = true;
 	} else {

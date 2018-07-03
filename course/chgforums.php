@@ -206,7 +206,7 @@ if (isset($_POST['checked'])) { //form submitted
 		}
 
 	}
-	header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=$cid");
+	header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=$cid&r=" . Sanitize::randomQueryStringParam());
 	exit;
 }
 
@@ -311,7 +311,7 @@ require("../header.php");
 
 echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=".Sanitize::courseId($_GET['cid'])."\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 echo "&gt; Mass Change Forums</div>";
-echo '<div id="headerchgforums" class="pagetitle"><h2>Mass Change Forums</h2></div>';
+echo '<div id="headerchgforums" class="pagetitle"><h1>Mass Change Forums</h1></div>';
 
 echo "<form id=\"mainform\" method=post action=\"chgforums.php?cid=$cid\" onsubmit=\"return valform();\">";
 

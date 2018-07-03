@@ -37,6 +37,7 @@ require_once("includes/sanitize.php");
 		$_POST['email'] = Sanitize::emailAddress(trim($_POST['email']));
 		$_POST['firstname'] = Sanitize::stripHtmlTags(trim($_POST['firstname']));
 		$_POST['lastname'] = Sanitize::stripHtmlTags(trim($_POST['lastname']));
+		$_POST['courseid'] = Sanitize::courseId(trim($_POST['courseid']));
 
 		$error .= checkNewUserValidation();
 
@@ -45,7 +46,7 @@ require_once("includes/sanitize.php");
 			if ($gb == '') {
 				echo "<div class=breadcrumb><a href=\"index.php\">Home</a> &gt; New User Signup</div>\n";
 			}
-			echo '<div id="headerforms" class="pagetitle"><h2>New User Signup</h2></div>';
+			echo '<div id="headerforms" class="pagetitle"><h1>New User Signup</h1></div>';
 			echo $error;
 			echo '<p><a href="forms.php?action=newuser">Try Again</a></p>';
 			require("footer.php");
@@ -69,7 +70,7 @@ require_once("includes/sanitize.php");
 			$homelayout = '|0,1,2||0,1';
 		}
 		if (isset($_POST['courseselect']) && $_POST['courseselect']>0) {
-			$_POST['courseid'] = $_POST['courseselect'];
+			$_POST['courseid'] = Sanitize::courseId(trim($_POST['courseselect']));
 			$_POST['ekey'] = '';
 		}
 		if (!isset($_GET['confirmed'])) {
@@ -126,7 +127,7 @@ require_once("includes/sanitize.php");
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 			$headers .= "From: $sendfrom\r\n";
-			$message  = "<h4>This is an automated message from $installname.  Do not respond to this email</h4>\r\n";
+			$message  = "<h3>This is an automated message from $installname.  Do not respond to this email</h3>\r\n";
 			$message .= "<p>To complete your $installname registration, please click on the following link, or copy ";
 			$message .= "and paste it into your webbrowser:</p>\r\n";
 			$message .= "<a href=\"" . $GLOBALS['basesiteurl'] . "/actions.php?action=confirm&id=$id\">";
@@ -136,7 +137,7 @@ require_once("includes/sanitize.php");
 			if ($gb == '') {
 				echo "<div class=breadcrumb><a href=\"index.php\">Home</a> &gt; New User Signup</div>\n";
 			}
-			echo '<div id="headerforms" class="pagetitle"><h2>New User Signup</h2></div>';
+			echo '<div id="headerforms" class="pagetitle"><h1>New User Signup</h1></div>';
 			echo "Registration recorded.  You should shortly receive an email with confirmation instructions.";
 			echo "<a href=\"$imasroot/index.php\">Back to main login page</a>\n";
 			require("footer.php");
@@ -146,7 +147,7 @@ require_once("includes/sanitize.php");
 			$pagetitle = 'Account Created';
 			require("header.php");
 			echo "<div class=breadcrumb><a href=\"index.php\">Home</a> &gt; New User Signup</div>\n";
-			echo '<div id="headerforms" class="pagetitle"><h2>New User Signup</h2></div>';
+			echo '<div id="headerforms" class="pagetitle"><h1>New User Signup</h1></div>';
 			echo "<p>Your account with username <b>" . Sanitize::encodeStringForDisplay($_POST['SID']) . "</b> has been created.  If you forget your password, you can ask your ";
 			echo "instructor to reset your password or use the forgotten password link on the login page.</p>\n";
 			if (trim($_POST['courseid'])!='') {
@@ -229,7 +230,7 @@ require_once("includes/sanitize.php");
 
 		$query = "UPDATE imas_users SET rights=10 WHERE id=:id AND rights=0";
 		$stm = $DBH->prepare($query);
-		$stm->execute(array(':id'=>$_GET['id']));
+		$stm->execute(array(':id'=>Sanitize::onlyInt($_GET['id'])));
 
 		if ($stm->rowCount()>0) {
 			require("header.php");
@@ -270,7 +271,7 @@ require_once("includes/sanitize.php");
 				$headers  = 'MIME-Version: 1.0' . "\r\n";
 				$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 				$headers .= "From:".$sendfrom."\r\n";
-				$message  = "<h4>This is an automated message from $installname.  Do not respond to this email</h4>\r\n";
+				$message  = "<h3>This is an automated message from $installname.  Do not respond to this email</h3>\r\n";
 				$message .= "<p>Your username was entered in the Reset Password page.  If you did not do this, you may ignore and delete this message. ";
 				$message .= "If you did request a password reset, click the link below, or copy and paste it into your browser's address bar.  You ";
 				$message .= "will then be prompted to choose a new password.</p>";
@@ -294,7 +295,7 @@ require_once("includes/sanitize.php");
 				echo "Invalid Username.  <a href=\"index.php$gb\">Try again</a>";
 				exit;
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/index.php");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/index.php?r=" . Sanitize::randomQueryStringParam());
 		} else if (isset($_POST['pw1'])) {
 			if ($_POST['pw1']!=$_POST['pw2']) {
 				echo 'Passwords do not match.  <a href="forms.php?action=resetpw&code='.Sanitize::encodeUrlParam($_POST['code'])
@@ -334,7 +335,7 @@ require_once("includes/sanitize.php");
 			exit;
 		} else if (isset($_GET['code'])) {
 			//moved to forms.php - keep redirect for to keep old links working for now.
-			header('Location: ' . $GLOBALS['basesiteurl'] . '/action=resetpw&id='.Sanitize::onlyInt($_GET['id']).'&code='.Sanitize::encodeUrlParam($code));
+			header('Location: ' . $GLOBALS['basesiteurl'] . '/action=resetpw&id='.Sanitize::onlyInt($_GET['id']).'&code='.Sanitize::encodeUrlParam($code) . "&r=" . Sanitize::randomQueryStringParam());
 		}
 	} else if ($_GET['action']=="lookupusername") {
 		require_once("init_without_validate.php");
@@ -351,7 +352,7 @@ require_once("includes/sanitize.php");
 			$headers  = 'MIME-Version: 1.0' . "\r\n";
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 			$headers .= "From: $sendfrom\r\n";
-			$message  = "<h4>This is an automated message from $installname.  Do not respond to this email</h4>\r\n";
+			$message  = "<h3>This is an automated message from $installname.  Do not respond to this email</h3>\r\n";
 			$message .= "<p>Your email was entered in the Username Lookup page on $installname.  If you did not do this, you may ignore and delete this message.  ";
 			$message .= "All usernames using this email address are listed below</p><p>";
 			//DB while ($row = mysql_fetch_row($result)) {
@@ -411,7 +412,7 @@ require_once("includes/sanitize.php");
 		$stm->execute(array($sessionid));
 		$_SESSION = array();
 		if (isset($_COOKIE[session_name()])) {
-			setcookie(session_name(), '', time()-42000, '/');
+			setcookie(session_name(), '', time()-42000, '/', null, false, true);
 		}
 		session_destroy();
 	} else if ($_GET['action']=="chgpwd" || $_GET['action']=="forcechgpwd") {
@@ -448,7 +449,7 @@ require_once("includes/sanitize.php");
 		if ($gb == '') {
 			$pagetopper .= "<div class=breadcrumb><a href=\"index.php\">Home</a> &gt; Enroll in a Course</div>\n";
 		}
-		$pagetopper .= '<div id="headerforms" class="pagetitle"><h2>Enroll in a Course</h2></div>';
+		$pagetopper .= '<div id="headerforms" class="pagetitle"><h1>Enroll in a Course</h1></div>';
 		if ($_POST['cid']=="" || !is_numeric($_POST['cid'])) {
 			require("header.php");
 			echo $pagetopper;
@@ -570,7 +571,7 @@ require_once("includes/sanitize.php");
 		}
 	} else if ($_POST['action']=="unenroll") {
 		if ($myrights < 6) {
-			echo "<html><body>\nError: Guests can't unenroll from courses</body></html";
+			echo "<html><body>\nError: Guests can't unenroll from courses</body></html>";
 			exit;
 		}
 		if (!isset($_GET['cid'])) {
@@ -653,7 +654,7 @@ require_once("includes/sanitize.php");
 		if ($gb == '') {
 			$pagetopper .= "<div class=breadcrumb><a href=\"index.php\">Home</a> &gt; Modify User Profile</div>\n";
 		}
-		$pagetopper .= '<div id="headerforms" class="pagetitle"><h2>Modify User Profile</h2></div>';
+		$pagetopper .= '<div id="headerforms" class="pagetitle"><h1>Modify User Profile</h1></div>';
 		require('includes/userpics.php');
 		if (isset($_POST['msgnot'])) {
 			$msgnot = 1;
@@ -790,7 +791,7 @@ require_once("includes/sanitize.php");
 	if ($isgb) {
 		echo '<html><body>Changes Recorded.  <input type="button" onclick="parent.GB_hide()" value="Done" /></body></html>';
 	} else {
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/index.php");
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/index.php?r=" . Sanitize::randomQueryStringParam());
 	}
 
 

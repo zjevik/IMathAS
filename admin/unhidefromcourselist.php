@@ -18,13 +18,14 @@ if ($type=='teach') {
 	$type = 'take';
 }
 $actionuserid = $userid;
-if ($myrights==100 && isset($_GET['user'])) {
-	$actionuserid = Sanitize::onlyInt($_GET['user']);
-} else if ($myrights>=75 && isset($_GET['user'])) {
+$userIdInt = Sanitize::onlyInt(trim($_GET['user']));
+ if ($myrights==100 && !empty($userIdInt)) {
+	$actionuserid = $userIdInt;
+} else if ($myrights>=75 && !empty($userIdInt)) {
 	$stm = $DBH->prepare("SELECT groupid FROM imas_users WHERE id=:id");
-	$stm->execute(array(':id'=>$_GET['user']));
+	$stm->execute(array(':id'=>$userIdInt));
 	if ($groupid==$stm->fetchColumn(0)) {
-		$actionuserid = Sanitize::onlyInt($_GET['user']);
+		$actionuserid = $userIdInt;
 	}
 }
 if (isset($_GET['tohide'])) {
@@ -49,7 +50,7 @@ $curBreadcrumb = "$breadcrumbbase Unhide Courses\n";
 require("../header.php");
 
 echo '<div class=breadcrumb>'.$curBreadcrumb.'</div>';
-echo '<h2>View Hidden Courses You\'re '.$typename.'</h2>';
+echo '<h1>View Hidden Courses You\'re '.$typename.'</h1>';
 
 
 

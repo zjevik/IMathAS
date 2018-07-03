@@ -30,7 +30,7 @@ $now = time();
 $defsdate = tzdate('n/j/Y', $now);
 $defedate = tzdate('n/j/Y', $now+7*24*60*60);
 
-$placeinhead .= '<script src="https://cdn.jsdelivr.net/npm/vue@2.5.6/dist/vue.min.js"></script>';
+$placeinhead .= '<script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>';
 $placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/DatePicker.js\"></script>";
 $placeinhead .= '<style type="text/css">
  [v-cloak] { display: none;}
@@ -65,7 +65,7 @@ $curBreadcrumb .= "&gt; <a href=\"coursereports.php?cid=$cid\">Course Reports</a
 
 require("../header.php");
 echo '<div class="breadcrumb">'. $curBreadcrumb . '&gt; '.$pagetitle.'</div>';
-echo '<div class="pagetitle"><h2>'.$pagetitle.'</h2></div>';
+echo '<div class="pagetitle"><h1>'.$pagetitle.'</h1></div>';
 
 ?>
 
@@ -201,7 +201,7 @@ echo '<div class="pagetitle"><h2>'.$pagetitle.'</h2></div>';
 
 <div v-if="resultMessage!=''">{{resultMessage}}</div>
 <div v-if="resultRuleSet!=-1">
-	<h3>Student Groupings: {{ ruleSets[resultRuleSet].name }}</h3>
+	<h2>Student Groupings: {{ ruleSets[resultRuleSet].name }}</h2>
 	<div v-for="(rule,index) in ruleSets[resultRuleSet].rules">
 		<p>Students {{ rulePhrases[index] }}
 		<span v-if="results[index].length>0">
@@ -325,7 +325,7 @@ var app = new Vue({
 		editingRuleSet: -1,
 		allRules: [],
 		curRuleSetName: '',
-		ruleSets: <?php echo json_encode($rulesets); ?>,
+		ruleSets: <?php echo json_encode($rulesets, JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS); ?>,
 		currentRule: {
 			ruleType: 'none',
 			abovebelow: 0,

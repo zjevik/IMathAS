@@ -219,42 +219,78 @@ switch($_POST['action']) {
 			$stm->execute(array(':password'=>$md5pw, ':id'=>$_GET['id']));
 		}
 		break;
+	case "anonuser":
+		if ($myrights < 100) { echo "You don't have the authority for this action"; break;}
+		$deluid = Sanitize::onlyInt($_GET['id']);
+		$v = uniqid('anon');
+		$newemail = Sanitize::emailAddress($_POST['anonemail']);
+		if ($_POST['anontype']=='full') {
+			$query = "UPDATE imas_users SET FirstName=?,LastName=?,email=?,SID=?,password=?,msgnotify=0 WHERE id=?"; 
+			$qarr = array($v, $v, $newemail, $v, $v, $deluid);
+		} else {
+			$query = "UPDATE imas_users SET email=?,SID=?,password=?,msgnotify=0 WHERE id=?"; 
+			$qarr = array($newemail, $v, $v, $deluid);
+		}
+		$stm = $DBH->prepare($query);
+		$stm->execute($qarr);
+		break;
 	case "deladmin":
 		if ($myrights < 75) { echo "You don't have the authority for this action"; break;}
+		$deluid = Sanitize::onlyInt($_GET['id']);
 		if ($myrights < 100) {
 			$stm = $DBH->prepare("DELETE FROM imas_users WHERE id=:id AND groupid=:groupid AND rights<100");
-			$stm->execute(array(':id'=>$_GET['id'], ':groupid'=>$groupid));
+			$stm->execute(array(':id'=>$deluid, ':groupid'=>$groupid));
 		} else {
 			$stm = $DBH->prepare("DELETE FROM imas_users WHERE id=:id");
-			$stm->execute(array(':id'=>$_GET['id']));
+			$stm->execute(array(':id'=>$deluid));
 		}
 		if ($stm->rowCount()==0) { break;}
-		$stm = $DBH->prepare("DELETE FROM imas_user_prefs WHERE userid=:userid");
-		$stm->execute(array(':userid'=>$_GET['id']));
-		$stm = $DBH->prepare("DELETE FROM imas_students WHERE userid=:userid");
-		$stm->execute(array(':userid'=>$_GET['id']));
-		$stm = $DBH->prepare("DELETE FROM imas_teachers WHERE userid=:userid");
-		$stm->execute(array(':userid'=>$_GET['id']));
-		$stm = $DBH->prepare("DELETE FROM imas_tutors WHERE userid=:userid");
-		$stm->execute(array(':userid'=>$_GET['id']));
-		$stm = $DBH->prepare("DELETE FROM imas_assessment_sessions WHERE userid=:userid");
-		$stm->execute(array(':userid'=>$_GET['id']));
-		$stm = $DBH->prepare("DELETE FROM imas_exceptions WHERE userid=:userid");
-		$stm->execute(array(':userid'=>$_GET['id']));
+		$toDelTable = array('user_prefs', 'students', 'teachers', 'tutors',
+			'assessment_sessions', 'exceptions', 'bookmarks', 'content_track', 
+			'forum_views', 'forum_subscriptions', 'grades', 'ltiusers', 'stugroupmembers');
+		foreach ($toDelTable as $table) {
+			$stm = $DBH->prepare("DELETE FROM imas_$table WHERE userid=:userid");
+			$stm->execute(array(':userid'=>$deluid));
+		}
 
+		$stm = $DBH->prepare("DELETE FROM imas_diags WHERE ownerid=:userid");
+		$stm->execute(array(':userid'=>$deluid));
+		$stm = $DBH->prepare("DELETE FROM imas_rubrics WHERE ownerid=:userid AND groupid=-1");
+		$stm->execute(array(':userid'=>$deluid));
+		//soft-delete courses
+		$stm = $DBH->prepare("UPDATE imas_courses SET available=4 WHERE ownerid=:userid");
+		$stm->execute(array(':userid'=>$deluid));
+		
+		//leave any forum posts and wiki revisions - don't want to break anything
+		
 		$stm = $DBH->prepare("DELETE FROM imas_msgs WHERE msgto=:msgto AND isread>1");
-		$stm->execute(array(':msgto'=>$_GET['id']));
+		$stm->execute(array(':msgto'=>$deluid));
 		$stm = $DBH->prepare("UPDATE imas_msgs SET isread=isread+2 WHERE msgto=:msgto AND isread<2");
-		$stm->execute(array(':msgto'=>$_GET['id']));
+		$stm->execute(array(':msgto'=>$deluid));
 		$stm = $DBH->prepare("DELETE FROM imas_msgs WHERE msgfrom=:msgfrom AND isread>1");
-		$stm->execute(array(':msgfrom'=>$_GET['id']));
+		$stm->execute(array(':msgfrom'=>$deluid));
 		$stm = $DBH->prepare("UPDATE imas_msgs SET isread=isread+4 WHERE msgfrom=:msgfrom AND isread<2");
-		$stm->execute(array(':msgfrom'=>$_GET['id']));
-		//todo: delete user picture files
-		//todo: delete user file uploads
+		$stm->execute(array(':msgfrom'=>$deluid));
+		
 		require_once("../includes/filehandler.php");
-		deletealluserfiles($_GET['id']);
-		//todo: delete courses if any
+		//delete profile pics
+		deletecoursefile('userimg_'.$deluid.'.jpg');
+		deletecoursefile('userimg_sm'.$deluid.'.jpg');
+		//delete all user uploads
+		deletealluserfiles($deluid);
+		//change owner of libraries and questions
+		if (!empty($_POST['transferto'])) {
+			$dest_uid = Sanitize::onlyInt($_POST['transferto']);
+			$stm = $DBH->prepare("SELECT groupid FROM imas_users WHERE id=?");
+			$stm->execute(array($dest_uid));
+			$dest_groupid = $stm->fetchColumn(0);
+			$stm = $DBH->prepare("UPDATE imas_questionset SET ownerid=? WHERE ownerid=?");
+			$stm->execute(array($dest_uid, $deluid));
+			$stm = $DBH->prepare("UPDATE imas_libraries SET ownerid=?,groupid=? WHERE ownerid=?");
+			$stm->execute(array($dest_uid, $dest_groupid, $deluid));
+			$stm = $DBH->prepare("UPDATE imas_library_items SET ownerid=? WHERE ownerid=?");
+			$stm->execute(array($dest_uid, $deluid));
+		}
 		break;
 	case "newadmin":
 		if ($myrights < 75 && ($myspecialrights&16)!=16 && ($myspecialrights&32)!=32) { echo "You don't have the authority for this action"; break;}
@@ -353,7 +389,8 @@ switch($_POST['action']) {
 		$stm->execute(array(':sessionid'=>$sessionid));
 		$_SESSION = array();
 		if (isset($_COOKIE[session_name()])) {
-			setcookie(session_name(), '', time()-42000, '/');
+			setcookie(session_name(), '', time()-42000, '/', '',false ,true );
+
 		}
 		session_destroy();
 		break;
@@ -484,6 +521,13 @@ switch($_POST['action']) {
 		} else if (($old_istemplate&1)==1) {
 			$istemplate |= 1;
 		}
+		if (($myspecialrights&2)==2 || $myrights==100) {
+			if (isset($_POST['issupergrptemplate'])) {
+				$istemplate |= 32;
+			}
+		} else if (($old_istemplate&32)==32) {
+			$istemplate |= 32;
+		}
 		if ($myrights==100) {
 			if (isset($_POST['isselfenroll'])) {
 				$istemplate |= 4;
@@ -496,17 +540,16 @@ switch($_POST['action']) {
 			$CFG['coursebrowserRightsToPromote'] = 40;
 		}
 		$updateJsonData = false;
+		$jsondata = json_decode($old_jsondata, true);
+		if ($jsondata===null) {
+			$jsondata = array();
+		}
 		if ($CFG['coursebrowserRightsToPromote']>$myrights && ($old_istemplate&16)==16) {
 			$istemplate |= 16;
 		} else if (isset($_POST['promote']) && isset($_GET['id']) && $CFG['coursebrowserRightsToPromote']<=$myrights) {
 			$browserprops = json_decode(file_get_contents(__DIR__.'/../javascript/'.$CFG['coursebrowser'], false, null, 25), true);
 
 			$isok = ($copyrights>1);
-
-			$jsondata = json_decode($old_jsondata, true);
-			if ($jsondata===null) {
-				$jsondata = array();
-			}
 
 			$browserdata = array();
 			foreach ($browserprops as $propname=>$propvals) {
@@ -535,6 +578,16 @@ switch($_POST['action']) {
 				$updateJsonData = true;
 			}
 		}
+		if ($myrights>=75) {
+			if (!empty($jsondata['blockLTICopyOfCopies']) && !isset($_POST['blocklticopies'])) { //un-checked
+				$jsondata['blockLTICopyOfCopies'] = false;
+				$updateJsonData = true;
+			} else if (isset($_POST['blocklticopies'])) { //checking it
+				$jsondata['blockLTICopyOfCopies'] = true;
+				$updateJsonData = true;
+			}
+		}
+			
 		require_once("../includes/parsedatetime.php");
 		if (trim($_POST['sdate'])=='') {
 			$startdate = 0;
@@ -742,11 +795,22 @@ switch($_POST['action']) {
 				$stm = $DBH->prepare("UPDATE imas_assessments SET date_by_lti=1 WHERE date_by_lti=0 AND courseid=:cid");
 				$stm->execute(array(':cid'=>$cid));
 			}
+			/*
+			//add to top of course list (skip until we can do it consistently)
+			$stm = $DBH->prepare("SELECT jsondata FROM imas_users WHERE id=?");
+			$stm->execute(array($userid));
+			$user_jsondata = json_decode($stm->fetchColumn(0), true);
+			if ($user_jsondata !== null && isset($user_jsondata['courseListOrder']['teach'])) {
+				array_unshift($user_jsondata['courseListOrder']['teach'], $cid);
+				$stm = $DBH->prepare("UPDATE imas_users SET jsondata=? WHERE id=?");
+				$stm->execute(array(json_encode($user_jsondata), $userid));
+			}
+			*/
 			$DBH->commit();
 
 			require("../header.php");
 			echo '<div class="breadcrumb">'.$breadcrumbbase.' Course Creation Confirmation</div>';
-			echo '<h2>Your course has been created!</h2>';
+			echo '<h1>Your course has been created!</h1>';
 			echo '<p>For students to enroll in this course, you will need to provide them two things:<ol>';
 			echo '<li>The course ID: <b>'.$cid.'</b></li>';
 			if (trim($_POST['ekey'])=='') {
@@ -996,7 +1060,7 @@ switch($_POST['action']) {
 						} else if (strpos($buffer,"function")===0) {
 							$func = substr($buffer,9,strpos($buffer,"(")-9);
 							if ($comments!='') {
-								$outlines .= "<h3><a name=\"$func\">$func</a></h3>\n";
+								$outlines .= "<h2><a name=\"$func\">$func</a></h2>\n";
 								$funcs[] = $func;
 								$outlines .= $comments;
 								$comments = '';

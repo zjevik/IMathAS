@@ -11,11 +11,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=7, IE=Edge" />
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js" type="text/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js" type="text/javascript"></script>
 <script type="text/javascript">
   if (!window.jQuery) {  document.write('<script src="<?php echo $imasroot;?>/javascript/jquery.min.js"><\/script>');}
 </script>
-<link rel="stylesheet" href="<?php echo $imasroot . "/imascore.css?ver=031218";?>" type="text/css" />
+<link rel="stylesheet" href="<?php echo $imasroot . "/imascore.css?ver=060918";?>" type="text/css" />
 <?php
 if (isset($coursetheme)) {
 	if (isset($flexwidth) || isset($usefullwidth)) {
@@ -40,6 +40,9 @@ if (isset($CFG['GEN']['favicon'])) {
 } else {
 	echo '<link rel="shortcut icon" href="/favicon.ico" />';
 }
+if (!empty($CFG['use_csrfp']) && class_exists('csrfProtector')) {
+	echo csrfProtector::output_header_code();
+}
 ?>
 
 <!--[if lte IE 6]>
@@ -61,7 +64,7 @@ div.breadcrumb { display:none;}
 <script type="text/javascript">
 var imasroot = '<?php echo $imasroot; ?>'; var cid = <?php echo (isset($cid) && is_numeric($cid))?$cid:0; ?>;
 </script>
-<script type="text/javascript" src="<?php echo $imasroot;?>/javascript/general.js?v=022718"></script>
+<script type="text/javascript" src="<?php echo $imasroot;?>/javascript/general.js?v=060618"></script>
 <?php
 //$sessiondata['mathdisp'] = 3;
 //writesessiondata();
@@ -76,8 +79,16 @@ if (isset($ispublic) && $ispublic && !isset($sessiondata['mathdisp'])) {
 	$sessiondata['mathdisp'] = 1;
 	$sessiondata['graphdisp'] = 1;
 }
+if (isset($sessiondata['ltiitemtype']) && ($sessiondata['mathdisp']==1 || $sessiondata['mathdisp']==3)) {
+	echo '<script type="text/x-mathjax-config">
+		MathJax.Hub.Queue(function () {
+			sendLTIresizemsg();
+		});
+		MathJax.Hub.Register.MessageHook("End Process", sendLTIresizemsg);
+	     </script>';
+}
 if (!isset($sessiondata['mathdisp'])) {
-	echo '<script type="text/javascript">var AMnoMathML = true;var ASnoSVG = true;var AMisGecko = 0;var AMnoTeX = false;</script>';
+	echo '<script type="text/javascript">var AMnoMathML = true;var ASnoSVG = true;var AMisGecko = 0;var AMnoTeX = false;var mathrenderer="none";</script>';
 	//echo '<script type="text/javascript" src="'.$imasroot.'/mathjax/MathJax.js?config=AM_CHTML&rev=2.6.1"></script>';
 	echo '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=AM_CHTML-full"></script>';
 	echo "<script src=\"$imasroot/javascript/mathgraphcheck.js?v=021215\" type=\"text/javascript\"></script>\n";
@@ -85,7 +96,7 @@ if (!isset($sessiondata['mathdisp'])) {
 	//merged, eliminating original AsciiMath display; MathJax only now
 	if (isset($useeditor) && $sessiondata['useed']==1) {
 		echo '<script type="text/javascript">var AMTcgiloc = "'.$mathimgurl.'";</script>';
-		echo "<script src=\"$imasroot/javascript/ASCIIMathTeXImg_min.js?ver=021818\" type=\"text/javascript\"></script>\n";
+		echo "<script src=\"$imasroot/javascript/ASCIIMathTeXImg_min.js?ver=042418\" type=\"text/javascript\"></script>\n";
 	}
 	//Contrib not hosted in CDN yet
 	//MathJax.Hub.config.extensions.push("[Contrib]/InputToDataAttr/InputToDataAttr.js");
@@ -96,18 +107,18 @@ if (!isset($sessiondata['mathdisp'])) {
 		} else {
 			MathJax.Hub.Config({"HTML-CSS": {preferredFont: "STIX", webFont: "STIX-Web", imageFont:null}, "messageStyle": "none", asciimath2jax: {ignoreClass:"skipmathrender"}});
 		}
-		MathJax.Ajax.config.path["Local"] = "'.$imasroot.'/mathjax/extensions";
+		MathJax.Ajax.config.path["Local"] = "'.$imasroot.'/javascript/mathjax";
 		MathJax.Hub.config.extensions.push("[Local]/InputToDataAttrCDN.js");
 		</script>';
 	echo '<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=AM_CHTML-full"></script>';
 	//echo '<script>window.MathJax || document.write(\'<script src="'.$imasroot.'/mathjax/MathJax.js?config=AM_CHTML&rev=2.6.1"><\/script>\')</script>';
 	//echo '<script type="text/javascript" src="'.$imasroot.'/mathjax/MathJax.js?config=AM_CHTML&rev=2.7.0"></script>';
-	echo '<script type="text/javascript">noMathRender = false; var usingASCIIMath = true; var AMnoMathML = true; var MathJaxCompatible = true; function rendermathnode(node) { MathJax.Hub.Queue(["Typeset", MathJax.Hub, node]); }</script>';
+	echo '<script type="text/javascript">noMathRender = false; var usingASCIIMath = true; var AMnoMathML = true; var MathJaxCompatible = true;var mathrenderer="MathJax";function rendermathnode(node) { MathJax.Hub.Queue(["Typeset", MathJax.Hub, node]); }</script>';
 	echo '<style type="text/css">span.AM { font-size: 105%;}</style>';
 } else if ($sessiondata['mathdisp']==6) {
 	//Katex experimental
 	echo '<script type="text/javascript">var AMTcgiloc = "'.$mathimgurl.'";</script>';
-	echo "<script src=\"$imasroot/javascript/ASCIIMathTeXImg_min.js?ver=021818\" type=\"text/javascript\"></script>\n";
+	echo "<script src=\"$imasroot/javascript/ASCIIMathTeXImg_min.js?ver=042418\" type=\"text/javascript\"></script>\n";
 
 	echo '<script type="text/x-mathjax-config">
 		if (MathJax.Hub.Browser.isChrome || MathJax.Hub.Browser.isSafari) {
@@ -115,7 +126,7 @@ if (!isset($sessiondata['mathdisp'])) {
 		} else {
 			MathJax.Hub.Config({"HTML-CSS": {preferredFont: "STIX", webFont: "STIX-Web", imageFont:null}, "messageStyle": "none", asciimath2jax: {ignoreClass:"skipmathrender"}, skipStartupTypeset: true});
 		}
-		MathJax.Ajax.config.path["Local"] = "'.$imasroot.'/mathjax/extensions";
+		MathJax.Ajax.config.path["Local"] = "'.$imasroot.'/javascript/mathjax";
 		MathJax.Hub.config.extensions.push("[Local]/InputToDataAttrCDN.js");
 		MathJax.Hub.Register.StartupHook("Begin Config", setupKatexAutoRenderWhenReady);
 		</script>
@@ -139,12 +150,12 @@ if (!isset($sessiondata['mathdisp'])) {
 	echo '<script type="text/javascript">var AMTcgiloc = "'.$mathimgurl.'";';
 	if ($mathdarkbg) {echo 'var mathbg = "dark";';}
 	echo '</script>';
-	echo "<script src=\"$imasroot/javascript/ASCIIMathTeXImg_min.js?ver=021818\" type=\"text/javascript\"></script>\n";
-	echo "<script type=\"text/javascript\">var usingASCIIMath = false; var AMnoMathML=true; var MathJaxCompatible = false; function rendermathnode(el) {AMprocessNode(el);}</script>";
+	echo "<script src=\"$imasroot/javascript/ASCIIMathTeXImg_min.js?ver=042418\" type=\"text/javascript\"></script>\n";
+	echo "<script type=\"text/javascript\">var usingASCIIMath = false; var AMnoMathML=true; var MathJaxCompatible = false; var mathrenderer=\"Image\"; function rendermathnode(el) {AMprocessNode(el);}</script>";
 } else if ($sessiondata['mathdisp']==2) {
-	echo "<script type=\"text/javascript\">var usingASCIIMath = false; var AMnoMathML=true; var MathJaxCompatible = false; function rendermathnode(el) {AMprocessNode(el);}</script>";
+	echo "<script type=\"text/javascript\">var usingASCIIMath = false; var AMnoMathML=true; var MathJaxCompatible = false; var mathrenderer=\"Image\";function rendermathnode(el) {AMprocessNode(el);}</script>";
 } else if ($sessiondata['mathdisp']==0) {
-	echo "<script type=\"text/javascript\">var usingASCIIMath = false; var AMnoMathML=true; var MathJaxCompatible = false; function rendermathnode(el) {}</script>";
+	echo "<script type=\"text/javascript\">var usingASCIIMath = false; var AMnoMathML=true; var MathJaxCompatible = false; var mathrenderer=\"none\";function rendermathnode(el) {}</script>";
 }
 echo "<script src=\"$imasroot/javascript/mathjs.js?ver=052016\" type=\"text/javascript\"></script>\n";
 if (isset($sessiondata['graphdisp']) && $sessiondata['graphdisp']==1) {
@@ -189,7 +200,11 @@ if (isset($CFG['GEN']['translatewidgetID'])) {
 }
 if (isset($sessiondata['ltiitemtype'])) {
 	echo '<script type="text/javascript">
-	$(function(){parent.postMessage(JSON.stringify({subject:\'lti.frameResize\', height: $(document).height()+"px"}), \'*\');});
+	if (typeof mathRenderer != "undefined" && mathRenderer == "Katex") {
+		window.katexDoneCallback = sendLTIresizemsg;
+	} else {
+		jQuery(sendLTIresizemsg);
+	}
 	</script>';
 }
 echo "</head>\n";
@@ -205,10 +220,10 @@ $insertinheaderwrapper = ' '; //"<h1>$coursename</h1>";
 if (isset($insertinheaderwrapper)) {
 	//echo '<div class="headerwrapper">'.$insertinheaderwrapper.'</div>';
 }
-if (!isset($flexwidth)) {
+if (!isset($flexwidth) && !isset($hideAllHeaderNav)) {
 	echo '<div class="headerwrapper">';
 }
-if (isset($CFG['GEN']['headerinclude']) && !isset($flexwidth)) {
+if (isset($CFG['GEN']['headerinclude']) && !isset($flexwidth) && !isset($hideAllHeaderNav)) {
 	require("$curdir/{$CFG['GEN']['headerinclude']}");
 }
 $didnavlist = false;  $essentialsnavcnt = 0;
@@ -228,7 +243,7 @@ function getactivetab() {
 	}
 	return $a;
 }
-if (isset($cid) && !isset($flexwidth)) {
+if (isset($cid) && !isset($flexwidth) && !isset($hideAllHeaderNav)) {
 	echo '<div id="navlistcont" role="navigation" aria-label="'._('Course Navigation').'">';
 	echo '<ul id="navlist">';
 	$a = array('course'=>'', 'msg'=>'', 'forum'=>'', 'cal'=>'', 'gb'=>'', 'roster'=>'');
@@ -263,7 +278,7 @@ if (isset($cid) && !isset($flexwidth)) {
 	echo '</div>';
 	$didnavlist = true;
 }
-if (!isset($flexwidth)) {
+if (!isset($flexwidth) && !isset($hideAllHeaderNav)) {
 	echo '</div>';
 }
 echo '<div class="midwrapper" role="main">';

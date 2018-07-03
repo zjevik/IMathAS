@@ -100,7 +100,7 @@
 
 		 $sessiondata['secsalt'] = generaterandstring();
 		 if (isset($_POST['savesettings'])) {
-			 setcookie('mathgraphprefs',$_POST['mathdisp'].'-'.$_POST['graphdisp'],2000000000);
+			 setcookie('mathgraphprefs',$_POST['mathdisp'].'-'.$_POST['graphdisp'],2000000000, '', '', false, true);
 		 }
 		 $enc = base64_encode(serialize($sessiondata));
 		 //DB $query = "UPDATE imas_sessions SET sessiondata='$enc' WHERE sessionid='$sessionid'";
@@ -114,8 +114,14 @@
 		$stm = $DBH->prepare("INSERT INTO imas_log (time,log) VALUES (:now,:log)");
 		$stm->execute(array(':now'=>$now, ':log'=>"$userid login from IP:{$_SERVER['REMOTE_ADDR']}"));
 
+		// checks if the array $querys is empty
+        if (!empty($querys)){
+            $rqp = "&r=" .Sanitize::randomQueryStringParam();
+        } else {
+            $rqp = "?r=" .Sanitize::randomQueryStringParam();
+        }
 
-		 header('Location: ' . $GLOBALS['basesiteurl'] . substr($_SERVER['SCRIPT_NAME'],strlen($imasroot)) . $querys);
+		 header('Location: ' . $GLOBALS['basesiteurl'] . substr($_SERVER['SCRIPT_NAME'],strlen($imasroot)) . $querys . $rqp);
 		 exit;
 	 }
 
@@ -278,15 +284,33 @@
 		 }
 
 		 if (!empty($_SERVER['QUERY_STRING'])) {
-       $querys = '?' . Sanitize::fullQueryString($_SERVER['QUERY_STRING']) . (isset($addtoquerystring) ? '&' . Sanitize::fullQueryString($addtoquerystring) : '');
+		 	 $querys = '?' . Sanitize::fullQueryString($_SERVER['QUERY_STRING']) . (isset($addtoquerystring) ? '&' . Sanitize::fullQueryString($addtoquerystring) : '');
 		 } else {
 			 $querys = (!empty($addtoquerystring) ? '?' . Sanitize::fullQueryString($addtoquerystring) : '');
 		 }
-		 //$now = time();
-		 //DB //$query = "INSERT INTO imas_log (time,log) VALUES ($now,'$userid from IP: {$_SERVER['REMOTE_ADDR']}')";
-		 //DB //mysql_query($query) or die("Query failed : " . mysql_error());
 
-		 header('Location: ' . $GLOBALS['basesiteurl'] . substr($_SERVER['SCRIPT_NAME'],strlen($imasroot)) . $querys);
+		 $needToForcePasswordReset = false;
+		 if (isset($CFG['acct']['passwordMinlength']) && strlen($_POST['password'])<$CFG['acct']['passwordMinlength']) {
+		 	 $needToForcePasswordReset = true;
+		 } else if (isset($CFG['acct']['passwordFormat'])) {
+		 	 require_once("includes/newusercommon.php");
+		 	 if (!checkFormatAgainstRegex($_POST['password'], $CFG['acct']['passwordFormat'])) {
+		 	 	 $needToForcePasswordReset = true;
+		 	 }
+		 } 
+		 // checks if the array $querys is empty
+         if (!empty($querys)){
+             $rqp = "&r=" .Sanitize::randomQueryStringParam();
+         } else {
+             $rqp = "?r=" .Sanitize::randomQueryStringParam();
+         }
+		 
+		 if ($needToForcePasswordReset) {
+		 	 header('Location: ' . $GLOBALS['basesiteurl'] . '/forms.php?action=forcechgpwd?r='.Sanitize::randomQueryStringParam());
+		 } else {
+		 	 header('Location: ' . $GLOBALS['basesiteurl'] . substr($_SERVER['SCRIPT_NAME'],strlen($imasroot)) . $querys . $rqp);
+		 }
+		 exit;
 	 } else {
 		 if (empty($_SESSION['challenge'])) {
 			 $badsession = true;
@@ -360,7 +384,7 @@
 	}
 	
 	if (!empty($line['forcepwreset']) && (empty($_GET['action']) || $_GET['action']!='forcechgpwd') && (!isset($sessiondata['ltiitemtype']) || $sessiondata['ltirole']!='learner')) {
-		 header('Location: ' . $GLOBALS['basesiteurl'] . '/forms.php?action=forcechgpwd');
+		 header('Location: ' . $GLOBALS['basesiteurl'] . '/forms.php?action=forcechgpwd&r='.Sanitize::randomQueryStringParam());
 		 exit;
 	}
 
@@ -399,7 +423,7 @@
 		writesessiondata();
 	}
 	if (isset($sessiondata['isdiag']) && strpos(basename($_SERVER['PHP_SELF']),'showtest.php')===false) {
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/assessment/showtest.php");
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/assessment/showtest.php?r=".Sanitize::randomQueryStringParam());
 		exit;
 	}
 
@@ -414,13 +438,13 @@
 		} else if ($sessiondata['ltiitemtype']==0 && $sessiondata['ltirole']=='learner') {
 			require(__DIR__.'/includes/userutils.php');
 			logout();
-			header('Location: ' . $GLOBALS['basesiteurl'] . '/index.php');
+			header('Location: ' . $GLOBALS['basesiteurl'] . '/index.php?r='.Sanitize::randomQueryStringParam());
 			exit;
 		}
 	}
 	
 	if (isset($sessiondata['ltiitemtype'])) {
-		$flexwidth = true;
+		$hideAllHeaderNav = true;
 		if ($sessiondata['ltiitemtype']==1) {
 			if (strpos(basename($_SERVER['PHP_SELF']),'showtest.php')===false && isset($_GET['cid']) && $sessiondata['ltiitemid']!=$_GET['cid']) {
 				echo "You do not have access to this page";
@@ -438,7 +462,7 @@
 				$stm = $DBH->prepare("SELECT courseid FROM imas_assessments WHERE id=:id");
 				$stm->execute(array(':id'=>$sessiondata['ltiitemid']));
 				$cid = Sanitize::courseId($stm->fetchColumn(0));
-				header('Location: ' . $GLOBALS['basesiteurl'] . "/assessment/showtest.php?cid=$cid&id={$sessiondata['ltiitemid']}");
+				header('Location: ' . $GLOBALS['basesiteurl'] . "/assessment/showtest.php?cid=$cid&id={$sessiondata['ltiitemid']}&r=".Sanitize::randomQueryStringParam());
 				exit;
 			}
 		} else if ($sessiondata['ltirole']=='instructor') {
@@ -454,7 +478,7 @@
 		if (isset($_GET['cid'])) {
 			$cid = Sanitize::courseId($_GET['cid']);
 		} else {
-			$cid = $sessiondata['courseid'];
+			$cid = Sanitize::courseId($sessiondata['courseid']);
 		}
 		//DB $query = "SELECT id,locked,timelimitmult,section,latepass FROM imas_students WHERE userid='$userid' AND courseid='$cid'";
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
@@ -608,6 +632,9 @@
 	}
 	$verified = true;
 
+ }
+ if (!empty($flexwidth) || !empty($hideAllHeaderNav)) {
+ 	 $nologo = true;
  }
 
  if (!$verified) {

@@ -5,7 +5,7 @@
 		echo "<html><body>Error. </body></html>\n";
 		exit;
 	}
-	if (isset($teacherid) && isset($_GET['scored'])) {
+	if ($isteacher && isset($_GET['scored'])) {
 		$scoredtype = $_GET['scored'];
 		$scoredview = true;
 		$showcolormark = true;
@@ -27,29 +27,34 @@
 	$sessiondata['coursetheme'] = $coursetheme;
 	require("header.php");
 	echo "<style type=\"text/css\" media=\"print\">.hideonprint {display:none;} p.tips {display: none;}\n input.btn, button.btn {display: none;}\n textarea {display: none;}\n input.sabtn {display: none;} .question, .review {background-color:#fff;}</style>\n";
-	echo "<style type=\"text/css\">p.tips {	display: none;}\n </style>\n";
-	echo '<script type="text/javascript">function rendersa() { ';
-	echo '  el = document.getElementsByTagName("span"); ';
-	echo '   for (var i=0;i<el.length;i++) {';
-	echo '     if (el[i].className=="hidden") { ';
-	echo '         el[i].className = "shown";';
-	//echo '		 AMprocessNode(el)';
-	echo '     }';
-	echo '    }';
-	echo '}';
-	echo '
-			var introshowing = true;
-			function toggleintros() {
-				if (introshowing) {
-					$(".intro").slideUp();
-					$("#introtoggle").text("'._('Show Intro and Between-Question Text').'");
-				} else {
-					$(".intro").slideDown();
-					$("#introtoggle").text("'._('Hide Intro and Between-Question Text').'");
-				}
-				introshowing = !introshowing;
+	echo "<style type=\"text/css\">p.tips {	display: none;} input.sabtn { display: none;}</style>\n";
+	echo '<script type="text/javascript">
+		function rendersa() { 
+			$(".sabtn + span").prepend("<span>Answer: </span>").removeClass("hidden");
+		}
+		var introshowing = true;
+		function toggleintros() {
+			if (introshowing) {
+				$(".intro").slideUp();
+				$("#introtoggle").text("'._('Show Intro and Between-Question Text').'");
+			} else {
+				$(".intro").slideDown();
+				$("#introtoggle").text("'._('Hide Intro and Between-Question Text').'");
 			}
-			</script>';
+			introshowing = !introshowing;
+		}
+		var qshowing = true;
+		function toggleqs() {
+			if (qshowing) {
+				$(".printqwrap").slideUp();
+				$("#qtoggle").text("'._('Show Questions').'");
+			} else {
+				$(".printqwrap").slideDown();
+				$("#qtoggle").text("'._('Hide Questions').'");
+			}
+			qshowing = !qshowing;
+		}
+		</script>';
 
 	if ($isteacher && isset($_GET['asid'])) {
 		$testid = Sanitize::onlyInt($_GET['asid']);
@@ -159,8 +164,8 @@
 
 	$qi = getquestioninfo($questions,$testsettings,true);
 
-	echo "<h4 style=\"float:right;\">Name: " . Sanitize::encodeStringForDisplay($userfullname) . " </h4>\n";
-	echo "<h3>".Sanitize::encodeStringForDisplay($testsettings['name'])."</h3>\n";
+	echo "<h3 style=\"float:right;\">Name: " . Sanitize::encodeStringForDisplay($userfullname) . " </h3>\n";
+	echo "<h2>".Sanitize::encodeStringForDisplay($testsettings['name'])."</h2>\n";
 
 
 	$allowregen = ($testsettings['testtype']=="Practice" || $testsettings['testtype']=="Homework");
@@ -170,8 +175,12 @@
 	echo "<div class=breadcrumb>"._('Print Ready Version').' ';
 	echo '<button type="button" onclick="window.print()">'._('Print').'</button>';
 	echo '</div>';
-	echo '<p><button id="introtoggle" type="button" class="btn" onclick="toggleintros()">'._('Hide Intro and Between-Question Text').'</button></p>';
-
+	echo '<p><button id="introtoggle" type="button" class="btn" onclick="toggleintros()">'._('Hide Intro and Between-Question Text').'</button> ';
+	echo '<button id="qtoggle" type="button" class="btn" onclick="toggleqs()">'._('Hide Questions').'</button> ';
+	if ($isteacher) {
+		echo '<button type="button" class="btn" onclick="rendersa()">'._("Show Answers").'</button>';
+	}
+	echo '</p>';
 	if (($introjson=json_decode($testsettings['intro'],true))!==null) { //is json intro
 		$testsettings['intro'] = $introjson[0];
 	} else {
@@ -179,7 +188,7 @@
 	}
 
 	$endtext = '';  $intropieces = array();
-	$testsettings['intro'] = preg_replace('/\[PAGE\s+(.*?)\]/', '<h3>$1</h3>', $testsettings['intro']);
+	$testsettings['intro'] = preg_replace('/\[PAGE\s+(.*?)\]/', '<h2>$1</h2>', $testsettings['intro']);
 	$intropieces = array();
 	if (strpos($testsettings['intro'], '[QUESTION')!==false) {
 		//embedded type
@@ -208,7 +217,7 @@
 		$textsegcnt = -1;
 		for ($i=1;$i<count($introjson);$i++) {
 			if (isset($introjson[$i]['ispage']) && $introjson[$i]['ispage']==1 && $testsettings['displaymethod'] == "Embed") {
-				$introjson[$i]['text'] = '<h2>'.strip_tags(str_replace(array("\n","\r","]"),array(' ',' ','&#93;'), $introjson[$i]['pagetitle'])).'</h2>'.$introjson[$i]['text'];
+				$introjson[$i]['text'] = '<h1>'.strip_tags(str_replace(array("\n","\r","]"),array(' ',' ','&#93;'), $introjson[$i]['pagetitle'])).'</h1>'.$introjson[$i]['text'];
 			}
 			if ($introjson[$i]['displayBefore'] == $lastdisplaybefore) {
 				$intropcs[$textsegcnt] .= $introjson[$i]['text'];
@@ -231,7 +240,7 @@
 
 	echo '<div class=intro>'.$testsettings['intro'].'</div>';
 	if ($isteacher && !$scoredview) {
-		echo '<p class="hideonprint">'._('Showing Current Versions').'<br/><button type="button" class="btn" onclick="rendersa()">'._("Show Answers").'</button> <a href="printtest.php?cid='.$cid.'&asid='.$testid.'&scored=best">'._('Show Scored View').'</a> <a href="printtest.php?cid='.$cid.'&asid='.$testid.'&scored=last">'._('Show Last Attempts').'</a></p>';
+		echo '<p class="hideonprint">'._('Showing Current Versions').'<br/><a href="printtest.php?cid='.$cid.'&asid='.$testid.'&scored=best">'._('Show Scored View').'</a> <a href="printtest.php?cid='.$cid.'&asid='.$testid.'&scored=last">'._('Show Last Attempts').'</a></p>';
 	} else if ($isteacher) {
 		if ($scoredtype=='last') {
 			echo '<p class="hideonprint">'._('Showing Last Attempts').' <a href="printtest.php?cid='.$cid.'&asid='.$testid.'&scored=best">'._('Show Scored View').'</a></p>';
@@ -252,7 +261,7 @@
 		if (isset($intropieces[$i+1])) {
 			echo '<div class="intro">'.filter($intropieces[$i+1]).'</div>';
 		}
-		echo '<div class="nobreak">';
+		echo '<div class="nobreak printqwrap">';
 		if (isset($_GET['descr'])) {
 			//DB $query = "SELECT description FROM imas_questionset WHERE id='$qsetid'";
 			//DB $result = mysql_query($query) or die("Query failed : $query: " . mysql_error());
@@ -299,7 +308,8 @@
 						echo "  <b>$cnt:</b> " ;
 						if (preg_match('/@FILE:(.+?)@/',$laarr[$k],$match)) {
 							$url = getasidfileurl($match[1]);
-							echo "<a href=\"$url\" target=\"_new\">".basename($match[1])."</a>";
+							echo '<a href="'.Sanitize::encodeStringForDisplay($url).'" ';
+							echo 'target="_blank">'.Sanitize::encodeStringForDisplay(basename($match[1])).'</a>';
 						} else {
 							if (strpos($laarr[$k],'$f$')) {
 								if (strpos($laarr[$k],'&')) { //is multipart q

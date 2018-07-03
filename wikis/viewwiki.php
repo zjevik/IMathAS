@@ -56,7 +56,7 @@ if ($cid==0) {
 			//DB mysql_query($query) or die("Query failed : " . mysql_error());
 			$stm = $DBH->prepare("DELETE FROM imas_wiki_revisions WHERE wikiid=:wikiid AND stugroupid=:stugroupid");
 			$stm->execute(array(':wikiid'=>$id, ':stugroupid'=>$groupid));
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/wikis/viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/wikis/viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed&r=" .Sanitize::randomQueryStringParam());
 			exit;
 		} else {
 			$curBreadcrumb .= " &gt; <a href=\"viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed\">View Wiki</a>";
@@ -78,7 +78,7 @@ if ($cid==0) {
 				$stm = $DBH->prepare("DELETE FROM imas_wiki_revisions WHERE wikiid=:wikiid AND stugroupid=:stugroupid AND id<:curid");
 				$stm->execute(array(':wikiid'=>$id, ':stugroupid'=>$groupid, ':curid'=>$curid));
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/wikis/viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/wikis/viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed&r=" . Sanitize::randomQueryStringParam());
 			exit;
 		} else {
 			$curBreadcrumb .= " &gt; <a href=\"viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed\">View Wiki</a>";
@@ -116,7 +116,7 @@ if ($cid==0) {
 				$stm = $DBH->prepare("DELETE FROM imas_wiki_revisions WHERE wikiid=:wikiid AND stugroupid=:stugroupid AND id>:id");
 				$stm->execute(array(':wikiid'=>$id, ':stugroupid'=>$groupid, ':id'=>$revision));
 			}
-			header('Location: ' . $GLOBALS['basesiteurl'] . "/wikis/viewwiki.php?cid=$cid&id=$id$framed");
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/wikis/viewwiki.php?cid=$cid&id=$id$framed&r=" . Sanitize::randomQueryStringParam());
 			exit;
 		} else {
 			$curBreadcrumb .= " &gt; <a href=\"viewwiki.php?cid=$cid&id=$id&grp=$groupid$framed\">View Wiki</a>";
@@ -305,7 +305,7 @@ if ($overwriteBody==1) {
 		echo '<div class="breadcrumb">'.$curBreadcrumb.'</div>';
 	}
 ?>
-	<div id="headerviewwiki" class="pagetitle"><h2><?php echo $pagetitle ?></h2></div>
+	<div id="headerviewwiki" class="pagetitle"><h1><?php echo $pagetitle ?></h1></div>
 <?php
 
 	if (isset($teacherid) && $groupid>0 && !isset($curgroupname)) {
@@ -326,6 +326,7 @@ if ($overwriteBody==1) {
 		echo '<p><button type=submit name=delall value=true>'._("Yes, I'm Sure").'</button> ';
 		echo "<button type=\"button\" class=\"secondarybtn\" onclick=\"window.location.href='viewwiki.php?$querystring$framed'\">Nevermind</button></p>";
 		echo '</p>';
+		echo '</form>';
 
 	} else if (isset($_GET['delrev']) && isset($teacherid)) {
 		echo '<p>Are you SURE you want to delete all revision history for '.Sanitize::encodeStringForDisplay($grpnote).' Wiki page?  The current version will be retained.</p>';
@@ -335,6 +336,7 @@ if ($overwriteBody==1) {
 		echo '<p><button type=submit name=delrev value=true>'._("Yes, I'm Sure").'</button> ';
 		echo "<button type=\"button\" class=\"secondarybtn\" onclick=\"window.location.href='viewwiki.php?$querystring$framed'\">Nevermind</button></p>";
 		echo '</p>';
+		echo '</form>';
 
 	} else if (isset($_GET['revert'])) {
 		$torev = Sanitize::onlyInt($_GET['torev']);
@@ -346,11 +348,13 @@ if ($overwriteBody==1) {
 		echo '<p><button type=submit name=revert value=true>'._("Yes, I'm Sure").'</button> ';
 		echo "<button type=\"button\" class=\"secondarybtn\" onclick=\"window.location.href='viewwiki.php?$querystring$framed'\">Nevermind</button></p>";
 		echo '</p>';
+		echo '</form>';
 
 	} else if (isset($_GET['snapshot'])) {
 		echo "<p>Current Version Code.  <a href=\"viewwiki.php?cid=".Sanitize::courseId($cid)."&id=". Sanitize::onlyInt($id)."&grp=".Sanitize::onlyInt($groupid).Sanitize::encodeStringForDisplay($framed)."\">Back</a></p>";
 		echo '<div class="editor" style="font-family:courier; padding: 10px;">';
-		echo str_replace('&gt; &lt;',"&gt;<br/>&lt;",htmlentities($text));
+		$snapShotText = str_replace('&gt; &lt;',"&gt;<br/>&lt;",Sanitize::encodeStringForDisplay($text));
+        echo $snapShotText;
 		echo '</div>';
 	} else { //default page display
 		if ($isgroup && isset($teacherid)) {

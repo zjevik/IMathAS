@@ -37,7 +37,8 @@ function getTeachers($cid) {
 		if ($row['name']==null) {
 			$row['name'] = _('Default');
 		}
-		$out[] = array("id"=>$row['id'], "name"=>$row['LastName'].', '.$row['FirstName'].' ('.$row['name'].')');
+		$userdisplayname = $row['LastName'].', '.$row['FirstName'].' ('.$row['name'].')';
+		$out[] = array("id"=>Sanitize::onlyInt($row['id']), "name"=>Sanitize::encodeStringForDisplay($userdisplayname));
 	}
 	return $out;
 }
@@ -50,7 +51,7 @@ if (isset($_POST['remove'])) {
 	$toremove[] = $cid;
 	$stm->execute($toremove);
 	
-	echo json_encode(getTeachers($cid));
+	echo json_encode(getTeachers($cid), JSON_HEX_TAG);
 	exit;
 } else if (isset($_POST['add'])) {
 	$stm = $DBH->prepare("SELECT userid FROM imas_teachers WHERE courseid=?");
@@ -66,7 +67,7 @@ if (isset($_POST['remove'])) {
 	$stm = $DBH->prepare("INSERT INTO imas_teachers (userid,courseid) VALUES $ph");
 	$stm->execute($exarr);
 	
-	echo json_encode(getTeachers($cid));
+	echo json_encode(getTeachers($cid), JSON_HEX_TAG);
 	exit;
 } else if (isset($_POST['loadgroup'])) {
 	$stm = $DBH->prepare("SELECT userid FROM imas_teachers WHERE courseid=?");
@@ -82,7 +83,7 @@ if (isset($_POST['remove'])) {
 		if ($row['rights']==76 || $row['rights']==77) {continue;}
 		$out[] = array("id"=>$row['id'], "name"=>$row['LastName'].', '.$row['FirstName']);
 	}
-	echo json_encode($out);
+	echo json_encode($out, JSON_HEX_TAG);
 	exit;
 } else if (isset($_POST['search'])) {
 	$stm = $DBH->prepare("SELECT userid FROM imas_teachers WHERE courseid=?");
@@ -90,13 +91,13 @@ if (isset($_POST['remove'])) {
 	$existing = $stm->fetchAll(PDO::FETCH_COLUMN, 0);
 	
 	require("../includes/userutils.php");
-	$possible_teachers = searchForUser($_POST['search'], true, true);
+	$possible_teachers = searchForUser(Sanitize::stripHtmlTags($_POST['search']), true, true);
 	$out = array();
 	foreach ($possible_teachers as $row) {
 		if (in_array($row['id'], $existing)) { continue; }
 		$out[] = array("id"=>$row['id'], "name"=>$row['LastName'].', '.$row['FirstName'].' ('.$row['name'].')');
 	}
-	echo json_encode($out);
+	echo json_encode($out, JSON_HEX_TAG);
 	exit;
 }
 
@@ -156,12 +157,12 @@ if ($from == 'admin') {
 	echo '<a href="admin2.php">'._('Admin').'</a> &gt; <a href="'.$backloc.'">'._('Group Details').'</a> &gt; ';
 }
 echo "$pagetitle</div>\n";
-echo '<div class="pagetitle"><h2>'.$pagetitle.' - '.Sanitize::encodeStringForDisplay($coursename).'</h2></div>';
+echo '<div class="pagetitle"><h1>'.$pagetitle.' - '.Sanitize::encodeStringForDisplay($coursename).'</h1></div>';
 ?>
 
 <div id="app" v-cloak>
 <div id="currentteachers">
-	<h3>Current Teachers</h3>
+	<h2>Current Teachers</h2>
 	<p>With selected: <button @click="removeTeachers()">Remove as teacher</button>
 	   <span v-if="processingRemove" class="noticetext">Saving Changes... <img src="../img/updating.gif"></span>
 	</p>
@@ -172,7 +173,7 @@ echo '<div class="pagetitle"><h2>'.$pagetitle.' - '.Sanitize::encodeStringForDis
 	</transition-group>
 </div>
 <div id="potentialteachers">
-	<h3>Potential Teachers</h3>
+	<h2>Potential Teachers</h2>
 	<p><button @click="loadGroup()">List my group members</button>
 		or lookup a teacher: <input v-model="toLookup" size=30>
 		<button @click="searchTeacher()" :disabled="toLookup.length==0">Search</button>

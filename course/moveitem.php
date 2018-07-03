@@ -4,7 +4,7 @@
 
 require("../init.php");
 
-$cid = intval($_GET['cid']);
+$cid = Sanitize::courseId($_GET['cid']);
 if (!isset($teacherid)) {
 	echo 'You must be a teacher to access this page';
 	exit;
@@ -179,7 +179,7 @@ require("../header.php");
 
 ?>
 <div id="headerforms" class="pagetitle">
- <h2>Move Item</h2>
+ <h1>Move Item</h1>
 </div>
 <p>Moving <b><?php echo Sanitize::encodeStringForDisplay($itemtomovename); ?></b></p>
 <p>

@@ -62,7 +62,7 @@
 		//DB $query = "SELECT deffeedback,startdate,enddate,reviewdate,shuffle,itemorder,password,avail,isgroup,groupsetid,deffeedbacktext,timelimit,courseid,istutorial,name,allowlate,displaymethod FROM imas_assessments WHERE id='$aid'";
 		//DB $result = mysql_query($query) or die("Query failed : $query: " . mysql_error());
 		//DB $adata = mysql_fetch_array($result, MYSQL_ASSOC);
-		$stm = $DBH->prepare("SELECT deffeedback,startdate,enddate,reviewdate,shuffle,itemorder,password,avail,isgroup,groupsetid,deffeedbacktext,timelimit,courseid,istutorial,name,allowlate,displaymethod,id FROM imas_assessments WHERE id=:id");
+		$stm = $DBH->prepare("SELECT deffeedback,startdate,enddate,reviewdate,shuffle,itemorder,password,avail,isgroup,groupsetid,deffeedbacktext,timelimit,courseid,istutorial,name,allowlate,displaymethod,id,reqscoreaid,reqscore,reqscoretype FROM imas_assessments WHERE id=:id");
 		$stm->execute(array(':id'=>$aid));
 		$adata = $stm->fetch(PDO::FETCH_ASSOC);
 		$now = time();
@@ -74,20 +74,24 @@
 			$assessmentclosed = true;
 		}
 		$canuselatepass = false;
-
+		$waivereqscore = false;
+		$useexception = false;
 		if (!$actas) {
 			if ($isRealStudent) {
-				$stm2 = $DBH->prepare("SELECT startdate,enddate,islatepass,is_lti FROM imas_exceptions WHERE userid=:userid AND assessmentid=:assessmentid AND itemtype='A'");
+				$stm2 = $DBH->prepare("SELECT startdate,enddate,islatepass,is_lti,waivereqscore FROM imas_exceptions WHERE userid=:userid AND assessmentid=:assessmentid AND itemtype='A'");
 				$stm2->execute(array(':userid'=>$userid, ':assessmentid'=>$aid));
 				$row = $stm2->fetch(PDO::FETCH_NUM);
 				if ($row!=null) {
 					$useexception = $exceptionfuncs->getCanUseAssessException($row, $adata, true);
+					$waivereqscore = ($row[4]>0);
 				}
 			} else if (isset($_SESSION['lti_duedate']) && (isset($teacherid) || isset($tutorid)) && $_SESSION['lti_duedate']!=$adata['enddate']) {
 				//teacher launch with lti duedate that's different than default
 				//do a pseudo-exception
 				$useexception = true;
-				$row = array(0, $_SESSION['lti_duedate'], 0, 1);
+				$row = array(0, $_SESSION['lti_duedate'], 0, 1, 0);
+			} else {
+				$row = null;
 			}
 			if ($row!=null && $useexception) {
 				if ($now<$row[0] || $row[1]<$now) { //outside exception dates
@@ -167,10 +171,58 @@
 			require("../footer.php");
 			exit;
 		}
+		//check reqscore
+		if ($isRealStudent && abs($adata['reqscore'])>0 && $adata['reqscoreaid']>0 && !$waivereqscore) {
+			$isBlocked = false;
+			
+			$query = "SELECT ias.bestscores,ia.ptsposs,ia.name FROM imas_assessments AS ia LEFT JOIN ";
+			$query .= "imas_assessment_sessions AS ias ON ias.assessmentid=ia.id AND ias.userid=:userid ";
+			$query .= "WHERE ia.id=:assessmentid";
+			$bestscores_stm = $DBH->prepare($query);
+			$bestscores_stm->execute(array(':assessmentid'=>$adata['reqscoreaid'], ':userid'=>$userid));
+			list($prereqscore,$reqscoreptsposs,$reqscorename) = $bestscores_stm->fetch(PDO::FETCH_NUM);
+			
+			if ($prereqscore === null) {
+				$isBlocked = true;
+			} else {
+				$prereqscore = explode(';', $prereqscore);
+				$prereqscore = explode(',', $prereqscore[0]);
+				$prereqscoretot = 0;
+				for ($i=0;$i<count($prereqscore);$i++) {
+					$prereqscoretot += getpts($prereqscore[$i]);
+				}
+				$isBlocked = false;
+				
+				if ($adata['reqscoretype']&2) { //using percent-based
+					if ($reqscoreptsposs==-1) {
+						require("../includes/updateptsposs.php");
+						$reqscoreptsposs = updatePointsPossible($adata['reqscoreaid']);
+					}
+					if (round(100*$prereqscoretot/$reqscoreptsposs,1)+.02<abs($adata['reqscore'])) {
+						$isBlocked = true;
+					}
+				} else if ($prereqscoretot+.02<abs($adata['reqscore'])) { //points based
+					$isBlocked = true;
+				}
+			}
+			if ($isBlocked) {
+				require("header.php");
+				echo '<h2>'._('You cannot start this assessment yet.').'</h2>';
+				echo '<p>';
+				printf(_('Access to this assessment requires a score of %d%s on %s'),
+					abs($adata['reqscore']),
+					($adata['reqscoretype']&2)?'%':_(' points'),
+					Sanitize::encodeStringForDisplay($reqscorename));
+				echo '</p>';
+				require("../footer.php");
+				exit;
+			}
+			
+		}
 
 		//check for password
 
-		if (trim($adata['password'])!='' && preg_match('/^\d{1,3}\.(\*|\d{1,3})\.(\*|\d{1,3})\.[\d\*\-]+/',$adata['password'])) {
+		if (!$isreview && trim($adata['password'])!='' && preg_match('/^\d{1,3}\.(\*|\d{1,3})\.(\*|\d{1,3})\.[\d\*\-]+/',$adata['password'])) {
 			//if PW is an IP address, compare against user's
 			$userip = explode('.', $_SERVER['REMOTE_ADDR']);
 			$pwips = explode(',', $adata['password']);
@@ -208,7 +260,7 @@
 				exit;
 			}
 		}
-		if (trim($adata['password'])!='' && !isset($teacherid) && !isset($tutorid)) { //has passwd
+		if (!$isreview && trim($adata['password'])!='' && !isset($teacherid) && !isset($tutorid)) { //has passwd
 			$pwfail = true;
 			if (isset($_POST['password'])) {
 				if (trim($_POST['password'])==trim($adata['password'])) {
@@ -221,7 +273,7 @@
 				require("../header.php");
 				showEnterAssessmentBreadcrumbs($adata['name']);
 				echo $out;
-				echo '<h2>'.$adata['name'].'</h2>';
+				echo '<h1>'.$adata['name'].'</h1>';
 				if (strpos($adata['name'],'RPNow') !== false && strpos($_SERVER['HTTP_USER_AGENT'],'RPNow') === false) {
 					echo '<p>' . _("This assessment requires the use of Remote Proctor Now (RPNow).") . '</p>';
 				} else {
@@ -849,7 +901,11 @@
 							$lastanswers[$i] = '';
 							$scores[$i] = -1;
 						}
-						if ($qi[$questions[$i]]['fixedseeds'] !== null && $qi[$questions[$i]]['fixedseeds'] != '') {
+						if (($testsettings['shuffle']&4)==4) {
+							//all stu same seed; don't change seed
+						} else if (($testsettings['shuffle']&2)==2 && $i>0) {  //all q same seed
+							$seeds[$i] = $seeds[0];
+						} else if ($qi[$questions[$i]]['fixedseeds'] !== null && $qi[$questions[$i]]['fixedseeds'] != '') {
 							$fs = explode(',',$qi[$questions[$i]]['fixedseeds']);
 							if (count($fs)>1) {
 								//find existing seed and use next one
@@ -1052,7 +1108,11 @@
 				$scores[$i] = -1;
 				$rawscores[$i] = -1;
 				$attempts[$i] = 0;
-				if ($qi[$questions[$i]]['fixedseeds'] !== null && $qi[$questions[$i]]['fixedseeds'] != '') {
+				if (($testsettings['shuffle']&4)==4) {
+					//all stu same seed; don't change seed
+				} else if (($testsettings['shuffle']&2)==2 && $i>0) {  //all q same seed
+					$seeds[$i] = $seeds[0];
+				} else if ($qi[$questions[$i]]['fixedseeds'] !== null && $qi[$questions[$i]]['fixedseeds'] != '') {
 					$fs = explode(',',$qi[$questions[$i]]['fixedseeds']);
 					if (count($fs)>1) {
 						//find existing seed and use next one
@@ -1352,7 +1412,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				$stm->execute(array(':time'=>$now, ':log'=>$loginfo));
 			}
 		} else {
-			echo '<div id="headershowtest" class="pagetitle"><h2>', _('Select group members'), '</h2></div>';
+			echo '<div id="headershowtest" class="pagetitle"><h1>', _('Select group members'), '</h1></div>';
 			if ($sessiondata['groupid']==0) {
 				//a group should already exist
 				//DB $query = 'SELECT i_sg.id FROM imas_stugroups as i_sg JOIN imas_stugroupmembers as i_sgm ON i_sg.id=i_sgm.stugroupid ';
@@ -1465,7 +1525,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 
 	//if was added to existing group, need to reload $questions, etc
 	echo '<div id="headershowtest" class="pagetitle">';
-	echo "<h2>{$testsettings['name']}</h2></div>\n";
+	echo "<h1>{$testsettings['name']}</h1></div>\n";
 	if (isset($sessiondata['actas'])) {
 		echo '<p style="color: red;">', _('Teacher Acting as ');
 		//DB $query = "SELECT LastName, FirstName FROM imas_users WHERE id='{$sessiondata['actas']}'";
@@ -1793,6 +1853,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				basicshowq($toshow);
 				showqinfobar($toshow,true,true,2);
 				echo '<input type="submit" class="btn" value="', _('Continue'), '" />';
+				echo '</form>';
 			} else { //are all done
 				$shown = showscores($questions,$attempts,$testsettings);
 				endtest($testsettings);
@@ -2310,7 +2371,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 
 			}
 			if ($allowregen && $qi[$questions[$qn]]['allowregen']==1) {
-				echo "<p><a href=\"showtest.php?regen=$qn&page=$page\">", _('Try another similar question'), "</a></p>\n";
+				echo "<p><a href=\"showtest.php?regen=$qn&page=$page#embedqwrapper$qn\">", _('Try another similar question'), "</a></p>\n";
 			}
 			if (hasreattempts($qn)) {
 				if ($divopen) { echo '</div>';}
@@ -2968,7 +3029,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 						echo '<div class="prequestion">';
 						echo "<p>", _('No attempts remain on this problem.'), "</p>";
 						if ($allowregen && $qi[$questions[$i]]['allowregen']==1) {
-							echo "<p><a href=\"showtest.php?regen=$i\">", _('Try another similar question'), "</a></p>\n";
+							echo "<p><a href=\"showtest.php?regen=$i#embedqwrapper$i\">", _('Try another similar question'), "</a></p>\n";
 						}
 						if ($showeachscore) {
 							//TODO i18n
@@ -3048,7 +3109,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			if ($sessiondata['isteacher']) {
 				echo '<div class="navbar" role="navigation" aria-label="'._("Question navigation").'">';
 				echo '<p id="livepollactivestu" style="margin-top:0px">&nbsp;</p>';
-				echo "<h4>", _('Questions'), "</h4>\n";
+				echo "<h3>", _('Questions'), "</h3>\n";
 				echo "<ul class=qlist>\n";
 				for ($i = 0; $i < count($questions); $i++) {
 					echo "<li>";
@@ -3238,7 +3299,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		
 		echo '<div class="navbar fixedonscroll" role="navigation" aria-label="'._("Page and question navigation").'">';
 		echo "<a href=\"#beginquestions\" class=\"screenreader\">", _('Skip Navigation'), "</a>\n";		
-		echo "<h4>", _('Pages'), "</h4>\n";
+		echo "<h3>", _('Pages'), "</h3>\n";
 		echo '<ul class="navlist">';
 		$jsonbits = array();
 		$max = (count($pginfo)-1)/2;
@@ -3374,7 +3435,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		
 		echo '<div class="navbar" role="navigation" aria-label="'._("Question navigation").'">';
 		echo "<a href=\"#beginquestions\" class=\"screenreader\">", _('Skip Navigation'), "</a>\n";
-		echo "<h4>", _('Questions'), "</h4>\n";
+		echo "<h3>", _('Questions'), "</h3>\n";
 		echo "<ul class=qlist>\n";
 		for ($i = 0; $i < count($questions); $i++) {
 			echo "<li>";
@@ -3550,13 +3611,13 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			$stm = $DBH->prepare("SELECT * from imas_users WHERE id=:id");
 			$stm->execute(array(':id'=>$userid));
 			$userinfo = $stm->fetch(PDO::FETCH_ASSOC);
-			printf("<h3>%s, %s: ", Sanitize::encodeStringForDisplay($userinfo['LastName']),
+			printf("<h2>%s, %s: ", Sanitize::encodeStringForDisplay($userinfo['LastName']),
 				Sanitize::encodeStringForDisplay($userinfo['FirstName']));
 			echo Sanitize::encodeStringForDisplay(substr($userinfo['SID'],0,strpos($userinfo['SID'],'~')));
-			echo "</h3>\n";
+			echo "</h2>\n";
 		}
 
-		echo "<h3>", _('Scores:'), "</h3>\n";
+		echo "<h2>", _('Scores:'), "</h2>\n";
 
 		if (!$noindivscores && !$reviewatend) {
 			echo "<table class=scores>";

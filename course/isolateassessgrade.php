@@ -28,8 +28,11 @@
 		$stm->execute(array(':courseid'=>$cid));
 		$gbmode = $stm->fetchColumn(0);
 	}
+	$hidesection = (((floor($gbmode/100000)%10)&1)==1);
+	$hidecode = (((floor($gbmode/100000)%10)&2)==2);
 	$hidelocked = ((floor($gbmode/100)%10&2)); //0: show locked, 1: hide locked
-
+	$includeduedate = (((floor($gbmode/100)%10)&4)==4); //0: hide due date, 4: show due date
+	
 	if (isset($tutorsection) && $tutorsection!='') {
 		$secfilter = $tutorsection;
 	} else {
@@ -135,8 +138,8 @@
 	}
 
 
-	echo '<div id="headerisolateassessgrade" class="pagetitle"><h2>';
-	echo "Grades for " . Sanitize::encodeStringForDisplay($name) . "</h2></div>";
+	echo '<div id="headerisolateassessgrade" class="pagetitle"><h1>';
+	echo "Grades for " . Sanitize::encodeStringForDisplay($name) . "</h1></div>";
 	echo "<p>$totalpossible points possible</p>";
 
 //	$query = "SELECT iu.LastName,iu.FirstName,istu.section,istu.timelimitmult,";
@@ -190,13 +193,17 @@
 	echo "<script type=\"text/javascript\" src=\"$imasroot/javascript/tablesorter.js\"></script>\n";
 
 	echo "<table id=myTable class=gb><thead><tr><th>Name</th>";
-	if ($hassection) {
+	if ($hassection && !$hidesection) {
 		echo '<th>Section</th>';
 	}
-	if ($hascodes) {
+	if ($hascodes && !$hidecode) {
 		echo '<th>Code</th>';
 	}
-	echo "<th>Grade</th><th>%</th><th>Last Change</th><th>Time Spent (In Questions)</th><th>Feedback</th></tr></thead><tbody>";
+	echo "<th>Grade</th><th>%</th><th>Last Change</th>";
+	if ($includeduedate) {
+		echo "<th>Due Date</th>";
+	}
+	echo "<th>Time Spent (In Questions)</th><th>Feedback</th></tr></thead><tbody>";
 	$now = time();
 	$lc = 1;
 	$n = 0;
@@ -220,10 +227,10 @@
 			printf("<td>%s, %s</td>", Sanitize::encodeStringForDisplay($line['LastName']),
 				Sanitize::encodeStringForDisplay($line['FirstName']));
 		}
-		if ($hassection) {
+		if ($hassection && !$hidesection) {
 			printf("<td>%s</td>", Sanitize::encodeStringForDisplay($line['section']));
 		}
-		if ($hascodes) {
+		if ($hascodes && !$hidecode) {
 			if ($line['code']==null) {$line['code']='';}
 			printf("<td>%s</td>", Sanitize::encodeStringForDisplay($line['code']));
 		}
@@ -263,7 +270,11 @@
 					echo '<sup>e</sup>';
 				}
 			}
-			echo "</td><td>-</td><td></td><td></td><td></td>";
+			echo "</td><td>-</td><td></td>";
+			if ($includeduedate) {
+				echo '<td>'.tzdate("n/j/y g:ia",$thisenddate).'</td>';
+			}
+			echo "<td></td><td></td>";
 		} else {
 			$querymap = array(
 				'gbmode' => $gbmode,
@@ -319,6 +330,9 @@
 			} else {
 				echo '<td>'.tzdate("n/j/y g:ia",$line['endtime']).'</td>';
 			}
+			if ($includeduedate) {
+				echo '<td>'.tzdate("n/j/y g:ia",$thisenddate).'</td>';
+			}
 			if ($line['endtime']==0 || $line['starttime']==0) {
 				echo '<td>&nbsp;</td>';
 			} else {
@@ -331,6 +345,7 @@
 				$tottime += $timeused;
 				$ntime++;
 			}
+
 			$feedback = json_decode($line['feedback']);
 			if ($feedback===null) {
 				$hasfeedback = ($line['feedback'] != '');
@@ -352,7 +367,7 @@
 		echo "</tr>";
 	}
 	echo '<tr><td>Average</td>';
-	if ($hassection) {
+	if ($hassection && !$hidesection) {
 		echo '<td></td>';
 	}
 	echo "<td><a href=\"gb-itemanalysis.php?cid=$cid&aid=$aid&from=isolate\">";
@@ -376,9 +391,9 @@
 	}
 	echo "</a></td><td>$pct</td><td></td><td>$timeavg</td><td></td></tr>";
 	echo "</tbody></table>";
-	if ($hassection && $hascodes) {
+	if ($hassection && !$hidesection && $hascodes && !$hidecode) {
 		echo "<script> initSortTable('myTable',Array('S','S','S','N','P','D'),true);</script>";
-	} else if ($hassection) {
+	} else if ($hassection && !$hidesection) {
 		echo "<script> initSortTable('myTable',Array('S','S','N','P','D'),true);</script>";
 	} else {
 		echo "<script> initSortTable('myTable',Array('S','N','P','D'),true);</script>";

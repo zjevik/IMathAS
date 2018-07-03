@@ -49,7 +49,7 @@ function showicon($type,$alt='') {
 	}
 }
 
-function showitemtree($items,$parent) {
+function showitemtree($items,$parent,$greyitems=0) {
 	 global $DBH, $CFG, $itemshowdata, $typelookups, $imasroot, $cid, $userid, $exceptions, $exceptionfuncs, $now, $viewall, $studentinfo;
 
 	 foreach ($items as $k=>$item) {
@@ -67,11 +67,16 @@ function showitemtree($items,$parent) {
 					echo Sanitize::encodeStringForDisplay($item['name']);
 					echo '</a></li>';
 				} else { //show block contents
+					if (strlen($item['SH'])>2) {
+						$contentbehavior = $item['SH'][2];
+					} else {
+						$contentbehavior = 0;
+					}
 					echo '<li><a href="course.php?cid='.$cid.'&folder='.Sanitize::encodeUrlParam($parent.'-'.($k+1)).'">';
 					showicon('folder');
 					echo Sanitize::encodeStringForDisplay($item['name']);
 					echo '</a><ul class="qview">';
-					showitemtree($item['items'], $parent .'-'.($k+1));
+					showitemtree($item['items'], $parent .'-'.($k+1), $contentbehavior);
 					echo '</ul></li>';
 				}
 			 }
@@ -103,11 +108,7 @@ function showitemtree($items,$parent) {
 					   //DB $scores = explode(';',mysql_result($result,0,0));
 					   $scores = explode(';',$stm->fetchColumn(0));
 					   if ($line['reqscoretype']&2) { //using percent-based
-					   	   if ($line['ptsposs']==-1) {
-					   	   	   require("../includes/updateptsposs.php");
-					   	   	   $line['ptsposs'] = updatePointsPossible($line['id']);
-					   	   }
-					   	   if (round(100*getpts($scores[0])/$line['ptsposs'],1)+.02<abs($line['reqscore'])) {
+					   	   if (round(100*getpts($scores[0])/$line['reqscoreptsposs'],1)+.02<abs($line['reqscore'])) {
 							   $nothidden = false;
 						   }
 					   } else { //points based
@@ -118,7 +119,8 @@ function showitemtree($items,$parent) {
 				   }
 				}
 				if (($line['avail']==1 && $line['startdate']<$now && $line['enddate']>$now && ($nothidden || $showgreyedout)) ||
-					($line['avail']==1 && $line['enddate']<$now && $line['reviewdate']>$now) || $viewall) {
+					($line['avail']==1 && $line['enddate']<$now && $line['reviewdate']>$now) || $viewall ||
+					($line['avail']==1 && $nothidden && (($greyitems&1 && $now<$line['startdate']) || ($greyitems&2 && $now>$line['enddate'])))) {
 
 					echo '<li><a href="course.php?cid='.$cid.'&folder='.Sanitize::encodeUrlParam($parent).'#'.Sanitize::encodeUrlParam($item).'">';
 					showicon('assess', 'Assessment');
@@ -145,7 +147,8 @@ function showitemtree($items,$parent) {
 					echo '</a></li>';
 				}
 			} else if ($line['itemtype']=='Drill') {
-				if ($viewall || $line['avail']==2 || ($line['avail']==1 && $line['startdate']<$now && $line['enddate']>$now)) {
+				if ($viewall || $line['avail']==2 || ($line['avail']==1 && $line['startdate']<$now && $line['enddate']>$now) ||
+					($line['avail']>0 && (($greyitems&1 && $now<$line['startdate']) || ($greyitems&2 && $now>$line['enddate'])))) {
 					echo '<li><a href="course.php?cid='.$cid.'&folder='.Sanitize::encodeUrlParam($parent).'#'.Sanitize::encodeUrlParam($item).'">';
 					showicon('drill', 'Drill');
 					echo Sanitize::encodeStringForDisplay($line['name']);
@@ -156,7 +159,9 @@ function showitemtree($items,$parent) {
 					list($canundolatepassP, $canundolatepassR, $canundolatepass, $canuselatepassP, $canuselatepassR, $line['postby'], $line['replyby'], $line['enddate']) = $exceptionfuncs->getCanUseLatePassForums($exceptions[$item], $line);
 				}
 
-				if ($viewall || $line['avail']==2 || ($line['avail']==1 && $line['startdate']<$now && $line['enddate']>$now)) {
+				if ($viewall || $line['avail']==2 || ($line['avail']==1 && $line['startdate']<$now && $line['enddate']>$now) ||
+					($line['avail']>0 && (($greyitems&1 && $now<$line['startdate']) || ($greyitems&2 && $now>$line['enddate'])) &&
+						(($line['postby']!=2000000000 && $line['postby']!=0) || $line['replyby']!=2000000000 && $line['replyby']!=0))) {
 					echo '<li><a href="course.php?cid='.$cid.'&folder='.Sanitize::encodeUrlParam($parent).'#'.Sanitize::encodeUrlParam($item).'">';
 					showicon('forum', 'Forum');
 					echo Sanitize::encodeStringForDisplay($line['name']);
@@ -181,7 +186,7 @@ echo "<a href=\"course.php?cid=$cid&folder=0\">".Sanitize::encodeStringForDispla
 echo _('Course Map');
 echo '</div>';
 
-echo '<div id="headercoursemap" class="pagetitle"><h2>'._('Course Map').'</h2></div>';
+echo '<div id="headercoursemap" class="pagetitle"><h1>'._('Course Map').'</h1></div>';
 echo '<p>'._('Select an item to jump to its location in the course, or a folder to view the contents').'</p>';
 echo '<ul class="qview coursemap">';
 showitemtree($items,'0');

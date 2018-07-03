@@ -23,9 +23,9 @@ if (!(isset($_GET['cid'])) || !(isset($_GET['block']))) { //if the cid is missin
 } elseif (isset($_REQUEST['remove'])) { // a valid delete request loaded the page
 	$cid = Sanitize::courseId($_GET['cid']);
 	$block = Sanitize::stripHtmlTags($_GET['block']);
-
+    $wikiid = Sanitize::onlyInt($_GET['id']);
 	if ($_POST['remove']=="really") {
-		$wikiid = Sanitize::onlyInt($_GET['id']);
+
 		$DBH->beginTransaction();
 		//DB $query = "SELECT id FROM imas_items WHERE typeid='$wikiid' AND itemtype='Wiki' AND courseid='$cid'";
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
@@ -79,7 +79,7 @@ if (!(isset($_GET['cid'])) || !(isset($_GET['block']))) { //if the cid is missin
 			}
 		}
 		$DBH->commit();
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=".Sanitize::courseId($_GET['cid']));
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=".$cid . "&r=" . Sanitize::randomQueryStringParam());
 
 		exit;
 	} else {
@@ -87,7 +87,7 @@ if (!(isset($_GET['cid'])) || !(isset($_GET['block']))) { //if the cid is missin
 		//DB $result = mysql_query($query) or die("Query failed : " . mysql_error());
 		//DB $itemname = mysql_result($result,0,0);
 		$stm = $DBH->prepare("SELECT name FROM imas_wikis WHERE id=:id");
-		$stm->execute(array(':id'=>$_GET['id']));
+		$stm->execute(array(':id'=>$wikiid));
 		$itemname = $stm->fetchColumn(0);
 	}
 }
@@ -105,7 +105,7 @@ if ($overwriteBody==1) {
 } else {
 ?>
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
-	<h3><?php echo Sanitize::encodeStringForDisplay($itemname); ?></h3>
+	<h2><?php echo Sanitize::encodeStringForDisplay($itemname); ?></h2>
 	Are you SURE you want to delete this Wiki and all associated revisions?
 	<form method="POST" action="deletewiki.php?cid=<?php echo Sanitize::courseId($_GET['cid']); ?>&block=<?php echo Sanitize::encodeUrlParam($block) ?>&id=<?php echo Sanitize::onlyInt($_GET['id']) ?>">
 	<p>

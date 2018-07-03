@@ -26,7 +26,7 @@
 		//DB mysql_query($query) or die("Query failed : " . mysql_error());
 		$stm = $DBH->prepare("UPDATE imas_courses SET latepasshrs=:latepasshrs WHERE id=:id");
 		$stm->execute(array(':latepasshrs'=>$_POST['hours'], ':id'=>$cid));
-		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/listusers.php?cid=$cid");
+		header('Location: ' . $GLOBALS['basesiteurl'] . "/course/listusers.php?cid=$cid" . "&r=" . Sanitize::randomQueryStringParam());
 		exit;
 	}
 
@@ -39,7 +39,7 @@
 	echo "<form id=\"mainform\" method=post action=\"latepasses.php?&cid=$cid\">";
 
 ?>
-<div id="headerlatepasses" class="pagetitle"><h2>Manage LatePasses</h2></div>
+<div id="headerlatepasses" class="pagetitle"><h1>Manage LatePasses</h1></div>
 
 <script type="text/javascript">
 function onenter(e,field) {
