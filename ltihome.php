@@ -259,9 +259,11 @@ if (!empty($createcourse)) {
 		$params = array(
 			'lti_message_type' => 'ContentItemSelection',
 			'lti_version' => 'LTI-1p0',
-			'content_items' => json_encode($contentitems),
-			'data' => $sessiondata['lti_selection_data']
+			'content_items' => json_encode($contentitems)
 		);
+		if (!empty($sessiondata['lti_selection_data'])) {
+			$params['data'] = $sessiondata['lti_selection_data'];
+		}
 		$store = new IMathASLTIOAuthDataStore();
 		$consumer = $store->lookup_consumer($sessiondata['lti_origkey']);
 		$hmac_method = new OAuthSignatureMethod_HMAC_SHA1();

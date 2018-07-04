@@ -582,7 +582,7 @@ if (isset($_GET['launch'])) {
 		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
 		$_SESSION['selection_targets'] = $_REQUEST['accept_presentation_document_targets'];
 		$_SESSION['selection_return_format'] = "IMSdeeplink";
-		$_SESSION['selection_data'] = $_REQUEST['data'];
+		$_SESSION['selection_data'] = @$_REQUEST['data'];
 	}
 	unset($_SESSION['lti_duedate']);
 	if (isset($_REQUEST['custom_canvas_assignment_due_at'])) {
@@ -2057,7 +2057,7 @@ if (isset($_GET['launch'])) {
 		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
 		$_SESSION['selection_targets'] = $_REQUEST['accept_presentation_document_targets'];
 		$_SESSION['selection_return_format'] = "IMSdeeplink";
-		$_SESSION['selection_data'] = $_REQUEST['data'];
+		$_SESSION['selection_data'] = @$_REQUEST['data'];
 	}
 
 	//look if we know this student
