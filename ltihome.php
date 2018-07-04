@@ -203,14 +203,18 @@ if (!empty($createcourse)) {
 			$text = '';
 			$url = $GLOBALS['basesiteurl'] . "/bltilaunch.php?custom_open_folder=$typeid-0";
 		}
-		$contentitems = array(
-			'@context' => array(
+		/**
+		BB doesn't seem to allow the array @context
+		'@context' => array(
 				'http://purl.imsglobal.org/ctx/lti/v1/ContentItem',
 				array(
 					"lineItem" => "http://purl.imsglobal.org/ctx/lis/v2/LineItem",
 					"res" => "http://purl.imsglobal.org/ctx/lis/v2p1/Result#"
 				)
 			),
+		**/
+		$contentitems = array(
+			'@context' => 'http://purl.imsglobal.org/ctx/lti/v1/ContentItem',
 			'@graph' => array(
 				array(
 					'@type' => 'LtiLinkItem',
