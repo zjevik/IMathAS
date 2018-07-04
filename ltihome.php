@@ -222,7 +222,7 @@ if (!empty($createcourse)) {
 					'url' => $url,
 					'title' => $title,
 					'placementAdvice' => array(
-						'presentationDocumentTarget' => "embed"
+						'presentationDocumentTarget' => "iframe"
 					)
 				)	
 			)
