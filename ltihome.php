@@ -203,6 +203,17 @@ if (!empty($createcourse)) {
 			$text = '';
 			$url = $GLOBALS['basesiteurl'] . "/bltilaunch.php?custom_open_folder=$typeid-0";
 		}
+		$target = 'iframe';
+		if (!empty($sessiondata['lti_selection_targets'])) {
+			$allowedtargets = explode(',',$sessiondata['lti_selection_targets']);
+			$desiredtargets = array('iframe','frame','window');
+			foreach ($desiredtargets as $t) {
+				if (in_array($t, $allowedtargets)) {
+					$target = $t;
+					break;
+				}
+			}
+		}
 		/**
 		BB doesn't seem to allow the array @context
 		'@context' => array(
@@ -222,7 +233,7 @@ if (!empty($createcourse)) {
 					'url' => $url,
 					'title' => $title,
 					'placementAdvice' => array(
-						'presentationDocumentTarget' => "iframe"
+						'presentationDocumentTarget' => $target
 					)
 				)	
 			)

@@ -580,6 +580,7 @@ if (isset($_GET['launch'])) {
 	}
 	if (isset($_REQUEST['lti_message_type']) && $_REQUEST['lti_message_type']=='ContentItemSelectionRequest') {
 		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
+		$_SESSION['selection_targets'] = $_REQUEST['accept_presentation_document_targets'];
 		$_SESSION['selection_return_format'] = "IMSdeeplink";
 		$_SESSION['selection_data'] = $_REQUEST['data'];
 	}
@@ -1487,6 +1488,7 @@ $sessiondata['lti_keylookup'] = $SESS['ltilookup'];
 $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
+	$sessiondata['lti_selection_targets'] = $SESS['selection_targets'];
 	$sessiondata['lti_selection_return_format'] = $SESS['selection_return_format'];
 	$sessiondata['lti_selection_data'] = $SESS['selection_data'];
 }
@@ -2053,6 +2055,7 @@ if (isset($_GET['launch'])) {
 	}
 	if (isset($_REQUEST['lti_message_type']) && $_REQUEST['lti_message_type']=='ContentItemSelectionRequest') {
 		$_SESSION['selection_return'] = $_REQUEST['content_item_return_url'];
+		$_SESSION['selection_targets'] = $_REQUEST['accept_presentation_document_targets'];
 		$_SESSION['selection_return_format'] = "IMSdeeplink";
 		$_SESSION['selection_data'] = $_REQUEST['data'];
 	}
@@ -2555,6 +2558,7 @@ $sessiondata['lti_keylookup'] = $SESS['ltilookup'];
 $sessiondata['lti_origkey'] = $SESS['ltiorigkey'];
 if (isset($SESS['selection_return'])) {
 	$sessiondata['lti_selection_return'] = $SESS['selection_return'];
+	$sessiondata['lti_selection_targets'] = $SESS['selection_targets'];
 	$sessiondata['lti_selection_return_format'] = $SESS['selection_return_format'];
 	$sessiondata['lti_selection_data'] = $SESS['selection_data'];
 }
