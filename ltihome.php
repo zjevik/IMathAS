@@ -363,9 +363,6 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	//}
 
 	echo '<br/> <select name="setplacement"> ';
-	//if (!isset($sessiondata['lti_selection_return'])) {
-		echo '<option value="course">Whole course Placement</option>';
-	//}
 	$stm = $DBH->prepare("SELECT id,name FROM imas_assessments WHERE courseid=:courseid ORDER BY name");
 	$stm->execute(array(':courseid'=>$cid));
 	if ($stm->rowCount()>0) {
@@ -375,6 +372,9 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		}
 		echo '</optgroup>';
 	}
+	//if (!isset($sessiondata['lti_selection_return'])) {
+		echo '<option value="course">Whole course Placement</option>';
+	//}
 	echo '</select>';
 	echo '<input type="Submit" value="Make Placement"/>';
 	echo "<p>If you want to create new assessments, log directly into $installname</p>";
