@@ -220,7 +220,10 @@ if (!empty($createcourse)) {
 					'@type' => 'LtiLinkItem',
 					'mediaType' => 'application/vnd.ims.lti.v1.ltilink',
 					'url' => $url,
-					'title' => $title
+					'title' => $title,
+					'placementAdvice' => array(
+						'presentationDocumentTarget' => "embed"
+					)
 				)	
 			)
 		);
