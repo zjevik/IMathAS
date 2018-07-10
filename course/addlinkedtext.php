@@ -22,9 +22,9 @@ $body = "";
 $useeditor = "text,summary";
 
 $cid = Sanitize::courseId($_GET['cid']);
-$gid = Sanitize::onlyInt($_GET['id']);
+$linkid = Sanitize::onlyInt($_GET['id']);
 $curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
-if (!empty($gid)) {
+if (!empty($linkid)) {
 	$curBreadcrumb .= "&gt; Modify Link\n";
 	$pagetitle = "Modify Link";
 } else {
@@ -47,13 +47,14 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	$block = $_GET['block'];
 	$page_formActionTag = "addlinkedtext.php?" . Sanitize::generateQueryStringFromMap(array('block' => $block,
             'cid' => $cid, 'folder' => $_GET['folder']));
-	$page_formActionTag .= (!empty($gid)) ? "&id=" . $gid : "";
+	$page_formActionTag .= (!empty($linkid)) ? "&id=" . $linkid : "";
 	$page_formActionTag .= "&tb=$totb";
 	$uploaderror = false;
 	$caltag = Sanitize::stripHtmlTags($_POST['caltag']);
 	$points = 0;
 
 	if ($_POST['title']!= null) { //if the form has been submitted
+		$DBH->beginTransaction();
 		if ($_POST['avail']==1) {
 			if ($_POST['sdatetype']=='0') {
 				$startdate = 0;
@@ -92,7 +93,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			if ($_FILES['userfile']['name']!='') {
 				//$uploaddir = rtrim(dirname(__FILE__), '/\\') .'/files/';
 				//$uploadfile = $uploaddir . "$cid-" . basename($_FILES['userfile']['name']);
-        $userfilename = Sanitize::sanitizeFilenameAndCheckBlacklist(basename(str_replace('\\','/',$_FILES['userfile']['name'])));
+				$userfilename = Sanitize::sanitizeFilenameAndCheckBlacklist(basename(str_replace('\\','/',$_FILES['userfile']['name'])));
 				$filename = $userfilename;
 				$extension = strtolower(strrchr($userfilename,"."));
 				$badextensions = array(".php",".php3",".php4",".php5",".bat",".com",".pl",".p");
@@ -175,9 +176,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			}
 		}
 
-		if ($points==0 && isset($_POST['hadpoints']) && !empty($gid)) {
+		if ($points==0 && isset($_POST['hadpoints']) && !empty($linkid)) {
 			$stm = $DBH->prepare("DELETE FROM imas_grades WHERE gradetypeid=:gradetypeid AND gradetype='exttool'");
-			$stm->execute(array(':gradetypeid'=>$gid));
+			$stm->execute(array(':gradetypeid'=>$linkid));
 		}
 		$_POST['title'] = Sanitize::stripHtmlTags($_POST['title']);
 
@@ -196,9 +197,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			}
 		}
 		$outcomes = implode(',',$outcomes);
-		if (!empty($gid)) {  //already have id; update
+		if (!empty($linkid)) {  //already have id; update
 			$stm = $DBH->prepare("SELECT text FROM imas_linkedtext WHERE id=:id");
-			$stm->execute(array(':id'=>$gid));
+			$stm->execute(array(':id'=>$linkid));
 			$text = trim($stm->fetchColumn(0));
 			if (substr($text,0,5)=='file:') { //has file
 				if ($_POST['text']!=$text) { //if not same file, delete old if not used
@@ -222,7 +223,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				$stm = $DBH->prepare($query);
 				$stm->execute(array(':title'=>$_POST['title'], ':summary'=>$_POST['summary'], ':text'=>$_POST['text'], ':startdate'=>$startdate,
 					':enddate'=>$enddate, ':avail'=>$available, ':oncal'=>$oncal, ':caltag'=>$caltag, ':target'=>$target,
-					':outcomes'=>$outcomes, ':points'=>$points, ':id'=>$id));
+					':outcomes'=>$outcomes, ':points'=>$points, ':id'=>$linkid));
 			}
 		} else if (!$processingerror) { //add new
 			$query = "INSERT INTO imas_linkedtext (courseid,title,summary,text,startdate,enddate,avail,oncal,caltag,target,outcomes,points) VALUES ";
@@ -257,6 +258,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$stm->execute(array(':itemorder'=>$itemorder, ':id'=>$cid));
 
 		}
+		$DBH->commit();
 		if ($uploaderror == true || $processingerror == true) {
 			if ($uploaderror == true) {
 				$body = "<p>Error uploading file! $errormsg</p>\n";
@@ -264,8 +266,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				$body = "<p>Error with your submission</p>";
 			}
 			$body .= "<p><a href=\"addlinkedtext.php?cid=" . $cid;
-			if (!empty($gid)) {
-				$body .= "&id=" . $gid;
+			if (!empty($linkid)) {
+				$body .= "&id=" . $linkid;
 			} else {
 				$body .= "&id=$newtextid";
 			}
@@ -280,9 +282,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		$selectedtool = 0;
 		$filename = '';
 		$webaddr = '';
-		if (!empty($gid)) {
+		if (!empty($linkid)) {
 			$stm = $DBH->prepare("SELECT * FROM imas_linkedtext WHERE id=:id");
-			$stm->execute(array(':id'=>$gid));
+			$stm->execute(array(':id'=>$linkid));
 			$line = $stm->fetch(PDO::FETCH_ASSOC);
 			$startdate = $line['startdate'];
 			$enddate = $line['enddate'];
@@ -380,7 +382,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$etime = $deftime; //tzdate("g:i a",time()+7*24*60*60);
 		}
 
-		if (empty($gid)) {
+		if (empty($linkid)) {
 			$stime = $defstime;
 			$etime = $deftime;
 		}
@@ -542,7 +544,7 @@ if ($overwriteBody==1) {
 			}
 			if (!isset($CFG['GEN']['noInstrExternalTools'])) {
 				echo '<a href="../admin/externaltools.php?' . Sanitize::generateQueryStringFromMap(array('cid' => $cid,
-                        'ltfrom' => $gid)) .'">Add or edit an external tool</a>';
+                        'ltfrom' => $linkid)) .'">Add or edit an external tool</a>';
 			}
 			?>
 			</span><br class="form"/>
