@@ -580,4 +580,25 @@ function tann($n,$x) { return safepow(tan($x), $n);}
 function cscn($n,$x) { return 1/safepow(sin($x), $n);}
 function secn($n,$x) { return 1/safepow(cos($x), $n);}
 function cotn($n,$x) { return 1/safepow(tan($x), $n);}
+
+function my_create_function($args, $code) {
+	global $myrights;
+	$preevalerror = error_get_last();
+	
+	$res = eval('return function('.$args.'){'.$code.'};');
+	if ($res===false) {
+		if ($myrights>10) {
+			$error = error_get_last();
+			echo '<p>Caught error in evaluating a function in this question: ',$error['message'];
+			echo '</p>';
+		}
+	} else {
+		$error = error_get_last();
+		if ($error && $error!=$preevalerror && $error['type']==E_ERROR && $myrights>10) {
+			echo '<p>Caught error in evaluating a function in this question: ',$error['message'];
+			echo '</p>';
+		}
+	}
+	return $res;	
+}
 ?>

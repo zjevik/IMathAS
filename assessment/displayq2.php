@@ -3195,7 +3195,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 							$func = makepretty($function[0]);
 							$func = mathphp($func,'x');
 							$func = str_replace("(x)",'($x)',$func);
-							$func = create_function('$x', 'return ('.$func.');');
+							$func = my_create_function('$x', 'return ('.$func.');');
 							
 							$epsilon = ($settings[1]-$settings[0])/97;
 							$x1 = 1/4*$settings[1] + 3/4*$settings[0] + $epsilon;
@@ -5210,8 +5210,8 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 		$pixelsperx = ($settings[6] - 2*$imgborder)/($settings[1]-$settings[0]);
 		$pixelspery = ($settings[7] - 2*$imgborder)/($settings[3]-$settings[2]);
 
-		$xtopix = create_function('$x',"return ((\$x - ({$settings[0]}))*($pixelsperx) + ($imgborder));");
-		$ytopix = create_function('$y',"return (({$settings[7]}) - (\$y- ({$settings[2]}))*($pixelspery) - ($imgborder));");
+		$xtopix = my_create_function('$x',"return ((\$x - ({$settings[0]}))*($pixelsperx) + ($imgborder));");
+		$ytopix = my_create_function('$y',"return (({$settings[7]}) - (\$y- ({$settings[2]}))*($pixelspery) - ($imgborder));");
 
 		$anslines = array();
 		$ansdots = array();
@@ -5388,7 +5388,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 						$func = makepretty(substr($function[0],2));
 						$func = mathphp($func,'y');
 						$func = str_replace("(y)",'($y)',$func);
-						$func = create_function('$y', 'return ('.$func.');');
+						$func = my_create_function('$y', 'return ('.$func.');');
 						$x1p = $xtopix(@$func($y1));
 						$x2p = $xtopix(@$func($y2));
 						$x3p = $xtopix(@$func($y3));
@@ -5435,7 +5435,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 					$func = makepretty($function[0]);
 					$func = mathphp($func,'x');
 					$func = str_replace("(x)",'($x)',$func);
-					$func = create_function('$x', 'return ('.$func.');');
+					$func = my_create_function('$x', 'return ('.$func.');');
 					if ($function[1]=='-oo') { //ray to left
 						$y1p = $ytopix($func(floatval($function[2])-1));
 						$y2p = $ytopix($func(floatval($function[2])));
@@ -5458,7 +5458,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 					$func = makepretty($function[0]);
 					$func = mathphp($func,'x');
 					$func = str_replace("(x)",'($x)',$func);
-					$func = create_function('$x', 'return ('.$func.');');
+					$func = my_create_function('$x', 'return ('.$func.');');
 
 					$y1 = @$func($x1);
 					$y2 = @$func($x2);
@@ -5523,7 +5523,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 							$infunc = makepretty(substr($function[0],$p+5,$i-$p-5));
 							$infunc = mathphp($infunc,'x');
 							$infunc = str_replace("(x)",'($x)',$infunc);
-							$infunc = create_function('$x', 'return ('.$infunc.');');
+							$infunc = my_create_function('$x', 'return ('.$infunc.');');
 							$y0 = $infunc(0);
 							$y1 = $infunc(1);
 							$xint = -$y0/($y1-$y0);
@@ -5547,7 +5547,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 							$infunc = makepretty(substr($function[0],$p+4,$i-$p-4));
 							$infunc = mathphp($infunc,'x');
 							$infunc = str_replace("(x)",'($x)',$infunc);
-							$infunc = create_function('$x', 'return ('.$infunc.');');
+							$infunc = my_create_function('$x', 'return ('.$infunc.');');
 							$y0 = $infunc(0);
 							$y1 = $infunc(1);
 							$period = 2*M_PI/($y1-$y0); //slope of inside function
@@ -6187,7 +6187,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 					$func = makepretty(substr($function[0],$c));
 					$func = mathphp($func,'x');
 					$func = str_replace("(x)",'($x)',$func);
-					$func = create_function('$x', 'return ('.$func.');');
+					$func = my_create_function('$x', 'return ('.$func.');');
 					$y1 = $func($x1);
 					$y2 = $func($x2);
 					$y3 = $func($x3);
@@ -6481,7 +6481,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 				$func = makepretty($function[0]);
 				$func = mathphp($func,'x');
 				$func = str_replace("(x)",'($x)',$func);
-				$func = create_function('$x', 'return ('.$func.');');
+				$func = my_create_function('$x', 'return ('.$func.');');
 
 				if (!isset($function[1])) {
 					$function[1] = $settings[0];
