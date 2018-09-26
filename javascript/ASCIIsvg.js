@@ -177,6 +177,32 @@ function right_listener(evt) {
   svgpicture.setAttribute("xbase",evt.clientX-width+1);
 }
 
+function asciisvgexpand(evt) {
+	var el = evt.currentTarget;
+	var aspect = el.getAttribute("width")/el.getAttribute("height");
+	var w = Math.min(800,$(window).width()*0.8);
+	var h = $(window).height()*0.9-30;
+	if ((aspect>=1 && w/aspect<h)) { //wider than tall
+		h = Math.min(h, w/aspect);
+	} else { //taller than wide
+		w = Math.min(w, h*aspect);
+	}
+	h = Math.floor(h);
+	w = Math.floor(w);
+	
+	var html = '<div style="text-align:center"><embed data-enlarged="true" type="image/svg+xml" width="'+w+'" height="'+h+'" ';
+	if (el.hasAttribute("data-script")) {
+		html += 'script="' + el.getAttribute("data-script") + '"';
+	} else if (el.hasAttribute("data-sscr")) {
+		var sscrarr = el.getAttribute("data-sscr").split(',');
+		sscrarr[9] = w;
+		sscrarr[10] = h;
+		html += 'sscr="' + sscrarr.join(',') + '"';
+	}
+	html += ' /></div>';
+	GB_show(_("Enlarged Graph"), html, w+6, h+66);
+	setTimeout(drawPics, 500);
+}
 
 function switchTo(id) {
 //alert(id);
@@ -331,8 +357,14 @@ function initPicture(x_min,x_max,y_min,y_max) {
         //picture.parentNode.replaceChild(qnode,picture);
 				picture.parentNode.insertBefore(qnode,picture);
 				picture.style.display="none";
-				picture.removeAttribute("sscr");
-				picture.removeAttribute("script");
+				if (picture.hasAttribute("sscr")) {
+					qnode.setAttribute("data-sscr", picture.getAttribute("sscr"));
+					picture.removeAttribute("sscr");
+				}
+				if (picture.hasAttribute("script")) {
+					qnode.setAttribute("data-script", picture.getAttribute("script"));
+					picture.removeAttribute("script");
+				}				
       } else {
         svgpicture.parentNode.replaceChild(qnode,svgpicture);
       }
@@ -348,6 +380,9 @@ function initPicture(x_min,x_max,y_min,y_max) {
         pointerpos.setAttribute("r",0.5);
         pointerpos.setAttribute("fill","red");
         svgpicture.appendChild(pointerpos);
+      }
+      if (!picture.hasAttribute("data-enlarged")) {
+      	  svgpicture.addEventListener("click", asciisvgexpand);
       }
     }
 //  } else {

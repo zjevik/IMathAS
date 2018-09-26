@@ -269,7 +269,12 @@ function GB_show(caption,url,width,height) {
 		document.getElementsByTagName("body")[0].appendChild(gb_window);
 		GB_loaded  = true;
 	}
-	document.getElementById("GB_frameholder").innerHTML = '<iframe onload="GB_doneload()" id="GB_frame" src="'+url+'" title="'+caption+'"></iframe>';
+	if (url.charAt(0)=='<') {
+		document.getElementById("GB_frameholder").innerHTML = '<div>'+url+'</div>';
+		setTimeout(GB_doneload, 50);
+	} else {
+		document.getElementById("GB_frameholder").innerHTML = '<iframe onload="GB_doneload()" id="GB_frame" src="'+url+'" title="'+caption+'"></iframe>';
+	}
 	jQuery("#GB_frameholder").isolatedScroll();
 	if (url.match(/libtree/)) {
 		var btnhtml = '<span class="floatright"><input type="button" value="Use Libraries" onClick="document.getElementById(\'GB_frame\').contentWindow.setlib()" /> ';
@@ -298,8 +303,9 @@ function GB_show(caption,url,width,height) {
 	document.getElementById("GB_window").style.width = width + "px";
 	document.getElementById("GB_window").style.height = (h-30) + "px";
 	//document.getElementById("GB_window").style.left = ((w - width)/2)+"px";
-	document.getElementById("GB_frame").style.height = (h - 30 -36)+"px";
-
+	if (url.charAt(0)!='<') {
+		document.getElementById("GB_frame").style.height = (h - 30 -36)+"px";
+	}
 	document.getElementById("GB_window").focus();
 	$(document).on('keydown.GB', function(evt) {
 		if (evt.keyCode == 27) {
