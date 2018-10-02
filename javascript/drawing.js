@@ -1250,7 +1250,7 @@ function drawTarget(x,y) {
 			for (var j=0; j<tplines[curTarget][i].length; j++) {
 				ctx.fillRect(tplines[curTarget][i][j][0]-3,tplines[curTarget][i][j][1]-3,6,6);
 			}
-			if (tplines[curTarget][i].length==1 && x!=null && curTPcurve==i) {
+			if (tplines[curTarget][i].length<tpNodeN[targets[curTarget].mode] && x!=null && curTPcurve==i) {
 				ctx.fillRect(x-3,y-3,6,6);
 			}
 			ctx.fillStyle = "rgb(0,0,255)";
