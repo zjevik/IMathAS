@@ -413,7 +413,7 @@ function drawTarget(x,y) {
 			nocanvaswarning = true;
 			alert("Your browser does not support drawing answer entry.  Please try again using Internet Explorer 6+ (Windows), FireFox 1.5+ (Win/Mac), Safari 1.3+ (Mac), Opera 9+ (Win/Mac), or Camino (Mac)");
 		}
-	}
+	}                       
 
 	ctx.fillStyle = "rgb(0,0,255)";
 	ctx.lineWidth = 2;
@@ -1031,7 +1031,6 @@ function drawTarget(x,y) {
 					var originy = targets[curTarget].ymax*targets[curTarget].pixpery + targets[curTarget].imgborder;
 					var adjy2 = y1 - y2;
 					var adjy3 = y1 - y3;
-					console.log(y1+","+y2+","+y3+": "+adjy2+","+adjy3);
 					if (adjy2*adjy3>0 && x3 != x2) {
 						var expbase = safepow(adjy3/adjy2, 1/(x3-x2));
 						var stretch = adjy3/safepow(expbase,x3);
@@ -1134,6 +1133,19 @@ function drawTarget(x,y) {
 		ctx.stroke();
 		ctx.beginPath();
 	}
+	if (curTPcurve === null && targets[curTarget].mode == 8.5) { //shifted exp, no current curve
+		ctx.strokeStyle = "rgb(0,255,0)";
+		ctx.dashedLine(5,y,targets[curTarget].imgwidth,y);
+		ctx.beginPath();
+		ctx.strokeStyle = "rgb(0,0,255)";
+	} else if (curTPcurve === null && targets[curTarget].mode == 8.2) { //rational
+		ctx.strokeStyle = "rgb(0,255,0)";
+		ctx.dashedLine(5,y,targets[curTarget].imgwidth,y);
+		ctx.dashedLine(x,5,x,targets[curTarget].imgheight);
+		ctx.beginPath();
+		ctx.strokeStyle = "rgb(0,0,255)";
+	}
+	
 	var linefirstx, linefirsty, linelastx, linelasty;
 	ctx.fillStyle = 'rgba(0,0,255,.5)';
 	for (var i=0;i<lines[curTarget].length; i++) {
@@ -1760,6 +1772,7 @@ function drawMouseUp(ev) {
 	}
 }
 
+var mouseintarget = -1;
 function drawMouseMove(ev) {
 	var tempTarget = null;
 	clickmightbenewcurve = false;
@@ -1776,6 +1789,7 @@ function drawMouseMove(ev) {
 		}
 	//}
 	if (tempTarget!=null) {
+		mouseintarget = tempTarget;
 		var tarelpos = getPosition(targets[tempTarget].el);
 		var mouseOff = {x:(mousePos.x - tarelpos.x), y: (mousePos.y-tarelpos.y)};
 		if (targets[tempTarget].snaptogridx > 0) {mouseOff = snaptogrid(mouseOff,tempTarget);}
@@ -1795,6 +1809,11 @@ function drawMouseMove(ev) {
 					}
 				}
 			}
+		}
+	} else {
+		if (curTarget != null && mouseintarget != null && mouseintarget != -1) {
+			drawTarget();
+			mouseintarget = -1;
 		}
 	}
 	if (curTarget!=null) {
@@ -1863,10 +1882,16 @@ function drawMouseMove(ev) {
 					if (foundpt==null) {
 						setCursor('pen');
 						//targets[curTarget].el.style.cursor = 'url('+imasroot+'/img/pen.cur), auto';
+						
+						if (targets[curTarget].mode == 8.5 || targets[curTarget].mode == 8.2) {
+							drawTarget(mouseOff.x,mouseOff.y);
+						}
 					} else {
+						drawTarget();
 						setCursor('move');
 						//targets[curTarget].el.style.cursor = 'move';
 					}
+					 
 				}
 			} else { //dragging
 				setCursor('move');
