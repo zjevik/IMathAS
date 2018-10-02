@@ -30,6 +30,13 @@ var hasTouch = false;
 var didMultiTouch = false;
 var clickmightbenewcurve = false;
 var hasTouchTimer = null;
+var tpNodeN = {
+	"5": 2, "5.2": 2, "5.3": 2, "5.4": 2,
+	"6": 2, "6.1": 2, "6.5": 2,
+	"7": 2, "7.2": 2, "7.4": 2, "7.5": 2,
+	"8": 2, "8.2": 2, "8.3": 2, "8.4": 2, "8.5": 3,
+	"9": 2, "9.1": 2,
+	"10": 3, "10.2": 3, "10.3": 3, "10.4": 3};
 /*
    Canvas-based function drawing script
    (c) David Lippman, part of www.imathas.com
@@ -80,7 +87,9 @@ var hasTouchTimer = null;
 	8: abs value
 	8.2: linear/linear rational
 	8.3: exponential (unshifted)
+	8.4: log (unshifted)
 	9: cosine/sine
+	9.1: 
    ineqtypes
    	10: linear >= or <=
    	10.2: linear < or >
@@ -986,6 +995,61 @@ function drawTarget(x,y) {
 				}
 
 			}
+		} else if (tptypes[curTarget][i]==8.5) {//if a 3p exponential (shifted)
+			var y2 = null;
+			var x2 = null;
+			var y3 = null;
+			var x3 = null;
+			if (tplines[curTarget][i].length==3) {
+				x2 = tplines[curTarget][i][1][0];
+				y2 = tplines[curTarget][i][1][1];
+				x3 = tplines[curTarget][i][2][0];
+				y3 = tplines[curTarget][i][2][1];
+			} else if (tplines[curTarget][i].length==2) {
+				x2 = tplines[curTarget][i][1][0];
+				y2 = tplines[curTarget][i][1][1];
+				x3 = x;
+				y3 = y;
+			} else if (curTPcurve==i && x!=null && tplines[curTarget][i].length==1) {
+				x2 = x;
+				y2 = y;
+			}
+			var y1 = tplines[curTarget][i][0][1];
+			ctx.strokeStyle = "rgb(0,255,0)";
+			ctx.dashedLine(5,y1,targets[curTarget].imgwidth,y1);
+			ctx.beginPath();
+			ctx.strokeStyle = "rgb(0,0,255)";
+			if (x3 != null && x3!=x2) {
+				if (y3==y2) {
+					ctx.moveTo(0,y3);
+					ctx.lineTo(targets[curTarget].imgwidth,y3);
+				} else {
+					// (x2, y2-y1) (x3, y3-y1)
+					// b^(x3-x2) = (y3-y1)/(y2-y1)
+					// a = (y2-y1)/b^x1 + y1
+
+					var originy = targets[curTarget].ymax*targets[curTarget].pixpery + targets[curTarget].imgborder;
+					var adjy2 = y1 - y2;
+					var adjy3 = y1 - y3;
+					console.log(y1+","+y2+","+y3+": "+adjy2+","+adjy3);
+					if (adjy2*adjy3>0 && x3 != x2) {
+						var expbase = safepow(adjy3/adjy2, 1/(x3-x2));
+						var stretch = adjy3/safepow(expbase,x3);
+						ctx.moveTo(x2,y2);
+						var cury = 0;
+						for (var curx=0;curx < targets[curTarget].imgwidth+4;curx += 3) {
+							cury = y1 - stretch*safepow(expbase,curx);
+							if (cury<-100) { cury = -100;}
+							if (cury>targets[curTarget].imgheight+100) { cury=targets[curTarget].imgheight+100;}
+							if (curx==0) {
+								ctx.moveTo(curx,cury);
+							} else {
+								ctx.lineTo(curx,cury);
+							}
+						}
+					}
+				}
+			}
 		} else if (tptypes[curTarget][i]==8.2) {//if a tp linear/linear rational
 			var y2 = null;
 			var x2 = null;
@@ -1347,7 +1411,7 @@ function drawMouseDown(ev) {
 						mouseisdown = false;
 					} else {//in existing line
 						tplines[curTarget][curTPcurve].push([mouseOff.x,mouseOff.y]);
-						if (tplines[curTarget][curTPcurve].length==2) {
+						if (tplines[curTarget][curTPcurve].length==tpNodeN[targets[curTarget].mode]) {
 							//second point is set.  switch to drag and end line
 							dragObj = {mode: targets[curTarget].mode, num: curTPcurve, subnum: 1};
 							curTPcurve = null;

@@ -2988,6 +2988,11 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 						if (count($answerformat)>1 && $answerformat[1]=='exp') { $out .= 'class="sel" '; $def = 8.3;}
 						$out .= ' alt="Exponential"/>';
 					}
+					if (in_array('genexp',$answerformat)) {
+						$out .= "<img src=\"$imasroot/img/tpexp.png\" onclick=\"imathasDraw.settool(this,$qn,8.5)\" ";
+						if (count($answerformat)>1 && $answerformat[1]=='exp') { $out .= 'class="sel" '; $def = 8.5;}
+						$out .= ' alt="General Exponential"/>';
+					}
 					if (in_array('log',$answerformat)) {
 						$out .= "<img src=\"$imasroot/img/tplog.png\" onclick=\"imathasDraw.settool(this,$qn,8.4)\" ";
 						if (count($answerformat)>1 && $answerformat[1]=='log') { $out .= 'class="sel" '; $def = 8.4;}
