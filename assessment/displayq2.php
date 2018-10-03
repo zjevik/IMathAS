@@ -2990,13 +2990,18 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 					}
 					if (in_array('genexp',$answerformat)) {
 						$out .= "<img src=\"$imasroot/img/tpexp.png\" onclick=\"imathasDraw.settool(this,$qn,8.5)\" ";
-						if (count($answerformat)>1 && $answerformat[1]=='exp') { $out .= 'class="sel" '; $def = 8.5;}
+						if (count($answerformat)>1 && $answerformat[1]=='genexp') { $out .= 'class="sel" '; $def = 8.5;}
 						$out .= ' alt="General Exponential"/>';
 					}
 					if (in_array('log',$answerformat)) {
 						$out .= "<img src=\"$imasroot/img/tplog.png\" onclick=\"imathasDraw.settool(this,$qn,8.4)\" ";
 						if (count($answerformat)>1 && $answerformat[1]=='log') { $out .= 'class="sel" '; $def = 8.4;}
 						$out .= ' alt="Logarithm"/>';
+					}
+					if (in_array('genlog',$answerformat)) {
+						$out .= "<img src=\"$imasroot/img/tplog.png\" onclick=\"imathasDraw.settool(this,$qn,8.6)\" ";
+						if (count($answerformat)>1 && $answerformat[1]=='genlog') { $out .= 'class="sel" '; $def = 8.6;}
+						$out .= ' alt="General Logarithm"/>';
 					}
 					if ($settings[6]*($settings[3]-$settings[2]) == $settings[7]*($settings[1]-$settings[0])) {
 						//only circles if equal spacing in x and y
