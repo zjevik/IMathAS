@@ -21,6 +21,7 @@ var curTPcurve = null;
 var curIneqcurve = null; //inequalities
 var ineqcolors = ["rgb(0,0,255)","rgb(255,0,0)","rgb(0,255,0)"];
 var ineqacolors = ["rgba(0,0,255,.4)","rgba(255,0,0,.4)","rgba(0,255,0,.4)"];
+var asymcolor = "rgb(0,200,0)";
 var dragObj = null;
 var oldpointpos = null;
 var curTarget = null;
@@ -38,6 +39,9 @@ var tpModeN = {
 	"9": 2, "9.1": 2,
 	"10": 3, "10.2": 3, "10.3": 3, "10.4": 3};
 var tpHasAsymp = { "7.4": 1, "7.5": 1, "8.2": 1, "8.5": 1, "8.6": 1};
+
+//TODO:  extend 8.5 and 8.6 to a11ydraw
+
 /*
    Canvas-based function drawing script
    (c) David Lippman, part of www.imathas.com
@@ -175,6 +179,9 @@ function addA11yTarget(canvdata, thisdrawla) {
 			"abs": [{"mode":8, "descr":_("Absolute value"), inN: 2, "input":_("Enter the corner point of the absolute value, then another point on the graph")}],
 			"rational": [{"mode":8.2, "descr":_("Rational"), inN: 2, "input":_("Enter the point where the vertical and horizontal asymptote cross, then a point on the graph")}],
 			"exp": [{"mode":8.3, "descr":_("Exponential"), inN: 2, "input":_("Enter two points on the graph")}],
+			"log": [{"mode":8.4, "descr":_("Logarithm"), inN: 2, "input":_("Enter two points on the graph")}],
+			"genexp": [{"mode":8.5, "descr":_("Shifted Exponential"), inN: 3, "input":_("Enter a point on the asymptote, then enter two points on the graph")}],
+			"genlog": [{"mode":8.6, "descr":_("Shifted Logarithm"), inN: 3, "input":_("Enter a point on the asymptote, then enter two points on the graph")}],
 			"circle": [{"mode":7, "descr":_("Circle"), inN: 2, "input":_("Enter the center point of the circle, then a point on the graph")}],
 			"ellipse": [{"mode":7.2, "descr":_("Ellipse"), inN: 2, "input":_("Enter the center point of the ellipse, then a point offset from the center by the horizontal radius and vertical radius")}],
 			"hyperbola": [
@@ -803,7 +810,7 @@ function drawTarget(x,y) {
 					var b = Math.abs(x2-tplines[curTarget][i][0][0]);
 					var a = Math.abs(y2-tplines[curTarget][i][0][1]);
 					var m = Math.abs(a/b);
-					ctx.strokeStyle = "rgb(0,255,0)";
+					ctx.strokeStyle = asymcolor;
 					ctx.dashedLine(tplines[curTarget][i][0][0],tplines[curTarget][i][0][1],targets[curTarget].imgwidth,tplines[curTarget][i][0][1]+m*(targets[curTarget].imgwidth-tplines[curTarget][i][0][0]));
 					ctx.dashedLine(tplines[curTarget][i][0][0],tplines[curTarget][i][0][1],targets[curTarget].imgwidth,tplines[curTarget][i][0][1]-m*(targets[curTarget].imgwidth-tplines[curTarget][i][0][0]));
 					ctx.dashedLine(tplines[curTarget][i][0][0],tplines[curTarget][i][0][1],0,tplines[curTarget][i][0][1]-m*tplines[curTarget][i][0][0]);
@@ -845,7 +852,7 @@ function drawTarget(x,y) {
 					var a = Math.abs(x2-tplines[curTarget][i][0][0]);
 					var b = Math.abs(y2-tplines[curTarget][i][0][1]);
 					var m = Math.abs(b/a);
-					ctx.strokeStyle = "rgb(0,255,0)";
+					ctx.strokeStyle = asymcolor;
 					ctx.dashedLine(tplines[curTarget][i][0][0],tplines[curTarget][i][0][1],targets[curTarget].imgwidth,tplines[curTarget][i][0][1]+m*(targets[curTarget].imgwidth-tplines[curTarget][i][0][0]));
 					ctx.dashedLine(tplines[curTarget][i][0][0],tplines[curTarget][i][0][1],targets[curTarget].imgwidth,tplines[curTarget][i][0][1]-m*(targets[curTarget].imgwidth-tplines[curTarget][i][0][0]));
 					ctx.dashedLine(tplines[curTarget][i][0][0],tplines[curTarget][i][0][1],0,tplines[curTarget][i][0][1]-m*tplines[curTarget][i][0][0]);
@@ -1017,7 +1024,7 @@ function drawTarget(x,y) {
 				y2 = y;
 			}
 			var y1 = tplines[curTarget][i][0][1];
-			ctx.strokeStyle = "rgb(0,255,0)";
+			ctx.strokeStyle = asymcolor;
 			ctx.dashedLine(5,y1,targets[curTarget].imgwidth,y1);
 			ctx.beginPath();
 			ctx.strokeStyle = "rgb(0,0,255)";
@@ -1070,7 +1077,7 @@ function drawTarget(x,y) {
 				y2 = y;
 			}
 			var x1 = tplines[curTarget][i][0][0];
-			ctx.strokeStyle = "rgb(0,255,0)";
+			ctx.strokeStyle = asymcolor;
 			ctx.dashedLine(x1,5,x1,targets[curTarget].imgheight);
 			ctx.beginPath();
 			ctx.strokeStyle = "rgb(0,0,255)";
@@ -1109,7 +1116,7 @@ function drawTarget(x,y) {
 				x2 = x;
 				y2 = y;
 			}
-			ctx.strokeStyle = "rgb(0,255,0)";
+			ctx.strokeStyle = asymcolor;
 			ctx.dashedLine(5,tplines[curTarget][i][0][1],targets[curTarget].imgwidth,tplines[curTarget][i][0][1]);
 			ctx.dashedLine(tplines[curTarget][i][0][0],5,tplines[curTarget][i][0][0],targets[curTarget].imgheight);
 			ctx.beginPath();
@@ -2120,7 +2127,10 @@ function initCanvases(k) {
 				if (drawla[i].length>3 && drawla[i][3].length>0) {
 					for (var j=0; j<drawla[i][3].length;j++) {
 						tptypes[canvases[i][0]][j] = drawla[i][3][j][0];
-						tplines[canvases[i][0]][j] = [drawla[i][3][j].slice(1,3),drawla[i][3][j].slice(3)];
+						tplines[canvases[i][0]][j] = [];
+						for (var k=0; k<tpModeN[tptypes[canvases[i][0]][j]]; k++) {
+							tplines[canvases[i][0]][j].push(drawla[i][3][j].slice(1+2*k,3+2*k));
+						}
 					}
 				}
 				ineqtypes[canvases[i][0]] = [];
