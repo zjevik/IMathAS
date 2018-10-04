@@ -1402,8 +1402,9 @@ function drawMouseDown(ev) {
 	}
 	if (hasTouch) {
 		window.clearTimeout(hasTouchTimer);
+		$(document).off("mousemove.imathasdraw");
 		$(".drawcanvas").on("touchstart.imathasdraw", function(ev) { hasTouch=true; drawMouseDown(ev);});
-		$(".drawcanvas").on("touchmove.imathasdraw", drawMouseMove);
+		$(".drawcanvas").on("touchmove.imathasdraw", drawMouseMove)
 		$(document).on("touchend.imathasdraw", drawMouseUp);
 		$(document).on("touchcancel.imathasdraw", drawMouseUp);
 	} else {
@@ -1582,7 +1583,7 @@ function drawMouseDown(ev) {
 				//targets[curTarget].el.style.cursor = 'url('+imasroot+'/img/pen.cur), auto';
 			}
 			if (curTPcurve != null) {
-				if (tplines[curTarget][curTPcurve].length<2) {
+				if (tplines[curTarget][curTPcurve].length<tpModeN[targets[curTarget].mode]) {
 					tplines[curTarget].splice(curTPcurve,1);
 				}
 				setCursor('pen');
@@ -1877,11 +1878,22 @@ function drawMouseMove(ev) {
 			}
 		}
 	} else {
-		if (curTarget != null && mouseintarget != null && mouseintarget != -1) {
-			drawTarget();
+		if (mouseintarget != null && mouseintarget != -1) {
+			if (curTarget != null) {
+				drawTarget();
+			} else {
+				curTarget = mouseintarget;
+				drawTarget();
+				curTarget = null;
+			}
 			mouseintarget = -1;
 		}
 	}
+	/*
+	$("#curtarget").text(curTarget);
+	$("#temptarget").text(tempTarget);
+	$("#mouseintarget").text(mouseintarget);
+	*/
 	if (curTarget!=null) {
 		if (ev.originalEvent.touches && ev.originalEvent.touches.length>1) {
 			didMultiTouch = true;
@@ -1949,7 +1961,7 @@ function drawMouseMove(ev) {
 						setCursor('pen');
 						//targets[curTarget].el.style.cursor = 'url('+imasroot+'/img/pen.cur), auto';
 						
-						if (tpHasAsymp.hasOwnProperty(targets[curTarget].mode)) {
+						if (tpHasAsymp.hasOwnProperty(targets[curTarget].mode) && tempTarget !== null) {
 							drawTarget(mouseOff.x,mouseOff.y);
 						}
 					} else {
@@ -2084,7 +2096,7 @@ function clearAllDrawListners() {
 }
 function initCanvases(k) {
 	clearAllDrawListners();
-	$(".drawcanvas").on("mousemove.imathasdraw", drawMouseMove);
+	$(document).on("mousemove.imathasdraw", drawMouseMove);
 	$(".drawcanvas").on("touchstart.imathasdraw", function(ev) { hasTouch=true; drawMouseDown(ev);});
 	$(document).on("mousedown.imathasdraw", drawMouseDown);
 	
