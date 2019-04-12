@@ -837,8 +837,14 @@ function rotateimg(el) {
 }
 
 function sendLTIresizemsg() {
-	var default_height = Math.max(
-		document.body.scrollHeight, document.body.offsetHeight)+100;
+	var default_height = 0;
+	if(document.getElementsByClassName("navbar").length > 0 && document.getElementsByClassName("inset").length){
+		default_height = Math.max(document.getElementsByClassName("navbar")[0].scrollHeight, 
+			document.getElementsByClassName("inset")[0].scrollHeight)+100;
+	} else{
+		default_height = Math.max(
+			document.body.scrollHeight, document.body.offsetHeight)+100;
+	}
 		//document.documentElement.clientHeight, document.documentElement.scrollHeight,
 		//document.documentElement.offsetHeight
 	if (window.parent != window.self) {
