@@ -1917,7 +1917,8 @@ if (isset($_GET['launch'])) {
 				);
 				showNewUserValidation('pageform',array('curSID','curPW'), $requiredrules);
 			} else {
-				echo "<p>If you do not already have an account on $installname, please visit the site to request an account.</p>";
+				//echo "<p>If you do not already have an account on $installname, please visit the site to request an account.</p>";
+				echo "<p>This tool is currently in a pilot stage.  It is only available to faculty in the Department of Mathematics & Statistics. If you have any questions please reach out to mathlab1@fiu.edu</p>";
 				echo '<script type="text/javascript"> $(function() {
 					$("#pageform").validate({
 						rules: {
