@@ -159,9 +159,13 @@ function refreshTable() {
         key = Number.isInteger(item.id) ? item.id : htmlEntities(item.id);
         itemarray.push(itemarray_old_dic[key]);
       }
-
-      submitChanges();
-    }
+      if( $("#savechanges").is(":checked")){
+        submitChanges();
+      } else if(!$("#savechanges").is(":checked")){
+        document.getElementById("submitnotice").innerHTML = _(' Unsaved Changes! ');
+        $(".slider").addClass("fiu-yellow");
+      }
+    } 
   });
 
   //Correct parent <-> child relations from justintimeorder

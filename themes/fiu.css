@@ -1,3 +1,72 @@
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 7.5em;
+    height: 2.5em;
+  }
+
+.fiu-yellow{
+    background-color: #F8C93E !important;
+}
+  
+  .switch input { display: none; }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: white;
+    box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
+    transition: 0.2s;
+    border-radius: 99999px;
+  }
+  
+  .slider::before {
+    position: absolute;
+    content: "";
+    height: 1.5em;
+    width: 1.5em;
+    left: 0.45em;
+    bottom: 0.45em;
+    background-color: white;
+    box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #081E3F;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider::before {
+    transform: translateX(5.1em);
+  }
+  
+  .slider::after {
+   content: 'Save';
+   color: black;
+   display: block;
+   position: absolute;
+   transform: translate(-40%,-50%);
+   transition: 0.2s;
+   top: 50%;
+   left: 50%;
+   font-size: 0.7em;
+   font-family: Verdana, sans-serif;
+  }
+  
+  input:checked + .slider::after {  
+    content: 'Save on change';
+    color: white;
+  }
+
 /*General settings - fonts, overall page background, etc*/
 body {
 	/*font-family: "Trebuchet MS", "Arial", "Helvetica", sans-serif;*/
@@ -172,7 +241,7 @@ span.link {
 
 /*Containers for instructor leftbar, main content*/
 #leftcontent {
-		background:#081e3f15;
+		background:#e9ecef;
 		border:1px solid #000;
 		color:#000;
 		margin-left: 15px;

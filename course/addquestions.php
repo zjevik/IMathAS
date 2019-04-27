@@ -1224,10 +1224,32 @@ if ($overwriteBody==1) {
 				} else{
 					echo "var justintimeorder = [];";
 				}
+				echo "$(addSavetoggle())";
 			}
 		?>
 		//$(refreshTable);
-		refreshTable();
+
+		function addSavetoggle(){
+			$("#curqform").prepend('<label class="switch"><input type="checkbox" id="savechanges" checked><div class="slider round"></div></label>');
+			$("#savechanges").change(function() {
+				if($(this).is(":checked")) {
+					$(".slider").removeClass("fiu-yellow");
+					submitChanges()
+				} else{
+				}
+			});
+		}
+		function checkforMathJax(callback){
+			if(typeof MathJax == 'undefined'){
+				setTimeout(function() {
+					checkforMathJax(callback)
+				}, 100);
+			} else{
+				callback();
+			}
+		}
+		
+		$(checkforMathJax(function() {refreshTable()}));
 	</script>
 <?php
 	}
