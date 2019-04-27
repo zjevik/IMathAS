@@ -215,7 +215,7 @@ var livepoll = new function() {
 		var drawinitstack = [];
 		//group and total results
 		for (i in results[curquestion]) {
-			ischoices = (qdata[curquestion].anstypes=="choices" || qdata[curquestion].anstypes=="multans");
+			ischoices = (qdata[curquestion].anstypes=="choices" || qdata[curquestion].anstypes=="multans" || qdata[curquestion].anstypes=="matching");
 			if (ischoices) {
 				pts = results[curquestion][i].ans.split("$!$");
 				subpts = pts[1].split("|");
@@ -270,19 +270,24 @@ var livepoll = new function() {
 				}
 			} else {
 				out += '<table class=\"LPres\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">' + _("Frequency")+'</th></tr></thead><tbody>';
-				for (i=0;i<qdata[curquestion].randkeys.length;i++) {
-					partn = qdata[curquestion].randkeys[i];
-					out += '<tr class="';
-					if (scoredat[partn]>0) {
-						out += "LPcorrect";
-					} else {
-						out += "LPwrong";
+				if (qdata[curquestion].randkey){
+					for (i=0;i<qdata[curquestion].randkeys.length;i++) {
+						partn = qdata[curquestion].randkeys[i];
+						out += '<tr class="';
+						if (scoredat[partn]>0) {
+							out += "LPcorrect";
+						} else {
+							out += "LPwrong";
+						}
+						out += '"><td>';
+						out += qdata[curquestion].choices[partn];
+						out += '</td><td><span class="LPresbarwrap"><span class="LPresbar" id="LPresbar'+partn+'" style="width:' + Math.round(100*datatots[partn]/maxfreq) +'%;">';
+						out += '<span class="LPresval" id="LPresval'+partn+'">'+ datatots[partn] +'</span>';
+						out += '</span></span></td></tr>';
 					}
-					out += '"><td>';
-					out += qdata[curquestion].choices[partn];
-					out += '</td><td><span class="LPresbarwrap"><span class="LPresbar" id="LPresbar'+partn+'" style="width:' + Math.round(100*datatots[partn]/maxfreq) +'%;">';
-					out += '<span class="LPresval" id="LPresval'+partn+'">'+ datatots[partn] +'</span>';
-					out += '</span></span></td></tr>';
+				}
+				else{
+					//Matching type
 				}
 				out += "</tbody></table>";
 				$("#livepollrcontent").html(out);
@@ -442,7 +447,8 @@ var livepoll = new function() {
 				$("#livepollqcontent").append('<p><a href="#" onclick="livepoll.forceRegen('+qn+');return false;">' + _("Clear results and generate a new version of this question")+'</a></p>');
 				$("#LPstartq").show();
 
-				qdata[qn] = {choices: data.choices, randkeys: data.randkeys, ans: data.ans.toString(), anstypes: data.anstypes, seed: data.seed, drawinit: data.drawinit, initrdisp:false};
+				answer = data.ans==null?"":data.ans;
+				qdata[qn] = {choices: data.choices, randkeys: data.randkeys, ans: answer.toString(), anstypes: data.anstypes, seed: data.seed, drawinit: data.drawinit, initrdisp:false};
 				if (typeof forceregen != 'undefined') {
 					results[qn] = [];
 				}

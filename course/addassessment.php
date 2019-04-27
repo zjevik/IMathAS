@@ -83,7 +83,11 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
         $exceptpenalty = Sanitize::onlyInt($_POST['exceptionpenalty']);
         $ltisecret = Sanitize::stripHtmlTags($_POST['ltisecret']);
         $posttoforum = Sanitize::onlyInt($_POST['posttoforum']);
-        $defoutcome = Sanitize::onlyInt($_POST['defoutcome']);
+		$defoutcome = Sanitize::onlyInt($_POST['defoutcome']);
+		$locationtype = Sanitize::onlyInt($_POST['locationtype']);
+		$locationradius = Sanitize::onlyInt($_POST['locradius']);
+		$locationlat = Sanitize::stripHtmlTags($_POST['loclatitude']);
+		$locationlng = Sanitize::stripHtmlTags($_POST['loclongitude']);
 
         if (isset($_REQUEST['clearattempts'])) { //FORM POSTED WITH CLEAR ATTEMPTS FLAG
             if (isset($_POST['clearattempts']) && $_POST['clearattempts']=="confirmed") {
@@ -384,6 +388,19 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                         $query .= ",reviewdate=:reviewdate";
                     }
                     $qarr[':reviewdate'] = $reviewdate;
+				}
+				if (isset($_POST['locationtype'])) {
+					$query .= ",loctype=:loctype";
+					$qarr[':loctype'] = $locationtype;
+                    if ($_POST['locationtype']<3) {
+						$locationradius = null;
+						$locationlng = null;
+						$locationlat = null;
+					}
+					$query .= ",locradius=:locradius,loclat=:loclat,loclng=:loclng";
+					$qarr[':locradius'] = $locationradius;
+					$qarr[':loclat'] = $locationlat;
+					$qarr[':loclng'] = $locationlng;
                 }
                 $query .= " WHERE id=:id AND courseid=:cid";
                 $qarr[':id'] = $assessmentId;
@@ -457,12 +474,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 $query = "INSERT INTO imas_assessments (courseid,name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,";
                 $query .= "displaymethod,defpoints,defattempts,defpenalty,deffeedback,shuffle,gbcategory,password,cntingb,tutoredit,showcat,";
 		$query .= "eqnhelper,showtips,caltag,calrtag,isgroup,groupmax,groupsetid,showhints,reqscore,reqscoreaid,reqscoretype,noprint,avail,allowlate,";
-                $query .= "LPcutoff,exceptionpenalty,ltisecret,endmsg,deffeedbacktext,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,ptsposs,date_by_lti) VALUES ";
+                $query .= "LPcutoff,exceptionpenalty,ltisecret,endmsg,deffeedbacktext,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,ptsposs,date_by_lti,loctype,locradius,loclat,loclng) VALUES ";
                 $query .= "(:courseid, :name, :summary, :intro, :startdate, :enddate, :reviewdate, :timelimit, :minscore, :displaymethod, ";
                 $query .= ":defpoints, :defattempts, :defpenalty, :deffeedback, :shuffle, :gbcategory, :password, :cntingb, :tutoredit, ";
                 $query .= ":showcat, :eqnhelper, :showtips, :caltag, :calrtag, :isgroup, :groupmax, :groupsetid, :showhints, :reqscore, ";
 			$query .= ":reqscoreaid, :reqscoretype, :noprint, :avail, :allowlate, :LPcutoff, :exceptionpenalty, :ltisecret, :endmsg, :deffeedbacktext, :msgtoinstr, ";
-                $query .= ":posttoforum, :istutorial, :defoutcome, :extrefs, 0, :datebylti)";
+                $query .= ":posttoforum, :istutorial, :defoutcome, :extrefs, 0, :datebylti, :loctype, :locradius, :loclat, :loclng)";
                 $stm = $DBH->prepare($query);
                 $stm->execute(array(':courseid'=>$cid, ':name'=>$assessName, ':summary'=>$_POST['summary'], ':intro'=>$_POST['intro'],
                     ':startdate'=>$startdate, ':enddate'=>$enddate, ':reviewdate'=>$reviewdate, ':timelimit'=>$timelimit,
@@ -475,7 +492,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                     ':reqscoreaid'=>$_POST['reqscoreaid'], ':reqscoretype'=>$reqscoretype, ':noprint'=>$_POST['noprint'], ':avail'=>$_POST['avail'],
                     ':allowlate'=>$allowlate, ':LPcutoff'=>$LPcutoff, ':exceptionpenalty'=>$exceptpenalty, ':ltisecret'=>$ltisecret,
                     ':endmsg'=>$endmsg, ':deffeedbacktext'=>$deffb, ':msgtoinstr'=>$msgtoinstr, ':posttoforum'=>$posttoforum,
-                    ':istutorial'=>$istutorial, ':defoutcome'=>$defoutcome, ':extrefs'=>$extrefencoded, ':datebylti'=>$datebylti));
+					':istutorial'=>$istutorial, ':defoutcome'=>$defoutcome, ':extrefs'=>$extrefencoded, ':datebylti'=>$datebylti,
+					':loctype'=>$locationtype, ':locradius'=>$locationradius, ':loclat'=>$locationlat, ':loclng'=>$locationlng));
                 $newaid = $DBH->lastInsertId();
                 $query = "INSERT INTO imas_items (courseid,itemtype,typeid) VALUES ";
                 $query .= "(:courseid, :itemtype, :typeid);";
@@ -667,7 +685,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
             	    $reqscoredisptype=1;
             } else {
             	   $reqscoredisptype=0; 
-            }
+			}
+			$locationtype=$line['loctype'];
+
             if ($taken) {
                 $page_isTakenMsg = "<p>This assessment has already been taken.  Modifying some settings will mess up those assessment attempts, and those inputs ";
                 $page_isTakenMsg .=  "have been disabled.  If you want to change these settings, you should clear all existing assessment attempts</p>\n";
@@ -797,6 +817,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 
  /******* begin html output ********/
  $placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/DatePicker.js?v=080818\"></script>";
+ $placeinhead = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+ integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+ crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+ integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+ crossorigin=""></script>';
  require("../header.php");
 
 if ($overwriteBody==1) {
@@ -878,7 +904,124 @@ if ($overwriteBody==1) {
 				$("#reqscorewrap").toggle(rqshow);
 				$(this).attr("aria-expanded", rqshow);
 		});
+		$("#locationtype").attr("aria-controls", "locationwrap")
+			.attr("aria-expanded", $("#locationtype").val()>0)
+			.on("change", function() {
+				var loctype = parseInt($(this).val());
+				var locshow = (loctype>0);
+				$("#locationwrap").toggle(locshow);
+				$(this).attr("aria-expanded", locshow);
+				if (locshow) {
+					showmap(loctype);
+					console.log("here");
+				}
+
+				switch (loctype) {
+					//Custom location
+					case 3:
+						$("#latlonwrap").removeClass("grey");
+						$("#myRange").prop( "disabled", false );
+						$("#latitude").prop( "disabled", false );
+						$("#longitude").prop( "disabled", false );
+						break;
+					//Location is set to MMC or BBC
+					default:
+						$("#latlonwrap").addClass("grey");
+						$("#myRange").prop( "disabled", true );
+						$("#latitude").prop( "disabled", true );
+						$("#longitude").prop( "disabled", true );
+				}
+		});
+		$("#myRange").on("input",function() {
+			circle.setRadius(this.value);
+		});
 	})
+	var map, tileLayer, marker, circle, latitude, longitude;
+	function showmap(campus, lat, lon, rad){
+		var markerDraggable = false;
+		var radius;
+		switch (campus){
+			//MMC
+			case 1:
+				latitude = 25.754;
+				longitude = -80.376;
+				radius = 1000;
+				
+				$("#latlonwrap").addClass("grey");
+				$("#myRange").prop( "disabled", true );
+				$("#latitude").prop( "disabled", true );
+				$("#longitude").prop( "disabled", true );
+				break;
+			//BBC
+			case 2:
+				latitude = 25.9110057;
+				longitude = -80.139516;
+				radius = 500;
+
+				$("#latlonwrap").addClass("grey");
+				$("#myRange").prop( "disabled", true );
+				$("#latitude").prop( "disabled", true );
+				$("#longitude").prop( "disabled", true );
+				break;
+			//Custom
+			case 3:
+				latitude = (lat != undefined)?lat:25.754;
+				longitude = (lon != undefined)?lon:-80.376;
+				radius = (rad != undefined)?rad:1000;
+				markerDraggable = true;
+				$("#latlonwrap").removeClass("grey");
+				$("#myRange").prop( "disabled", false );
+				$("#latitude").prop( "disabled", false );
+				$("#longitude").prop( "disabled", false );
+		}
+		//Need to create the map
+		if(map == undefined){
+			tileLayer = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{
+			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+			});
+
+			map = new L.Map('mapdiv', {
+			'center': [latitude, longitude],
+			'zoom': campus=="1"?14:15,
+			'layers': [tileLayer]
+			});
+
+			marker = L.marker([latitude, longitude],{
+			draggable: markerDraggable
+			}).addTo(map);
+
+			circle = L.circle([latitude, longitude], {
+				color: '#081E3F',
+				fillColor: '#F8C93E',
+				fillOpacity: 0.5,
+				radius: radius
+			}).addTo(map);
+
+			marker.on('dragend', function (e) {
+				document.getElementById('latitude').value = marker.getLatLng().lat;
+				document.getElementById('longitude').value = marker.getLatLng().lng;
+				circle.setLatLng(marker.getLatLng());
+			});
+		} else{
+			//Map is already created
+			if(markerDraggable){
+				marker.dragging.enable()
+			} else{
+				marker.dragging.disable()
+			}
+			if(campus == "1" || campus == "2"){
+				zoom = campus=="1"?14:15;
+				map.flyTo([latitude, longitude], zoom);
+				circle.setLatLng([latitude, longitude]);
+				circle.setRadius(radius);
+				marker.setLatLng([latitude, longitude]);
+				circle.setLatLng(marker.getLatLng());
+			}
+		}
+		$("#myRange").val(radius);
+		document.getElementById('latitude').value = marker.getLatLng().lat;
+		document.getElementById('longitude').value = marker.getLatLng().lng;
+	}
 	</script>
 
 	<div class=breadcrumb><?php echo $curBreadcrumb  ?></div>
@@ -1162,7 +1305,7 @@ if ($overwriteBody==1) {
 			</span><BR class=form>
 		 </div>
 		
-		 <div class="block grouptoggle">
+		 <div class="block grouptoggle" onclick="setTimeout(function() {map.invalidateSize();}, 500);">
 		   <img class="mida" src="../img/expand.gif" />
 		   Time Limit and Access Control
 		 </div>
@@ -1216,6 +1359,41 @@ if ($overwriteBody==1) {
 	writeHtmlSelect ("reqscoreaid",$page_copyFromSelect['val'],$page_copyFromSelect['label'],$line['reqscoreaid']);
 ?>
 			</span></span><br class=form>
+
+			<span class=form>Restrict Location? (Live Poll only): </span>
+			<span class=formright>
+<?php
+	writeHtmlSelect("locationtype", array(0,1,2,3), array(_('No'),_('To MMC'), _('To BBC'), _('Custom Location')), $locationtype);
+			echo '<span id="locationwrap"';
+			if ($locationtype==0) {
+				echo 'style="display:none;"';
+			}
+			echo '>';
+?> <span id="locinstructions"
+<?php
+			if ($locationtype!=3) {
+				echo 'style="display:none;"';
+			}
+?>
+><br>Drag the marker on the map to change the required location.<br></span>
+			<span id="latlonwrap">Latitude: <input type=text size=12 name="loclatitude" id="latitude" value="<?php echo $line['loclat'];?>">, 
+			Longitude: <input type=text size=12 name="loclongitude" id="longitude" value="<?php echo $line['loclng'];?>">
+
+			Radius: <input style="width: 80%;" type="range" min="100" max="1000" value="<?php echo $line['locradius'];?>" step="25" id="myRange" name="locradius">
+
+			<div id="mapdiv" style="height: 400px"></div>
+<script>
+<?php
+			if ($locationtype > 0 && $locationtype < 3) {
+				echo 'showmap('.$locationtype.');';
+			} else{
+				echo 'showmap('.$locationtype.','.$line["loclat"].','.$line["loclng"].','.$line["locradius"].');';
+			}
+?>
+
+</script>
+
+			</span></span></span><br class=form>
 		 </div>
 		 
 		 <div class="block grouptoggle">

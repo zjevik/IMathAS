@@ -61,7 +61,7 @@ ul.navlist li {
 	margin-top: 0px;
 }
 ul.qlist li {
-	display: inline;
+	/*display: inline;*/
 	white-space: nowrap;
 	margin-left: 0px;
 	margin-top: 0px;

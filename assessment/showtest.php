@@ -51,6 +51,7 @@
 	$useexception = false;
 	$inexception = false;
 	$exceptionduedate = 0;
+	$locationdata = Array();
 
 	include("displayq2.php");
 	include("testutil.php");
@@ -545,10 +546,14 @@
 	$stm = $DBH->prepare("SELECT * FROM imas_assessment_sessions WHERE id=:id");
 	$stm->execute(array(':id'=>$testid));
 	$line = $stm->fetch(PDO::FETCH_ASSOC);
-	$stm = $DBH->prepare("SELECT justintimeorder FROM imas_assessments WHERE id=:id");
+	$stm = $DBH->prepare("SELECT justintimeorder,loctype,locradius,loclat,loclng FROM imas_assessments WHERE id=:id");
 	$stm->execute(array(':id'=>$line['assessmentid']));
 	$jitorder = $stm->fetch(PDO::FETCH_ASSOC);
 	$line['JustInTime']=$jitorder;
+	$locationdata["type"] = $jitorder['loctype'];
+	$locationdata["lat"] = $jitorder['loclat'];
+	$locationdata["lng"] = $jitorder['loclng'];
+	$locationdata["radius"] = $jitorder['locradius'];
 	$GLOBALS['assessver'] = $line['ver'];
 	if (strpos($line['questions'],';')===false) {
 		$questions = explode(",",$line['questions']);
@@ -1261,6 +1266,12 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			.LPresbar {display:inline-block; background-color: #CCCCCC; text-align:center; overflow:show; padding:5px 0px;}
 			.LPshowcorrect .LPresbar, .LPshowwrong  .LPresbar {background-color: #FFFFFF;}
 			</style>';
+			$placeinhead .= '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+			integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+			crossorigin=""/>
+		 <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+			integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+			crossorigin=""></script>';
 	}
 	if ($sessiondata['intreereader']) {
 		$flexwidth = true;
@@ -3534,6 +3545,14 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				echo '<script type="text/javascript">$(function(){livepoll.loadResults('.$LPjson.');});</script>';
 
 			} else {//stu view
+				if ($locationdata['type'] > 0) echo '
+				<script type="text/javascript">
+				$(function() {
+					showmap();
+				});
+				</script>
+				';
+				echo '<div id="livepolllocationwrap"><div id="livepolllocationmsg"></div><div id="livepolllocationmap" style="height: 50vh; display:none" ></div></div>';
 				echo '<div id="livepollqcontent">'._('Waiting for the instructor to start a question').'</div>';
 				if ($LPinf['curstate']<2) {
 					$act= '0';
@@ -4452,3 +4471,119 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		}
 	}
 ?>
+
+<script type="text/javascript">
+var current_position, current_accuracy, campus, lat, lon, radius, map, locationrunning = 0, locationshowquestion = 0;
+
+function showmap(){
+	$("#livepollqcontent").slideUp();
+	$("#livepolllocationmsg").text("Trying to locate you");
+	i = 0;
+	//loading text
+	var loadingIntervalId = setInterval(function() {
+		$("#livepolllocationmsg").append(".");
+		i++;
+
+		if(i == 4)
+		{
+				$("#livepolllocationmsg").html("Trying to locate you");
+				i = 0;
+		}
+		}, 500);
+
+	campus = <?php echo $locationdata['type']; ?>;
+	lat = <?php echo $locationdata['lat']==""?"null":$locationdata['lat']; ?>;
+	lon = <?php echo $locationdata['lng']==""?"null":$locationdata['lng']; ?>;
+	rad = <?php echo $locationdata['radius']==""?"null":$locationdata['radius']; ?>;
+	switch (campus){
+		//MMC
+		case 1:
+			latitude = 25.754;
+			longitude = -80.376;
+			radius = 1000;
+			break;
+		//BBC
+		case 2:
+			latitude = 25.9110057;
+			longitude = -80.139516;
+			radius = 500;
+			break;
+		//Custom
+		case 3:
+			latitude = (lat != null)?lat:0;
+			longitude = (lon != null)?lon:0;
+			radius = (rad != null)?rad:1000;
+	}
+
+	//Create the map
+	tileLayer = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+	});
+
+	map = new L.Map('livepolllocationmap', {
+	'center': [latitude, longitude],
+	'zoom': campus=="1"?14:15,
+	'layers': [tileLayer]
+	});
+
+	circle = L.circle([latitude, longitude], {
+		color: '#081E3F',
+		fillColor: '#F8C93E',
+		fillOpacity: 0.5,
+		radius: radius
+	}).addTo(map);
+
+	function onLocationFound(e) {
+		clearInterval(loadingIntervalId);
+		// if position defined, then remove the existing position marker and accuracy circle from the map
+		if (current_position) {
+			current_position.setLatLng(e.latlng).bindPopup("You are within " + e.accuracy / 2 + " meters from this point. Distance is "+map.distance(e.latlng,L.latLng(latitude, longitude)));
+			current_accuracy.setLatLng(e.latlng);
+		} else{
+			current_position = L.marker(e.latlng).addTo(map)
+			.bindPopup("You are within " + e.accuracy / 2 + " meters from this point. Distance is "+map.distance(e.latlng,L.latLng(latitude, longitude))).openPopup();
+			current_accuracy = L.circle(e.latlng, e.accuracy / 2).addTo(map);
+		}
+		
+		
+		distance = map.distance(e.latlng,L.latLng(latitude, longitude))-e.accuracy / 2;
+		console.log("location refreshed, distance = "+distance);
+		//Check distance
+		if(distance < radius){
+			$("#livepollqcontent").slideDown();
+			$("#livepolllocationmsg").text("Location OK.");
+			setInterval(() => {
+				$('#livepolllocationwrap').slideUp();
+				map.stopLocate();
+				map.remove();
+			}, 1000);
+		} else{
+			$("#livepolllocationmsg").text("You have to be present in the classroom. Please go to the classroom.");
+			$("#livepolllocationmap").slideDown(400,function(){
+				map.invalidateSize();
+				if(locationrunning == 0) {
+					map.locate({setView: true, maxZoom: 15, enableHighAccuracy:true, maximumAge:15000, animate:true});
+					locationrunning = 1;
+				} else if (locationrunning == 1){
+					map.locate({maxZoom: 15, enableHighAccuracy:true, maximumAge:15000, animate:true, watch:true});
+					locationrunning = 2;
+				}
+			});
+		}
+	}
+
+	function onLocationError(e) {
+		if(e.code == 1){
+			map.stopLocate();
+			alert("Please enable location services and refresh the page.")
+		} else {
+			alert(e.message);
+		}
+	}
+	
+	map.locate({setView: true, maxZoom: 15, enableHighAccuracy:true, maximumAge:15000, animate:true, timeout:60000});
+	map.on('locationfound', onLocationFound);
+	map.on('locationerror', onLocationError);
+		
+}
+</script>
