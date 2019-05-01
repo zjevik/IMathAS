@@ -293,6 +293,10 @@ div.question {
 	border: 1px solid #081E3f;
 }
 
+div.LPinactive {
+	background-color: #ffffcc !important;
+	border: 1px solid #999966 !important;
+}
 
 div.review { /*info bar*/
 	background-color: #081e3f15;

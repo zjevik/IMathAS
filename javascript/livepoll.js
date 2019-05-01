@@ -446,6 +446,7 @@ var livepoll = new function() {
 				//$(".sabtn").hide();
 				$("#livepollqcontent").append('<p><a href="#" onclick="livepoll.forceRegen('+qn+');return false;">' + _("Clear results and generate a new version of this question")+'</a></p>');
 				$("#LPstartq").show();
+				$(".question").addClass("LPinactive");
 
 				answer = data.ans==null?"":data.ans;
 				qdata[qn] = {choices: data.choices, randkeys: data.randkeys, ans: answer.toString(), anstypes: data.anstypes, seed: data.seed, drawinit: data.drawinit, initrdisp:false};
@@ -525,6 +526,7 @@ var livepoll = new function() {
 			curstate = 2;
 			showAnsIfAllowed();
 			$("#LPshowansmsg").text(_("Show Answers When Closed"));
+			$(".question").removeClass("LPinactive");
 		}).always(function(data) {
 			working = false;
 		});
@@ -559,6 +561,7 @@ var livepoll = new function() {
 				showAnsIfAllowed();
 				$("#LPshowrchkbox").prop("checked", settings.showresonclose || $("#LPshowrchkbox").is(":checked")).trigger("change");
 				$(".sabtn").show();
+				$(".question").addClass("LPinactive");
 			}
 		}).always(function(data) {
 			working = false;
