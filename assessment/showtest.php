@@ -4575,7 +4575,9 @@ function showmap(){
 	function onLocationError(e) {
 		if(e.code == 1){
 			map.stopLocate();
-			alert("Please enable location services and refresh the page.")
+			alert("Please enable location services on your device and refresh the page. If you are using Canvas app then open this assignment in your mobile browser.")
+			clearInterval(loadingIntervalId);
+			$("#livepolllocationmsg").text("Location failed! If you are using Canvas app then open this assignment in your mobile browser.");
 		} else {
 			alert(e.message);
 		}
