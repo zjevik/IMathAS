@@ -143,9 +143,9 @@ function setlib() {
 	opener.setlibnames(chlibsn.join(", "));
 	self.close();
 	} else {
-		top.setlib(chlibs.join(","));
-		top.setlibnames(chlibsn.join(", "));
-		top.GB_hide();
+		parent.setlib(chlibs.join(","));
+		parent.setlibnames(chlibsn.join(", "));
+		parent.GB_hide();
 	}
 	
 }
