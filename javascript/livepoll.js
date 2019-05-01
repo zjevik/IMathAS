@@ -270,7 +270,7 @@ var livepoll = new function() {
 				}
 			} else {
 				out += '<table class=\"LPres\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">' + _("Frequency")+'</th></tr></thead><tbody>';
-				if (qdata[curquestion].randkey){
+				if (qdata[curquestion].randkeys){
 					for (i=0;i<qdata[curquestion].randkeys.length;i++) {
 						partn = qdata[curquestion].randkeys[i];
 						out += '<tr class="';
