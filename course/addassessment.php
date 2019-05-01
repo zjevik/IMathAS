@@ -913,7 +913,7 @@ if ($overwriteBody==1) {
 				$(this).attr("aria-expanded", locshow);
 				if (locshow) {
 					showmap(loctype);
-					console.log("here");
+					//console.log("here");
 				}
 
 				switch (loctype) {
@@ -1386,7 +1386,7 @@ if ($overwriteBody==1) {
 <?php
 			if ($locationtype > 0 && $locationtype < 3) {
 				echo 'showmap('.$locationtype.');';
-			} else{
+			} else if ($locationtype != 0){
 				echo 'showmap('.$locationtype.','.$line["loclat"].','.$line["loclng"].','.$line["locradius"].');';
 			}
 ?>
