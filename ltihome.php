@@ -390,8 +390,8 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		echo 'For grade return, you need to create a new assignment link instead.</p>';
 		echo '<p>Select the placement you\'d like to make: ';
 	} else {
-		echo 'You can either do a full course placement, in which case all content of the course is available from this one placement (but no grades are returned), or ';
-		echo 'you can place an individual assessment (and grades will be returned, if supported by your LMS).  Select the placement you\'d like to make: ';
+		echo 'You can either place an individual assessment (and grades will be returned to Canvas) in which students only see the selected assessment (recommended), or ';
+		echo 'or do a full course placement, in which case all content of the course is available to students (but no grades are returned to Canvas). <br> Select the assessment you\'d like to use: ';
 	}
 
 	echo '<br/> <select name="setplacement"> ';
@@ -422,7 +422,7 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 } else if ($placementtype=='course') {
 	echo '<h2>LTI Placement of whole course</h2>';
 	echo "<p><a href=\"course/course.php?cid=" . Sanitize::courseId($cid) . "\">Enter course</a></p>";
-	echo '<p><a href="ltihome.php?chgplacement=true">Change placement</a></p>';
+	echo '<p><a href="ltihome.php?chgplacement=true">Change assessment</a></p>';
 } else if ($placementtype=='assess') {
 	$stm = $DBH->prepare("SELECT name,avail,startdate,enddate,date_by_lti FROM imas_assessments WHERE id=:id");
 	$stm->execute(array(':id'=>$typeid));
@@ -464,7 +464,7 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		echo "<p><a href=\"course/addassessment.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Settings</a> | ";
 		echo "<a href=\"course/addquestions.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Questions</a></p>";
 		if ($sessiondata['ltiitemtype']==-1) {
-			echo '<p><a href="ltihome.php?chgplacement=true">Change placement</a></p>';
+			echo '<p><a href="ltihome.php?chgplacement=true">Change assessment</a></p>';
 		}
 		echo '<p>&nbsp;</p><p class=small>This assessment is housed in course ID '.Sanitize::courseId($cid).'</p>';
 	}

@@ -3493,13 +3493,13 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				echo '<div class="inset" id="livepollinstrq">';
 				echo '<div id="LPsettings">';
 				echo '<p><label><input type="checkbox" id="LPsettings-dispq" onclick="livepoll.updateSettings()" checked> ';
-				echo ' ' . _("Show question on this computer before it is opened for student input") . '</label></p>';
+				echo ' ' . _("Show question on this computer before it is available to students") . '</label></p>';
 				echo '<p><label><input type="checkbox" id="LPsettings-liveres" onclick="livepoll.updateSettings()"> ';
-				echo ' ' . _("Show results live as students submit answers") . '</label></p>';
+				echo ' ' . _("Show results on this computer as students submit answers") . '</label></p>';
 				echo '<p><label><input type="checkbox" id="LPsettings-resafter" onclick="livepoll.updateSettings()" checked> ';
-				echo ' ' . _("Show results automatically after closing student input") . '</label></p>';
+				echo ' ' . _("Show results on this computer after closing the assessment") . '</label></p>';
 				echo '<p><label><input type="checkbox" id="LPsettings-showans" onclick="livepoll.updateSettings()" checked> ';
-				echo ' ' . _("Show answers automatically after closing student input") . '</label></p>';
+				echo ' ' . _("Show answers to students after closing the assessment") . '</label></p>';
 				echo '<p><label><input type="checkbox" id="LPsettings-docountdown" onclick="livepoll.updateSettings()" > ';
 				echo ' ' . _("Use per-question time limit") . '</label>';
 				echo '<span id="LPsettings-timelimitwrap" style="display:none">: ';
@@ -3508,7 +3508,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				echo '</div>';
 				echo ' <div>';
 				echo ' <p><b><span id="LPqnumber">' . _("Select a Question") . '</span></b></p> ';
-				echo ' <p id="LPperqsettings" style="display:none;"><button id="LPstartq" style="display:none">' . _("Open Student Input") . '</button><button id="LPstopq" style="display:none">' . _("Close Student Input") . '</button>';
+				echo ' <p id="LPperqsettings" style="display:none;"><button id="LPstartq" style="display:none">' . _("Start Assessment") . '</button><button id="LPstopq" style="display:none">' . _("Stop Assessment") . '</button>';
 				echo ' <label><input type="checkbox" id="LPshowqchkbox" checked> ' . _("Show Question") . '</label> ';
 				echo ' <label><input type="checkbox" id="LPshowrchkbox"> ' . _("Show Results") . '</label> ';
 				echo ' <label><input type="checkbox" id="LPshowanschkbox" checked> <span id="LPshowansmsg">' . _("Show Answers When Closed") . '</span></label> ';

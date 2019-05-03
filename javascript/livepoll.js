@@ -513,14 +513,14 @@ var livepoll = new function() {
 	function startQuestion() {
 		var qn = curquestion;
 		if (qn<0 || curstate==2 || working) { return;}
-		$("#LPstartq").text(_("Opening Student Input..."));
+		$("#LPstartq").text(_("Staring Assessment..."));
 		working = true;
 		clearInterval(LPtimer);
 		LPtimestart = Date.now();
 		$.ajax({
 			url: assesspostbackurl+'&action=livepollopenq&qn='+qn+'&seed='+qdata[qn].seed+'&startt='+LPtimestart
 		}).done(function(data) {
-			$("#LPstartq").text(_("Open Student Input")).hide();
+			$("#LPstartq").text(_("Start Assessment")).hide();
 			$("#LPstopq").show();
 			LPtimer = setInterval(LPtimerkeeper,1000);
 			curstate = 2;
@@ -536,7 +536,7 @@ var livepoll = new function() {
 	}
 	function stopQuestion(pushstate) {
 		if (curquestion<0 || curstate!=2 || working) { return;}
-		$("#LPstopq").text(_("Closing Student Input..."));
+		$("#LPstopq").text(_("Stopping Assessment..."));
 		working = true;
 		if (typeof pushstate != 'undefined') {
 			var newstate = pushstate;
@@ -550,7 +550,7 @@ var livepoll = new function() {
 			url: assesspostbackurl+'&action=livepollstopq&qn='+curquestion+'&newstate='+newstate,
 			async: (typeof pushstate == 'undefined' || pushstate!=0)
 		}).done(function(data) {
-			$("#LPstopq").text(_("Close Student Input")).hide();
+			$("#LPstopq").text(_("Stop Assessment")).hide();
 			$("#LPstartq").show();
 			if (typeof pushstate == 'undefined') {
 				//skip actual closeout on pushstate
