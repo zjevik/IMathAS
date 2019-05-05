@@ -519,7 +519,7 @@ if ($myrights<20) {
 			$qarr[':groupid'] = $groupid;
 			$qarr[':userid'] = $userid;
 		}
-		$query .= "GROUP BY imas_libraries.id ORDER BY imas_libraries.federationlevel DESC,imas_libraries.id";
+		$query .= "GROUP BY imas_libraries.id ORDER BY imas_libraries.name ASC,imas_libraries.federationlevel DESC,imas_libraries.id";
 		$stm = $DBH->prepare($query);
 		$stm->execute($qarr);
 		$rights = array();
