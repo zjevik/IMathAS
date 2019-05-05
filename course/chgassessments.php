@@ -37,7 +37,7 @@ if (!(isset($teacherid))) {
 		$sets = array();
 		$qarr = array();
 		if (isset($_POST['docopyopt'])) {
-			$tocopy = 'password,timelimit,displaymethod,defpoints,defattempts,deffeedback,defpenalty,eqnhelper,showhints,allowlate,noprint,shuffle,gbcategory,cntingb,caltag,calrtag,minscore,exceptionpenalty,groupmax,showcat,msgtoinstr,posttoforum,extrefs';
+			$tocopy = 'password,timelimit,displaymethod,defpoints,defattempts,deffeedback,defpenalty,eqnhelper,showhints,allowlate,noprint,shuffle,gbcategory,cntingb,caltag,calrtag,minscore,exceptionpenalty,groupmax,showcat,msgtoinstr,posttoforum,extrefs,loctype,locradius,loclat,loclng';
 			$stm = $DBH->prepare("SELECT $tocopy FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['copyopt'])));
 			$qarr = $stm->fetch(PDO::FETCH_ASSOC);
@@ -279,6 +279,26 @@ if (!(isset($teacherid))) {
 				$sets[] = $shuff;
 
 			}
+			if (isset($_POST['chglocationtype'])) {
+				$locationtype = Sanitize::onlyInt($_POST['locationtype']);
+				$locationradius = Sanitize::onlyInt($_POST['locradius']);
+				$locationlat = Sanitize::stripHtmlTags($_POST['loclatitude']);
+				$locationlng = Sanitize::stripHtmlTags($_POST['loclongitude']);
+	
+				$sets[] = "loctype=:loctype";
+				$qarr[':loctype'] = $locationtype;
+				if ($_POST['locationtype']<3) {
+					$locationradius = null;
+					$locationlng = null;
+					$locationlat = null;
+				}
+				$sets[] = "locradius=:locradius";
+				$sets[] = "loclat=:loclat";
+				$sets[] = "loclng=:loclng";
+				$qarr[':locradius'] = $locationradius;
+				$qarr[':loclat'] = $locationlat;
+				$qarr[':loclng'] = $locationlng;
+			}
 		}
 		if (isset($_POST['chgavail'])) {
 			$sets[] = "avail=:avail";	
@@ -296,7 +316,6 @@ if (!(isset($teacherid))) {
 				$sets[] = 'reqscoretype=(reqscoretype | 1)';
 			}
 		}
-
 		if (isset($_POST['chgsummary'])) {
 			$stm = $DBH->prepare("SELECT summary FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['summary'])));
@@ -464,6 +483,12 @@ if (!(isset($teacherid))) {
 }
 
 /******* begin html output ********/
+$placeinhead = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+crossorigin=""></script>';
  require("../header.php");
 
 if ($overwriteBody==1) {
@@ -559,7 +584,124 @@ $(function() {
 			$(this).parents("tr").removeClass("odd");
 		}*/
 	});
+	$("#locationtype").attr("aria-controls", "locationwrap")
+		.attr("aria-expanded", $("#locationtype").val()>0)
+		.on("change", function() {
+			var loctype = parseInt($(this).val());
+			var locshow = (loctype>0);
+			$("#locationwrap").toggle(locshow);
+			$(this).attr("aria-expanded", locshow);
+			if (locshow) {
+				showmap(loctype);
+				//console.log("here");
+			}
+
+			switch (loctype) {
+				//Custom location
+				case 3:
+					$("#latlonwrap").removeClass("grey");
+					$("#myRange").prop( "disabled", false );
+					$("#latitude").prop( "disabled", false );
+					$("#longitude").prop( "disabled", false );
+					break;
+				//Location is set to MMC or BBC
+				default:
+					$("#latlonwrap").addClass("grey");
+					$("#myRange").prop( "disabled", true );
+					$("#latitude").prop( "disabled", true );
+					$("#longitude").prop( "disabled", true );
+			}
+	});
+	$("#myRange").on("input",function() {
+		circle.setRadius(this.value);
+	});
 })
+var map, tileLayer, marker, circle, latitude, longitude;
+	function showmap(campus, lat, lon, rad){
+		var markerDraggable = false;
+		var radius;
+		switch (campus){
+			//MMC
+			case 1:
+				latitude = 25.754;
+				longitude = -80.376;
+				radius = 1000;
+				
+				$("#latlonwrap").addClass("grey");
+				$("#myRange").prop( "disabled", true );
+				$("#latitude").prop( "disabled", true );
+				$("#longitude").prop( "disabled", true );
+				break;
+			//BBC
+			case 2:
+				latitude = 25.9110057;
+				longitude = -80.139516;
+				radius = 500;
+
+				$("#latlonwrap").addClass("grey");
+				$("#myRange").prop( "disabled", true );
+				$("#latitude").prop( "disabled", true );
+				$("#longitude").prop( "disabled", true );
+				break;
+			//Custom
+			case 3:
+				latitude = (lat != undefined)?lat:25.754;
+				longitude = (lon != undefined)?lon:-80.376;
+				radius = (rad != undefined)?rad:1000;
+				markerDraggable = true;
+				$("#latlonwrap").removeClass("grey");
+				$("#myRange").prop( "disabled", false );
+				$("#latitude").prop( "disabled", false );
+				$("#longitude").prop( "disabled", false );
+		}
+		//Need to create the map
+		if(map == undefined){
+			tileLayer = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{
+			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+			});
+
+			map = new L.Map('mapdiv', {
+			'center': [latitude, longitude],
+			'zoom': campus=="1"?14:15,
+			'layers': [tileLayer]
+			});
+
+			marker = L.marker([latitude, longitude],{
+			draggable: markerDraggable
+			}).addTo(map);
+
+			circle = L.circle([latitude, longitude], {
+				color: '#081E3F',
+				fillColor: '#F8C93E',
+				fillOpacity: 0.5,
+				radius: radius
+			}).addTo(map);
+
+			marker.on('dragend', function (e) {
+				document.getElementById('latitude').value = marker.getLatLng().lat;
+				document.getElementById('longitude').value = marker.getLatLng().lng;
+				circle.setLatLng(marker.getLatLng());
+			});
+		} else{
+			//Map is already created
+			if(markerDraggable){
+				marker.dragging.enable()
+			} else{
+				marker.dragging.disable()
+			}
+			if(campus == "1" || campus == "2"){
+				zoom = campus=="1"?14:15;
+				map.flyTo([latitude, longitude], zoom);
+				circle.setLatLng([latitude, longitude]);
+				circle.setRadius(radius);
+				marker.setLatLng([latitude, longitude]);
+				circle.setLatLng(marker.getLatLng());
+			}
+		}
+		$("#myRange").val(radius);
+		document.getElementById('latitude').value = marker.getLatLng().lat;
+		document.getElementById('longitude').value = marker.getLatLng().lng;
+	}
 </script>
 
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
@@ -889,6 +1031,28 @@ writeHtmlSelect ("gbcat",$page_gbcatSelect['val'],$page_gbcatSelect['label'],nul
 				<td></td>
 				<td class="r">Clear "show based on another assessment" settings.</td>
 				<td><input type="checkbox" name="chgreqscore" class="chgbox"/></td>
+			</tr>
+			<tr class="coptr">
+				<td><input type="checkbox" name="chglocationtype" class="chgbox"/></td>
+				<td class="r">Restrict Location? (Live Poll only):</td>
+				<td>
+					<select name="locationtype" id="locationtype" aria-controls="locationwrap" aria-expanded="false">
+					<option value="0" selected="">No</option>
+					<option value="1">To MMC</option>
+					<option value="2">To BBC</option>
+					<option value="3">Custom Location</option>
+					</select>
+					<span id="locinstructions">
+					<br>Drag the marker on the map to change the required location.<br></span>
+				<span id="latlonwrap">Latitude: <input type=text size=12 name="loclatitude" id="latitude" value="">, 
+					Longitude: <input type=text size=12 name="loclongitude" id="longitude" value="">
+
+					Radius: <input style="width: 80%;" type="range" min="100" max="1000" value="" step="25" id="myRange" name="locradius">
+
+					<div id="mapdiv" style="height: 400px"></div>
+				</span>
+
+				</td>
 			</tr>
 			<tr class="coptr highlight">
 				<td colspan="3"><strong>Help and Hints</strong></td>
