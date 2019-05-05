@@ -865,12 +865,15 @@
 				}
 			}
 	}
-	foreach (json_decode($line['JustInTime']['justintimeorder'], true) as $q) {
-		//print_r($q);
-		//echo array_key_exists('children', $q);
-		if(array_key_exists('children', $q)){
-			$jitHasChildren[] = $q['id'];
-			getChildren($q['children'],$jitParent,$jitHasChildren,$jitChildren,$q['id']);
+	
+	if($line['JustInTime']['justintimeorder']){
+		foreach (json_decode($line['JustInTime']['justintimeorder'], true) as $q) {
+			//print_r($q);
+			//echo array_key_exists('children', $q);
+			if(array_key_exists('children', $q)){
+				$jitHasChildren[] = $q['id'];
+				getChildren($q['children'],$jitParent,$jitHasChildren,$jitChildren,$q['id']);
+			}
 		}
 	}
 
