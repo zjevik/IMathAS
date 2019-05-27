@@ -103,6 +103,7 @@ function libselect() {
 function setlib(libs) {
 	document.getElementById("libs").value = libs;
 	curlibs = libs;
+	$("#libnames").closest("form").submit();
 }
 function setlibnames(libn) {
 	document.getElementById("libnames").innerHTML = libn;
