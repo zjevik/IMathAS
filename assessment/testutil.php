@@ -594,7 +594,7 @@ function scorequestion($qn, $rectime=true) {
 //records everything but questions array
 //if limit=true, only records lastanswers
 function recordtestdata($limit=false, $updateLTI=true) {
-	global $DBH,$isreview,$questions,$bestquestions,$bestscores,$bestattempts,$bestseeds,$bestlastanswers,$scores,$attempts,$seeds,$lastanswers,$testid,$testsettings,$sessiondata,$reattempting,$timesontask,$lti_sourcedid,$qi,$noraw,$rawscores,$bestrawscores,$firstrawscores;
+	global $DBH,$isreview,$questions,$bestquestions,$bestscores,$bestattempts,$bestseeds,$bestlastanswers,$scores,$attempts,$seeds,$lastanswers,$testid,$testsettings,$sessiondata,$reattempting,$timesontask,$lti_sourcedid,$qi,$noraw,$rawscores,$bestrawscores,$firstrawscores,$CFG,$userid;
 
 	if ($noraw) {
 		$bestscorelist = implode(',',$bestscores);
@@ -663,6 +663,20 @@ function recordtestdata($limit=false, $updateLTI=true) {
 				$grade = round($total/$totpossible,8);
 				$res = updateLTIgrade('update',$lti_sourcedid,$testsettings['id'],$grade,$allans);
 			}
+			
+			if (isset($CFG['LTI']['gradebookcategory'])) {
+				$stm = $DBH->prepare("SELECT id FROM imas_assessments WHERE gbcategory=:gbcategory AND courseid=:courseid AND displaymethod=:displaymethod");
+				$stm->execute(array(':displaymethod'=>"CanvasGradebook", ':gbcategory'=>$testsettings['gbcategory'], ':courseid'=>$testsettings['courseid']));
+				if ($stm->rowCount()>0) {
+					//echo "CanvasGradebook assignment present";
+					$DBH->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$stm = $DBH->prepare("INSERT INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid, timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, DATE_ADD(now(), INTERVAL 5 MINUTE))");
+					$stm->execute(array(':hash'=>md5($userid.$testsettings['gbcategory'].$testsettings['courseid']), ':userid'=>$userid, ':gbcategory'=>$testsettings['gbcategory'], ':courseid'=>$testsettings['courseid']));
+				} else {
+					//echo "CanvasGradebook assignment not present";
+				}
+			}
+			
 		}
 	}
 	if ($testsettings['isgroup']>0 && $sessiondata['groupid']>0 && !$isreview) {

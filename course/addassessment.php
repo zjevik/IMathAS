@@ -86,6 +86,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 		$defoutcome = Sanitize::onlyInt($_POST['defoutcome']);
 		$locationtype = Sanitize::onlyInt($_POST['locationtype']);
 		$locationradius = Sanitize::onlyInt($_POST['locradius']);
+		$gbcatweight = Sanitize::onlyInt($_POST['gbcatweight']);
 		$locationlat = Sanitize::stripHtmlTags($_POST['loclatitude']);
 		$locationlng = Sanitize::stripHtmlTags($_POST['loclongitude']);
 
@@ -351,7 +352,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 $query = "UPDATE imas_assessments SET name=:name,summary=:summary,intro=:intro,timelimit=:timelimit,minscore=:minscore,isgroup=:isgroup,showhints=:showhints,tutoredit=:tutoredit,eqnhelper=:eqnhelper,showtips=:showtips,";
                 $query .= "displaymethod=:displaymethod,defattempts=:defattempts,deffeedback=:deffeedback,shuffle=:shuffle,gbcategory=:gbcategory,password=:password,cntingb=:cntingb,showcat=:showcat,caltag=:caltag,calrtag=:calrtag,";
                 $query .= "reqscore=:reqscore,reqscoreaid=:reqscoreaid,reqscoretype=:reqscoretype,noprint=:noprint,avail=:avail,groupmax=:groupmax,allowlate=:allowlate,exceptionpenalty=:exceptionpenalty,ltisecret=:ltisecret,deffeedbacktext=:deffeedbacktext,";
-                $query .= "msgtoinstr=:msgtoinstr,posttoforum=:posttoforum,istutorial=:istutorial,defoutcome=:defoutcome,LPcutoff=:LPcutoff,extrefs=:extrefs";
+                $query .= "msgtoinstr=:msgtoinstr,posttoforum=:posttoforum,istutorial=:istutorial,defoutcome=:defoutcome,LPcutoff=:LPcutoff,extrefs=:extrefs,gbcatweight=:gbcatweight";
                 $qarr = array(':name'=>$assessName, ':summary'=>$_POST['summary'], ':intro'=>$_POST['intro'], ':timelimit'=>$timelimit,
                     ':minscore'=>$_POST['minscore'], ':isgroup'=>$isgroup, ':showhints'=>$showhints, ':tutoredit'=>$tutoredit,
                     ':eqnhelper'=>$eqnhelper, ':showtips'=>$showtips, ':displaymethod'=>$displayMethod,
@@ -361,7 +362,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                     ':avail'=>$_POST['avail'], ':groupmax'=>$grpmax, ':allowlate'=>$allowlate,
                     ':exceptionpenalty'=>$exceptpenalty, ':ltisecret'=>$ltisecret, ':deffeedbacktext'=>$deffb,
                     ':msgtoinstr'=>$msgtoinstr, ':posttoforum'=>$posttoforum, ':istutorial'=>$istutorial,
-                    ':defoutcome'=>$defoutcome, ':LPcutoff'=>$LPcutoff, ':extrefs'=>$extrefencoded);
+                    ':defoutcome'=>$defoutcome, ':LPcutoff'=>$LPcutoff, ':extrefs'=>$extrefencoded, ':gbcatweight'=>$gbcatweight);
 
                 if ($updategroupset!='') {
                     $query .= ",groupsetid=:groupsetid";
@@ -474,12 +475,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 $query = "INSERT INTO imas_assessments (courseid,name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,";
                 $query .= "displaymethod,defpoints,defattempts,defpenalty,deffeedback,shuffle,gbcategory,password,cntingb,tutoredit,showcat,";
 		$query .= "eqnhelper,showtips,caltag,calrtag,isgroup,groupmax,groupsetid,showhints,reqscore,reqscoreaid,reqscoretype,noprint,avail,allowlate,";
-                $query .= "LPcutoff,exceptionpenalty,ltisecret,endmsg,deffeedbacktext,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,ptsposs,date_by_lti,loctype,locradius,loclat,loclng) VALUES ";
+                $query .= "LPcutoff,exceptionpenalty,ltisecret,endmsg,deffeedbacktext,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,ptsposs,date_by_lti,loctype,locradius,loclat,loclng,gbcatweight) VALUES ";
                 $query .= "(:courseid, :name, :summary, :intro, :startdate, :enddate, :reviewdate, :timelimit, :minscore, :displaymethod, ";
                 $query .= ":defpoints, :defattempts, :defpenalty, :deffeedback, :shuffle, :gbcategory, :password, :cntingb, :tutoredit, ";
                 $query .= ":showcat, :eqnhelper, :showtips, :caltag, :calrtag, :isgroup, :groupmax, :groupsetid, :showhints, :reqscore, ";
 			$query .= ":reqscoreaid, :reqscoretype, :noprint, :avail, :allowlate, :LPcutoff, :exceptionpenalty, :ltisecret, :endmsg, :deffeedbacktext, :msgtoinstr, ";
-                $query .= ":posttoforum, :istutorial, :defoutcome, :extrefs, 0, :datebylti, :loctype, :locradius, :loclat, :loclng)";
+                $query .= ":posttoforum, :istutorial, :defoutcome, :extrefs, 0, :datebylti, :loctype, :locradius, :loclat, :loclng, :gbcatweight)";
                 $stm = $DBH->prepare($query);
                 $stm->execute(array(':courseid'=>$cid, ':name'=>$assessName, ':summary'=>$_POST['summary'], ':intro'=>$_POST['intro'],
                     ':startdate'=>$startdate, ':enddate'=>$enddate, ':reviewdate'=>$reviewdate, ':timelimit'=>$timelimit,
@@ -493,7 +494,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                     ':allowlate'=>$allowlate, ':LPcutoff'=>$LPcutoff, ':exceptionpenalty'=>$exceptpenalty, ':ltisecret'=>$ltisecret,
                     ':endmsg'=>$endmsg, ':deffeedbacktext'=>$deffb, ':msgtoinstr'=>$msgtoinstr, ':posttoforum'=>$posttoforum,
 					':istutorial'=>$istutorial, ':defoutcome'=>$defoutcome, ':extrefs'=>$extrefencoded, ':datebylti'=>$datebylti,
-					':loctype'=>$locationtype, ':locradius'=>$locationradius, ':loclat'=>$locationlat, ':loclng'=>$locationlng));
+					':loctype'=>$locationtype, ':locradius'=>$locationradius, ':loclat'=>$locationlat, ':loclng'=>$locationlng, ':gbcatweight'=>$gbcatweight));
                 $newaid = $DBH->lastInsertId();
                 $query = "INSERT INTO imas_items (courseid,itemtype,typeid) VALUES ";
                 $query .= "(:courseid, :itemtype, :typeid);";
@@ -935,6 +936,10 @@ if ($overwriteBody==1) {
 		$("#myRange").on("input",function() {
 			circle.setRadius(this.value);
 		});
+		$("#myparticipation").on("input",function() {
+			$("#partPart").html(this.value);
+			$("#partCorr").html(100-this.value);
+		});
 	})
 	var map, tileLayer, marker, circle, latitude, longitude;
 	function showmap(campus, lat, lon, rad){
@@ -1171,6 +1176,11 @@ if ($overwriteBody==1) {
 						echo '>Live Poll (experimental)</option>';
 					}?>
 					<option value="JustInTime" <?php writeHtmlSelected($line['displaymethod'],"JustInTime",0) ?>>Just In time</option>
+					<?php if (isset($CFG['LTI']['gradebookcategory'])) {
+						echo '<option value="CanvasGradebook" ';
+						writeHtmlSelected($line['displaymethod'],"CanvasGradebook",0);
+						echo '>Canvas Gradebook Catagory</option>';
+					}?>
 				</select>
 			</span><BR class=form>
 
@@ -1527,6 +1537,14 @@ if ($overwriteBody==1) {
 				if ($ingrp) { echo '</optgroup>';}
 				?>
 				</select>
+			</span><br class="form" />
+
+			<span class="form">Participation weight:(Canvas Gradebook Category only)</span>
+			<span class="formright">
+			Final score = <span id="partCorr"><?php echo 100-$line['gbcatweight'];?></span>% Correctness + <span id="partPart"><?php echo $line['gbcatweight']==0?"0":$line['gbcatweight'];?></span>% Participation
+			<input style="width: 80%;" type="range" min="0" max="100" value="<?php echo $line['gbcatweight']==0?"0":$line['gbcatweight'];?>" step="5" id="myparticipation" name="gbcatweight">
+			
+			
 			</span><br class="form" />
 		 </div>
 		 

@@ -2,6 +2,8 @@
 //IMathAS: LTI instructor home page
 //(c) 2011 David Lippman
 
+//Edited in 2019 Ondrej Zjevik
+
 require("init.php");
 if (!isset($sessiondata['ltirole']) || $sessiondata['ltirole']!='instructor') {
 	echo "Not authorized to view this page";
@@ -424,14 +426,25 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	echo "<p><a href=\"course/course.php?cid=" . Sanitize::courseId($cid) . "\">Enter course</a></p>";
 	echo '<p><a href="ltihome.php?chgplacement=true">Change assessment</a></p>';
 } else if ($placementtype=='assess') {
-	$stm = $DBH->prepare("SELECT name,avail,startdate,enddate,date_by_lti FROM imas_assessments WHERE id=:id");
+	$stm = $DBH->prepare("SELECT name,avail,startdate,enddate,date_by_lti,displaymethod,gbcategory FROM imas_assessments WHERE id=:id");
 	$stm->execute(array(':id'=>$typeid));
 	$line = $stm->fetch(PDO::FETCH_ASSOC);
 	echo "<h2>LTI Placement of " . Sanitize::encodeStringForDisplay($line['name']) . "</h2>";
-	echo "<p><a href=\"assessment/showtest.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "\">Preview assessment</a> | ";
-	echo "<a href=\"course/isolateassessgrade.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "\">Grade list</a> ";
-	if ($role == 'teacher') {
-		echo "| <a href=\"course/gb-itemanalysis.php?cid=" . Sanitize::courseId($cid) . "&asid=average&aid=" . Sanitize::encodeUrlParam($typeid) . "\">Item Analysis</a>";
+	if($line['displaymethod']=="CanvasGradebook"){
+		echo '<p><a href="ltihome.php?gradesync=true" >Initiate Grade Sync</a>';
+		if(isset($_GET['gradesync'])){
+			echo " | Canvas grades will be updated shortly.";
+			//Add this assignment to sync queue
+			$stm = $DBH->prepare("INSERT INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid,timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, now())");
+			$stm->execute(array(':hash'=>md5($userid.$line['gbcategory'].$cid), ':userid'=>$userid, ':gbcategory'=>$line['gbcategory'], ':courseid'=>$cid));
+		}
+	} else{
+		echo "<p><a href=\"assessment/showtest.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "\">Preview assessment</a> | ";
+		echo "<a href=\"course/isolateassessgrade.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "\">Grade list</a> | ";
+	}
+	
+	if ($role == 'teacher' && $line['displaymethod']!="CanvasGradebook") {
+		echo "<a href=\"course/gb-itemanalysis.php?cid=" . Sanitize::courseId($cid) . "&asid=average&aid=" . Sanitize::encodeUrlParam($typeid) . "\">Item Analysis</a>";
 	}
 	echo "</p>";
 
@@ -461,8 +474,10 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	}
 	echo '</p>';
 	if ($role == 'teacher') {
-		echo "<p><a href=\"course/addassessment.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Settings</a> | ";
-		echo "<a href=\"course/addquestions.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Questions</a></p>";
+		echo "<p><a href=\"course/addassessment.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Settings</a>";
+		if($line['displaymethod']!="CanvasGradebook"){
+			echo "<a href=\"course/addquestions.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\"> | Questions</a></p>";
+		}
 		if ($sessiondata['ltiitemtype']==-1) {
 			echo '<p><a href="ltihome.php?chgplacement=true">Change assessment</a></p>';
 		}
