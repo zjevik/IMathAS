@@ -88,6 +88,7 @@ $scriptStartTime = time();
 $stm = $DBH->prepare('SELECT t1.hash,t1.userid,gbcategory,courseid,TIMESTAMPDIFF(SECOND,t1.timestamp,NOW()) as ageofcreation,assessmentid,lti_sourcedid,grade FROM imas_lti_gbcatqueue t1 LEFT JOIN imas_lti_gbcat t2 ON t1.userid = t2.userid ORDER BY t1.timestamp DESC');
 $stm->execute();
 $cntsuccess = 0;
+$updatednow = 0;
 
 while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 	//echo "reading record ".$row['userid'].'<br/>';
@@ -158,7 +159,7 @@ while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 			//print_r($stu);
 			//echo "true: ".$stu['grade']."<->".$grade."\n";
 
-			if($stm2->rowCount()>0 && $stu['grade'] != $grade){
+			if($stm2->rowCount()>0 && ($stu['grade'] != $grade || $row['ageofcreation']>0) ){
 				//echo "updating: ".$stu['userid']." from ".$stu['grade']." to ".$grade."\n";
 				$cntsuccess++;
 				$stm2 = $DBH->prepare('UPDATE imas_lti_gbcat SET grade=:grade WHERE userid = :uid AND assessmentid = :aid');
@@ -184,6 +185,6 @@ if (!empty($CFG['LTI']['logltiqueue'])) {
 		$logFile = fopen($logfilename, "a+");
 	}
 	$timespent = time() - $scriptStartTime;
-	fwrite($logFile, date("j-m-y,H:i:s",time()). ". $cntsuccess updated\n");
+	fwrite($logFile, date("j-m-y,H:i:s",time()). ". $cntsuccess\n");
 	fclose($logFile);
 }
