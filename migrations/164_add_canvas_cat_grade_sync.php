@@ -3,7 +3,7 @@
 //Add location fields to imas_assessments
 $DBH->beginTransaction();
 
-$query = "ALTER TABLE `imathasdb`.`imas_assessments` 
+$query = "ALTER TABLE `imas_assessments` 
  ADD INDEX `displaymet` USING BTREE (`displaymethod`(2) ASC);";
   $res = $DBH->query($query);
   if ($res===false) {
@@ -12,7 +12,7 @@ $query = "ALTER TABLE `imathasdb`.`imas_assessments`
 	 return false;
   }
 
-$query = "ALTER TABLE `imathasdb`.`imas_assessments` 
+$query = "ALTER TABLE `imas_assessments` 
  ADD COLUMN `gbcatweight` TINYINT UNSIGNED NULL DEFAULT 0 AFTER `loctype`;";
  $res = $DBH->query($query);
  if ($res===false) {
