@@ -323,7 +323,7 @@
 		$line = $stm->fetch(PDO::FETCH_ASSOC);
 
 		if ($adata['displaymethod']=='CanvasGradebook' && !$actas && !isset($teacherid)) {
-			error_reporting(E_ALL);
+			//error_reporting(E_ALL);
 			//ini_set('display_errors', 1);
 			require_once("../course/gbtable2.php");
 			//Show gradebook for one category
@@ -337,7 +337,11 @@
 			$stm->execute(array(':hash'=>md5($userid.$adata['gbcategory'].$_GET['id']), ':userid'=>$userid, ':gbcategory'=>$adata['gbcategory'], ':courseid'=>$cid));
 
 			
+			if (isset($sessiondata['actas'])) {
+				$userid = $sessiondata['actas'];
+			}
 			$stu = $userid;
+			$includecategoryID = true;
 			$gbt = gbtable($stu);
 			$canviewall = false;
 			$includeduedate = false;

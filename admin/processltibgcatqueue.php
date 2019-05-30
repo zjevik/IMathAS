@@ -59,6 +59,7 @@ $isteacher = true;
 $canviewall = true;
 $catfilter = -1;
 $secfilter = -1;
+$includecategoryID = true;
 $gbtbls = array();
 
 //limit run to not run longer than 55 sec
