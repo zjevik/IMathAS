@@ -127,6 +127,7 @@ row[1][1][0][10] = allow latepass use on this item
 row[1][1][0][11] = endmsg if requested through $includeendmsg
 row[1][1][0][13] = 1 if no reqscore or has been met, 0 if unmet reqscore; only in single stu view ($limuser>0)
 row[1][1][0][14] = 1 if excused
+row[0][1][0][21] = attempted (0 if not attempted, 1 if attempted by the student)
 
 row[1][1][1] = offline
 row[1][1][1][0] = score
@@ -1007,10 +1008,15 @@ function gbtable() {
 		$sp = explode(';',$l['bestscores']);
 		$scores = explode(',',$sp[0]);
 		$pts = 0;
+		$attempted = false;
 		for ($j=0;$j<count($scores);$j++) {
 			$pts += getpts($scores[$j]);
+			if ($scores[$j]>=0) {
+				$attempted = true;
+			}
 			//if ($scores[$i]>0) {$total += $scores[$i];}
 		}
+		$gb[$row][1][$col][21] = $attempted;
 		$timeused = $l['endtime']-$l['starttime'];
 		if ($l['endtime']==0 || $l['starttime']==0) {
 			$gb[$row][1][$col][7] = -1;

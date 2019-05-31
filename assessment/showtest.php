@@ -487,7 +487,7 @@
 					}
 				}
 			}
-			if (isset($gbt[1][1][$i][0])) {
+			if (isset($gbt[1][1][$i][0]) && isset($gbt[1][1][$i][21]) && ($gbt[1][1][$i][21] || $gbt[1][1][$i][0]>0)) {
 				if ($gbt[1][1][$i][3]>9) {
 					$gbt[1][1][$i][3] -= 10;
 				}
@@ -501,6 +501,8 @@
 				} else if ($gbt[1][1][$i][3]==4) {
 					echo ' (PT)';
 				}
+			} elseif (!$gbt[1][1][$i][21]) {
+				echo '(NA)';
 			} else {
 				echo '-';
 			}
@@ -527,7 +529,7 @@
 				echo '<sub>d</sub>';
 			}
 			echo '</td><td>';
-			if (isset($gbt[1][1][$i][0]) && is_numeric($gbt[1][1][$i][0])) {
+			if ((isset($gbt[1][1][$i][0]) && is_numeric($gbt[1][1][$i][0])) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21] )) {
 				if ($gbt[0][1][$i][2]>0) {
 					//account for participation credit
 					echo round($adata['gbcatweight'] + (100-$adata['gbcatweight'])*$gbt[1][1][$i][0]/$gbt[0][1][$i][2],1).'%';
@@ -553,7 +555,7 @@
 		}
 	}
 	echo '</tbody></table><br/>';
-	echo "<p>", _('Meanings: IP-In Progress (some unattempted questions), OT-overtime, PT-practice test, EC-extra credit, NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception <sup>LP</sup> Used latepass'), "  </p>\n";
+	echo "<p>", _('Meanings: NA-not attempted, IP-In Progress (some unattempted questions), OT-overtime, PT-practice test, EC-extra credit, NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception <sup>LP</sup> Used latepass'), "  </p>\n";
 			exit;
 		}
 
