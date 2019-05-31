@@ -328,15 +328,6 @@
 			//ini_set('display_errors', 1);
 			require_once("../course/gbtable2.php");
 			//Show gradebook for one category
-			//Record lti_sourcedid
-			$ltisourcedid = $sessiondata['lti_lis_result_sourcedid'].':|:'.$sessiondata['lti_outcomeurl'].':|:'.$sessiondata['lti_origkey'].':|:'.$sessiondata['lti_keylookup'];
-			$stm = $DBH->prepare("REPLACE INTO imas_lti_gbcat (hash,userid,assessmentid,lti_sourcedid) VALUES (:hash,:userid,:assessmentid,:lti_sourcedid)");
-			$stm->execute(array(':hash'=>md5($userid.$_GET['id']),':userid'=>$userid, ':assessmentid'=>$_GET['id'], ':lti_sourcedid'=>$ltisourcedid));
-
-			//Add this assignment to sync queue
-			$stm = $DBH->prepare("INSERT INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid,timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, DATE_ADD(now(), INTERVAL 5 MINUTE))");
-			$stm->execute(array(':hash'=>md5($userid.$adata['gbcategory'].$_GET['id']), ':userid'=>$userid, ':gbcategory'=>$adata['gbcategory'], ':courseid'=>$cid));
-
 			
 			if (isset($sessiondata['actas'])) {
 				$userid = $sessiondata['actas'];
@@ -407,9 +398,6 @@
 					echo $gbt[0][1][$i][2].'&nbsp;', _('pts'), ' ', _('(Not Counted)');
 				} else {
 					echo $gbt[0][1][$i][2].'&nbsp;', _('pts');
-					if ($gbt[0][1][$i][4]==2) {
-						echo ' (EC)';
-					}
 				}
 				if ($gbt[0][1][$i][5]==1 && $gbt[0][1][$i][6]==0) {
 					echo ' (PT)';
@@ -498,12 +486,6 @@
 					echo $gbt[1][1][$i][0]." pts";
 					if ($gbt[1][1][$i][3]==1) {
 						echo ' (NC)';
-					} else if ($gbt[1][1][$i][3]==2) {
-						echo ' (IP)';
-					} else if ($gbt[1][1][$i][3]==3) {
-						echo ' (OT)';
-					} else if ($gbt[1][1][$i][3]==4) {
-						echo ' (PT)';
 					}
 				} elseif (!$gbt[1][1][$i][21]) {
 					echo '(NC)';
@@ -563,21 +545,37 @@
 					$denominator += $calctype==0?$gbt[0][1][$i][2]:100;
 				}
 			}
-			$numerator = round($numerator,2);
 			echo '<tr class="grid total">';
 			if($calctype == 0){
 				echo '<td style="text-align: right;" class="cat'.Sanitize::onlyInt($adata['gbcategory']).'" colspan="2">Total Grade:</td>';
 				echo "<td>".$numerator.'/'.$denominator."</td>";
-				echo "<td>".round(100*$numerator/$denominator,2)."%</td>";
 			} else {
 				echo '<td style="text-align: right;" class="cat'.Sanitize::onlyInt($adata['gbcategory']).'" colspan="3">Total Grade:</td>';
-				echo "<td>".round(100*$numerator/$denominator,2)."%</td>";
 			}
+			$grade = round($numerator/$denominator,4);
+			echo "<td>".(100*$grade)."%</td>";
 			
 			echo '</tr>';
 			
 			echo '</tbody></table><br/>';
-			echo "<p>", _('Meanings: EC-extra credit, NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception.'), "  </p>\n";
+			echo "<p>", _('Meanings: NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception.'), "  </p>\n";
+			
+			//Record lti_sourcedid if changed
+			$ltisourcedid = $sessiondata['lti_lis_result_sourcedid'].':|:'.$sessiondata['lti_outcomeurl'].':|:'.$sessiondata['lti_origkey'].':|:'.$sessiondata['lti_keylookup'];
+			$stm = $DBH->prepare("SELECT lti_sourcedid,grade FROM imas_lti_gbcat WHERE hash=:hash");
+			$stm->execute(array(':hash'=>md5($userid.$_GET['id'])));
+			$ilg = $stm->fetch(PDO::FETCH_ASSOC);
+			if(($ilg && $ilg['lti_sourcedid']!=$ltisourcedid) || ($ilg && $ilg['grade']!=$grade) || !$ilg){
+				//grade different
+				$stm = $DBH->prepare("INSERT INTO imas_lti_gbcat (hash,userid,assessmentid,lti_sourcedid) VALUES (:hash,:userid,:assessmentid,:lti_sourcedid) ON DUPLICATE KEY UPDATE lti_sourcedid=:lti_sourcedid,grade=:grade");
+				$stm->execute(array(':hash'=>md5($userid.$_GET['id']),':userid'=>$userid, ':assessmentid'=>$_GET['id'], ':lti_sourcedid'=>$ltisourcedid, ':grade'=>$grade));
+
+				//Add this assignment to sync queue if needed
+				$stm = $DBH->prepare("INSERT INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid,timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, DATE_ADD(now(), INTERVAL 5 MINUTE))");
+				$stm->execute(array(':hash'=>md5($userid.$adata['gbcategory'].$_GET['id']), ':userid'=>$userid, ':gbcategory'=>$adata['gbcategory'], ':courseid'=>$cid));	
+			}
+
+			
 			exit;
 		}
 
