@@ -46,6 +46,16 @@ if ($myrights < 100) {
     echo "ERROR";
   }
   exit;
+} else if (isset($_POST['removegbcatlti'])) {
+  $id = $_POST['removegbcatlti'];
+  $stm = $DBH->prepare("DELETE FROM imas_lti_gbcat WHERE hash=:id");
+  $stm->execute(array(':id'=>$id));
+  if ($stm->rowCount()>0) {
+    echo "OK";
+  } else {
+    echo "ERROR";
+  }
+  exit;
 } else if (!empty($_GET['contextid'])) {
   $contextid = Sanitize::simpleString($_GET['contextid']);
   $query = "SELECT ilp.id,ilp.linkid,ilp.typeid,ilp.placementtype,ia.name FROM ";
@@ -77,6 +87,15 @@ if ($myrights < 100) {
     $user_lti = array();
   }
 
+  $query = "SELECT ilg.hash,ilg.assessmentid,ia.name FROM imas_lti_gbcat AS ilg LEFT JOIN ";
+  $query .= "imas_assessments AS ia ON ilg.assessmentid=ia.id WHERE userid=:userid";
+  $stm = $DBH->prepare($query);
+  $stm->execute(array(':userid'=>$uid));
+  $gbcat_lti = $stm->fetchAll(PDO::FETCH_ASSOC);
+  if ($gbcat_lti===false) {
+    $gbcat_lti = array();
+  }
+
   $query = "SELECT ilc.org,ilc.id,ilc.courseid,ilc.contextid,ilc.contextlabel,ic.name FROM imas_lti_courses AS ilc ";
   $query .= "JOIN imas_teachers AS it ON ilc.courseid=it.courseid ";
   $query .= "JOIN imas_courses AS ic ON it.courseid=ic.id WHERE it.userid=:userid ";
@@ -101,6 +120,9 @@ function removeuserlti(el,id) {
 }
 function removecourselti(el,id) {
   return removelti(el,"course",id);
+}
+function removegbcatlti(el,id) {
+  return removelti(el,"gbcat",id);
 }
 function removeplacement(el,id) {
   return removelti(el,"placement",id);
@@ -189,6 +211,24 @@ if ($overwriteBody==1) {
   echo '<script type="text/javascript">
     initSortTable("ltiusers",Array("S","S",false),true);
     </script>';
+
+    echo '<h3>'._('LTI canvas gradebook connections').'</h3>';
+    echo '<table class="gb" id="ltigbcat"><thead><tr>';
+    echo '<th>'._('Assessment name').'</th>';
+    echo '<th>'._('Assessment ID').'</th>';
+    echo '<th>'._('Remove').'</th>';
+    echo '</tr></thead><tbody>';
+    $alt = 0;
+  
+    foreach ($gbcat_lti as $u) {
+      if ($alt==0) {echo "<tr class=even>"; $alt=1;} else {echo "<tr class=odd>"; $alt=0;}
+      echo '<td>',Sanitize::encodeStringForDisplay($u['name']),'</td>';
+      echo '<td>',Sanitize::encodeStringForDisplay($u['assessmentid']),'</td>';
+      echo '<td><a onclick="return removegbcatlti(this,\''.Sanitize::encodeStringForJavascript($u['hash']).'\')" href="#">';
+      echo _('Remove connection').'</a></td>';
+      echo '</tr>';
+    }
+    echo '</tbody></table>';
 
   echo '<h3>'._('LTI course connections').'</h3>';
   echo '<table class="gb" id="lticourses"><thead><tr>';

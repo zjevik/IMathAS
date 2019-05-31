@@ -260,7 +260,7 @@ switch($_POST['action']) {
 		if ($stm->rowCount()==0) { break;}
 		$toDelTable = array('user_prefs', 'students', 'teachers', 'tutors',
 			'assessment_sessions', 'exceptions', 'bookmarks', 'content_track', 
-			'forum_views', 'forum_subscriptions', 'grades', 'ltiusers', 'stugroupmembers');
+			'forum_views', 'forum_subscriptions', 'grades', 'ltiusers', 'stugroupmembers', 'lti_gbcat');
 		foreach ($toDelTable as $table) {
 			$stm = $DBH->prepare("DELETE FROM imas_$table WHERE userid=:userid");
 			$stm->execute(array(':userid'=>$deluid));
