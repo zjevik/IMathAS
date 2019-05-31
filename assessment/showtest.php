@@ -323,6 +323,7 @@
 		$line = $stm->fetch(PDO::FETCH_ASSOC);
 
 		if ($adata['displaymethod']=='CanvasGradebook' && !$actas && !isset($teacherid)) {
+			require("header.php");
 			//error_reporting(E_ALL);
 			//ini_set('display_errors', 1);
 			require_once("../course/gbtable2.php");
@@ -347,215 +348,236 @@
 			$includeduedate = false;
 			$showlink = false;
 
+			echo '<h3>Assignment score = '.(100-$adata['gbcatweight']).'% Earned + '.($adata['gbcatweight']).'% Participation</h3>';
 			echo '<table id="myTable" class="gb" style="position:relative;">';
-	echo '<thead><tr>';
-	$sarr = array();
-	if ($stu>0 && $isteacher) {
-		echo '<th></th>';
-	}
-	echo '<th>', _('Item'), '</th><th>', _('Possible'), '</th><th>', _('Received'), '</th><th>',_('Grade'), '</th>';
-	
-	echo '</tr></thead><tbody>';
-	$hidenc = true;
-	$availshow = 2;//don't show future assignments
-	$hidepast = false;
-	if (true) {
-		for ($i=0;$i<count($gbt[0][1]);$i++) { //assessment headers
-			if (!$isteacher && !$istutor && $gbt[0][1][$i][4]==0) { //skip if hidden
-				continue;
-			}
-			if ($gbt[0][1][$i][3]>$availshow) {
-				continue;
-			}
-			if ($gbt[0][1][$i][1]!=$adata['gbcategory']) {
-				continue;
-			}
-
-			echo '<tr class="grid">';
+			echo '<thead><tr>';
+			$sarr = array();
 			if ($stu>0 && $isteacher) {
-				if ($gbt[0][1][$i][6]==0) {
-					echo '<td><input type="checkbox" name="assesschk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
-				} else if ($gbt[0][1][$i][6]==1) {
-					echo '<td><input type="checkbox" name="offlinechk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
-				} else if ($gbt[0][1][$i][6]==2) {
-					echo '<td><input type="checkbox" name="discusschk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
-				} else if ($gbt[0][1][$i][6]==3) {
-					echo '<td><input type="checkbox" name="exttoolchk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
-				} else {
-					echo '<td></td>';
+				echo '<th></th>';
+			}
+			echo '<th>', _('Item'), '</th><th>', _('Possible'), '</th><th>', _('Earned'), '</th><th>',_('Grade'), '</th>';
+			
+			echo '</tr></thead><tbody>';
+			$hidenc = true;
+			$availshow = 2;//don't show future assignments
+			$hidepast = false;
+			$numerator = 0;
+			$denominator = 0;
+			$calctype = $gbt[0][2][$adata['gbcategory']][13];
+			for ($i=0;$i<count($gbt[0][1]);$i++) { //assessment headers
+				if (!$isteacher && !$istutor && $gbt[0][1][$i][4]==0) { //skip if hidden
+					continue;
 				}
-			}
-			echo '<td class="cat'.Sanitize::onlyInt($gbt[0][1][$i][1]).'">';
-			
-			
-			echo Sanitize::encodeStringForDisplay($gbt[0][1][$i][0]);
-			
-			$afterduelatepass = false;
-			if (!$isteacher && !$istutor && $latepasses>0 && !isset($gbt[1][1][$i][10])) {
-				//not started, so no canuselatepass record
-				$gbt[1][1][$i][10] = $exceptionfuncs->getCanUseAssessLatePass(array('enddate'=>$gbt[0][1][$i][11], 'allowlate'=>$gbt[0][1][$i][12], 'LPcutoff'=>$gbt[0][1][$i][14]));
-			}
-
-			echo '</td>';
-			echo '<td>';
-
-			if ($gbt[0][1][$i][4]==0 || $gbt[0][1][$i][4]==3) {
-				echo $gbt[0][1][$i][2].'&nbsp;', _('pts'), ' ', _('(Not Counted)');
-			} else {
-				echo $gbt[0][1][$i][2].'&nbsp;', _('pts');
-				if ($gbt[0][1][$i][4]==2) {
-					echo ' (EC)';
+				if ($gbt[0][1][$i][3]>$availshow) {
+					continue;
 				}
-			}
-			if ($gbt[0][1][$i][5]==1 && $gbt[0][1][$i][6]==0) {
-				echo ' (PT)';
-			}
+				if ($gbt[0][1][$i][1]!=$adata['gbcategory']) {
+					continue;
+				}
 
-			echo '</td><td>';
-
-			$haslink = false;
-
-			if ($isteacher || $istutor || $gbt[1][1][$i][2]==1) { //show link
-				if ($gbt[0][1][$i][6]==0) {//online
-					if ($stu==-1) { //in averages
-						
+				echo '<tr class="grid">';
+				if ($stu>0 && $isteacher) {
+					if ($gbt[0][1][$i][6]==0) {
+						echo '<td><input type="checkbox" name="assesschk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
+					} else if ($gbt[0][1][$i][6]==1) {
+						echo '<td><input type="checkbox" name="offlinechk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
+					} else if ($gbt[0][1][$i][6]==2) {
+						echo '<td><input type="checkbox" name="discusschk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
+					} else if ($gbt[0][1][$i][6]==3) {
+						echo '<td><input type="checkbox" name="exttoolchk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
 					} else {
-						if (isset($gbt[1][1][$i][0])) { //has score
-							$querymap = array(
-                                'stu' => $stu,
-                                'cid' => $cid,
-                                'asid' => $gbt[1][1][$i][4],
-                                'uid' => $gbt[1][4][0]
-                            );
-
-							echo '<a href="../course/gb-viewasid.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\"";
-
-							
-							echo ">";
-							$haslink = true;
-						}
-					}
-				} else if ($gbt[0][1][$i][6]==1) {//offline
-					if ($isteacher || ($istutor && $gbt[0][1][$i][8]==1)) {
-						if ($stu==-1) {
-							if (isset($gbt[1][1][$i][0])) { //has score
-                                $querymap = array(
-                                    'stu' => $stu,
-                                    'cid' => $cid,
-                                    'grades' => 'all',
-                                    'gbitem' => $gbt[0][1][$i][7]
-                                );
-
-                                echo '<a href="addgrades.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
-								$haslink = true;
-							}
-						} else {
-                            $querymap = array(
-                                'stu' => $stu,
-                                'cid' => $cid,
-                                'grades' => $gbt[1][4][0],
-                                'gbitem' => $gbt[0][1][$i][7]
-                            );
-
-                            echo '<a href="addgrades.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
-							$haslink = true;
-						}
-					}
-				} else if ($gbt[0][1][$i][6]==2) {//discuss
-					if ($stu != -1) {
-                        $querymap = array(
-                            'cid' => $cid,
-                            'stu' => $stu,
-                            'uid' => $gbt[1][4][0],
-                            'fid' => $gbt[0][1][$i][7]
-                        );
-
-                        echo '<a href="viewforumgrade.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
-						$haslink = true;
-					}
-				} else if ($gbt[0][1][$i][6]==3) {//exttool
-					if ($isteacher || ($istutor && $gbt[0][1][$i][8]==1)) {
-					    $querymap = array(
-					        'cid' => $cid,
-                            'stu' => $stu,
-                            'grades' => $gbt[1][4][0],
-                            'lid' => $gbt[0][1][$i][7]
-                        );
-
-					    echo '<a href="edittoolscores.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
-						$haslink = true;
+						echo '<td></td>';
 					}
 				}
-			}
-			if (isset($gbt[1][1][$i][0]) && isset($gbt[1][1][$i][21]) && ($gbt[1][1][$i][21] || $gbt[1][1][$i][0]>0)) {
-				if ($gbt[1][1][$i][3]>9) {
-					$gbt[1][1][$i][3] -= 10;
+				echo '<td class="cat'.Sanitize::onlyInt($gbt[0][1][$i][1]).'">';
+				
+				
+				echo Sanitize::encodeStringForDisplay($gbt[0][1][$i][0]);
+				
+				$afterduelatepass = false;
+				if (!$isteacher && !$istutor && $latepasses>0 && !isset($gbt[1][1][$i][10])) {
+					//not started, so no canuselatepass record
+					$gbt[1][1][$i][10] = $exceptionfuncs->getCanUseAssessLatePass(array('enddate'=>$gbt[0][1][$i][11], 'allowlate'=>$gbt[0][1][$i][12], 'LPcutoff'=>$gbt[0][1][$i][14]));
 				}
-				echo $gbt[1][1][$i][0]." pts";
-				if ($gbt[1][1][$i][3]==1) {
-					echo ' (NC)';
-				} else if ($gbt[1][1][$i][3]==2) {
-					echo ' (IP)';
-				} else if ($gbt[1][1][$i][3]==3) {
-					echo ' (OT)';
-				} else if ($gbt[1][1][$i][3]==4) {
+
+				echo '</td>';
+				echo '<td>';
+
+				if ($gbt[0][1][$i][4]==0 || $gbt[0][1][$i][4]==3) {
+					echo $gbt[0][1][$i][2].'&nbsp;', _('pts'), ' ', _('(Not Counted)');
+				} else {
+					echo $gbt[0][1][$i][2].'&nbsp;', _('pts');
+					if ($gbt[0][1][$i][4]==2) {
+						echo ' (EC)';
+					}
+				}
+				if ($gbt[0][1][$i][5]==1 && $gbt[0][1][$i][6]==0) {
 					echo ' (PT)';
 				}
-			} elseif (!$gbt[1][1][$i][21]) {
-				echo '(NA)';
-			} else {
-				echo '-';
-			}
-			if ($haslink) { //show link
-				echo '</a>';
-			}
-			$exceptionnote = '';
-			if (isset($gbt[1][1][$i][6]) ) {  //($isteacher || $istutor) &&
-				if ($gbt[1][1][$i][6]>1) {
-					if ($gbt[1][1][$i][6]>2) {
-						$exceptionnote = '<sup>LP ('.($gbt[1][1][$i][6]-1).')</sup>';
-					} else {
-						$exceptionnote = '<sup>LP</sup>';
+
+				echo '</td><td>';
+
+				$haslink = false;
+
+				if ($isteacher || $istutor || $gbt[1][1][$i][2]==1) { //show link
+					if ($gbt[0][1][$i][6]==0) {//online
+						if ($stu==-1) { //in averages
+							
+						} else {
+							if (isset($gbt[1][1][$i][0])) { //has score
+								$querymap = array(
+									'stu' => $stu,
+									'cid' => $cid,
+									'asid' => $gbt[1][1][$i][4],
+									'uid' => $gbt[1][4][0]
+								);
+
+								echo '<a href="../course/gb-viewasid.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\"";
+
+								
+								echo ">";
+								$haslink = true;
+							}
+						}
+					} else if ($gbt[0][1][$i][6]==1) {//offline
+						if ($isteacher || ($istutor && $gbt[0][1][$i][8]==1)) {
+							if ($stu==-1) {
+								if (isset($gbt[1][1][$i][0])) { //has score
+									$querymap = array(
+										'stu' => $stu,
+										'cid' => $cid,
+										'grades' => 'all',
+										'gbitem' => $gbt[0][1][$i][7]
+									);
+
+									echo '<a href="addgrades.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
+									$haslink = true;
+								}
+							} else {
+								$querymap = array(
+									'stu' => $stu,
+									'cid' => $cid,
+									'grades' => $gbt[1][4][0],
+									'gbitem' => $gbt[0][1][$i][7]
+								);
+
+								echo '<a href="addgrades.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
+								$haslink = true;
+							}
+						}
+					} else if ($gbt[0][1][$i][6]==2) {//discuss
+						if ($stu != -1) {
+							$querymap = array(
+								'cid' => $cid,
+								'stu' => $stu,
+								'uid' => $gbt[1][4][0],
+								'fid' => $gbt[0][1][$i][7]
+							);
+
+							echo '<a href="viewforumgrade.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
+							$haslink = true;
+						}
+					} else if ($gbt[0][1][$i][6]==3) {//exttool
+						if ($isteacher || ($istutor && $gbt[0][1][$i][8]==1)) {
+							$querymap = array(
+								'cid' => $cid,
+								'stu' => $stu,
+								'grades' => $gbt[1][4][0],
+								'lid' => $gbt[0][1][$i][7]
+							);
+
+							echo '<a href="edittoolscores.php?' . Sanitize::generateQueryStringFromMap($querymap) . "\">";
+							$haslink = true;
+						}
 					}
+				}
+				if (isset($gbt[1][1][$i][0]) && isset($gbt[1][1][$i][21]) && ($gbt[1][1][$i][21] || $gbt[1][1][$i][0]>0)) {
+					if ($gbt[1][1][$i][3]>9) {
+						$gbt[1][1][$i][3] -= 10;
+					}
+					echo $gbt[1][1][$i][0]." pts";
+					if ($gbt[1][1][$i][3]==1) {
+						echo ' (NC)';
+					} else if ($gbt[1][1][$i][3]==2) {
+						echo ' (IP)';
+					} else if ($gbt[1][1][$i][3]==3) {
+						echo ' (OT)';
+					} else if ($gbt[1][1][$i][3]==4) {
+						echo ' (PT)';
+					}
+				} elseif (!$gbt[1][1][$i][21]) {
+					echo '(NC)';
 				} else {
-					$exceptionnote = '<sup>e</sup>';
+					echo '-';
 				}
-				echo $exceptionnote;
-			}
-			if (!empty($gbt[1][1][$i][14])) { //excused
-				echo '<sup>x</sup>';	
-			}
-			if (isset($gbt[1][1][$i][5]) && ($gbt[1][1][$i][5]&(1<<$availshow)) && !$hidepast) {
-				echo '<sub>d</sub>';
-			}
-			echo '</td><td>';
-			if ((isset($gbt[1][1][$i][0]) && is_numeric($gbt[1][1][$i][0])) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21] )) {
-				if ($gbt[0][1][$i][2]>0) {
-					//account for participation credit
-					echo round($adata['gbcatweight'] + (100-$adata['gbcatweight'])*$gbt[1][1][$i][0]/$gbt[0][1][$i][2],1).'%';
+				if ($haslink) { //show link
+					echo '</a>';
 				}
-			} else {
-				echo '0%';
-			}
-			echo '</td>';
-			if ($stu>0) {
-				if ($includeduedate) {
-					if ($gbt[0][1][$i][6]!=1 &&  //skip offline
-						$gbt[0][1][$i][11]<2000000000 && $gbt[0][1][$i][11]>0) {
-						echo '<td>'.tzdate('n/j/y g:ia',$gbt[0][1][$i][11]);
+				$exceptionnote = '';
+				if (isset($gbt[1][1][$i][6]) ) {  //($isteacher || $istutor) &&
+					if ($gbt[1][1][$i][6]>1) {
+						if ($gbt[1][1][$i][6]>2) {
+							$exceptionnote = '<sup>LP ('.($gbt[1][1][$i][6]-1).')</sup>';
+						} else {
+							$exceptionnote = '<sup>LP</sup>';
+						}
 					} else {
-						echo '<td>-';
+						$exceptionnote = '<sup>e</sup>';
 					}
 					echo $exceptionnote;
-					echo '</td>';
 				}
-				
+				if (!empty($gbt[1][1][$i][14])) { //excused
+					echo '<sup>x</sup>';	
+				}
+				if (isset($gbt[1][1][$i][5]) && ($gbt[1][1][$i][5]&(1<<$availshow)) && !$hidepast) {
+					echo '<sub>d</sub>';
+				}
+				echo '</td><td>';
+				if ((isset($gbt[1][1][$i][0]) && is_numeric($gbt[1][1][$i][0])) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21] )) {
+					if ($gbt[0][1][$i][2]>0) {
+						//account for participation credit
+						echo round($adata['gbcatweight'] + (100-$adata['gbcatweight'])*$gbt[1][1][$i][0]/$gbt[0][1][$i][2],1).'%';
+					}
+				} else {
+					echo '0%';
+				}
+				echo '</td>';
+				if ($stu>0) {
+					if ($includeduedate) {
+						if ($gbt[0][1][$i][6]!=1 &&  //skip offline
+							$gbt[0][1][$i][11]<2000000000 && $gbt[0][1][$i][11]>0) {
+							echo '<td>'.tzdate('n/j/y g:ia',$gbt[0][1][$i][11]);
+						} else {
+							echo '<td>-';
+						}
+						echo $exceptionnote;
+						echo '</td>';
+					}
+					
+				}
+				echo '</tr>';
+				if(!isset($gbt[1][1][$i][5])){
+					if(isset($gbt[1][1][$i][0]) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21])) {
+						$numerator += $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]/100:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[1][1][$i][0]/100:$gbt[1][1][$i][0]/$gbt[0][1][$i][2]);
+					}
+					$denominator += $calctype==0?$gbt[0][1][$i][2]:100;
+				}
 			}
+			$numerator = round($numerator,2);
+			echo '<tr class="grid total">';
+			if($calctype == 0){
+				echo '<td style="text-align: right;" class="cat'.Sanitize::onlyInt($adata['gbcategory']).'" colspan="2">Total Grade:</td>';
+				echo "<td>".$numerator.'/'.$denominator."</td>";
+				echo "<td>".round(100*$numerator/$denominator,2)."%</td>";
+			} else {
+				echo '<td style="text-align: right;" class="cat'.Sanitize::onlyInt($adata['gbcategory']).'" colspan="3">Total Grade:</td>';
+				echo "<td>".round(100*$numerator/$denominator,2)."%</td>";
+			}
+			
 			echo '</tr>';
-		}
-	}
-	echo '</tbody></table><br/>';
-	echo "<p>", _('Meanings: NA-not attempted, IP-In Progress (some unattempted questions), OT-overtime, PT-practice test, EC-extra credit, NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception <sup>LP</sup> Used latepass'), "  </p>\n";
+			
+			echo '</tbody></table><br/>';
+			echo "<p>", _('Meanings: EC-extra credit, NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception.'), "  </p>\n";
 			exit;
 		}
 
