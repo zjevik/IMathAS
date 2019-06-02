@@ -4797,11 +4797,11 @@ function showmap(){
 		clearInterval(loadingIntervalId);
 		// if position defined, then remove the existing position marker and accuracy circle from the map
 		if (current_position) {
-			current_position.setLatLng(e.latlng).bindPopup("You are within " + e.accuracy / 2 + " meters from this point. Distance is "+map.distance(e.latlng,L.latLng(latitude, longitude)));
+			current_position.setLatLng(e.latlng).bindPopup("You are within " +Math.round(e.accuracy / 2*10)/10 + " meters from this point. Distance is "+Math.round(map.distance(e.latlng,L.latLng(latitude, longitude))*10)/10+" meters.");
 			current_accuracy.setLatLng(e.latlng);
 		} else{
 			current_position = L.marker(e.latlng).addTo(map)
-			.bindPopup("You are within " + e.accuracy / 2 + " meters from this point. Distance is "+map.distance(e.latlng,L.latLng(latitude, longitude))).openPopup();
+			.bindPopup("You are within " + Math.round(e.accuracy / 2*10)/10 + " meters from this point. Distance is "+Math.round(map.distance(e.latlng,L.latLng(latitude, longitude))*10)/10 + " meters.").openPopup();
 			current_accuracy = L.circle(e.latlng, e.accuracy / 2).addTo(map);
 		}
 		
