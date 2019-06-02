@@ -567,7 +567,7 @@
 			$ilg = $stm->fetch(PDO::FETCH_ASSOC);
 			if(($ilg && $ilg['lti_sourcedid']!=$ltisourcedid) || ($ilg && $ilg['grade']!=$grade) || !$ilg){
 				//grade different
-				$stm = $DBH->prepare("INSERT INTO imas_lti_gbcat (hash,userid,assessmentid,lti_sourcedid) VALUES (:hash,:userid,:assessmentid,:lti_sourcedid) ON DUPLICATE KEY UPDATE lti_sourcedid=:lti_sourcedid,grade=:grade");
+				$stm = $DBH->prepare("INSERT INTO imas_lti_gbcat (hash,userid,assessmentid,lti_sourcedid) VALUES (:hash,:userid,:assessmentid,:lti_sourcedid) ON DUPLICATE KEY UPDATE lti_sourcedid=:lti_sourcedid");
 				$stm->execute(array(':hash'=>md5($userid.$_GET['id']),':userid'=>$userid, ':assessmentid'=>$_GET['id'], ':lti_sourcedid'=>$ltisourcedid, ':grade'=>$grade));
 
 				//Add this assignment to sync queue if needed
