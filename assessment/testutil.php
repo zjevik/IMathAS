@@ -670,7 +670,7 @@ function recordtestdata($limit=false, $updateLTI=true) {
 				if ($stm->rowCount()>0) {
 					//echo "CanvasGradebook assignment present";
 					$DBH->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-					$stm = $DBH->prepare("INSERT INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid, timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, DATE_ADD(now(), INTERVAL 5 MINUTE))");
+					$stm = $DBH->prepare("INSERT IGNORE INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid, timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, DATE_ADD(now(), INTERVAL 5 MINUTE))");
 					$stm->execute(array(':hash'=>md5($userid.$testsettings['gbcategory'].$testsettings['courseid']), ':userid'=>$userid, ':gbcategory'=>$testsettings['gbcategory'], ':courseid'=>$testsettings['courseid']));
 				} else {
 					//echo "CanvasGradebook assignment not present";
