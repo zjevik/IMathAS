@@ -143,7 +143,7 @@ while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 			$numerator = 0;
 			$denominator = 0;
 			foreach ($alist as $el) {
-				if(!isset($student[1][$el][5])){
+				if(!isset($student[1][$el][5]) && ($student[1][$el][14] != 1) && $gbt[0][1][$el][21] ){
 					if(isset($student[1][$el][0]) && ($student[1][$el][0] > 0 || $student[1][$el][21])) 
 						$numerator += $perc/100*($calctype==0?$gbt[0][1][$el][2]:1) + (100-$perc)/100*($calctype==0?$student[1][$el][0]:$student[1][$el][0]/$gbt[0][1][$el][2]);
 					$denominator += $calctype==0?$gbt[0][1][$el][2]:1;

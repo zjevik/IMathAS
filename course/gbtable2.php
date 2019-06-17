@@ -84,6 +84,7 @@ row[0][1][0][11] = due date (if $includeduedate is set)
 row[0][1][0][12] = allowlate (in general)
 row[1][1][0][13] = timelimit if requested through $includetimelimit
 row[0][1][0][14] = LP cutoff
+row[0][1][0][21] = attempted (0 if not attempted by any student, 1 if attempted by some students)
 
 row[0][2] category totals
 row[0][2][0][0] = "Category Name"
@@ -127,7 +128,7 @@ row[1][1][0][10] = allow latepass use on this item
 row[1][1][0][11] = endmsg if requested through $includeendmsg
 row[1][1][0][13] = 1 if no reqscore or has been met, 0 if unmet reqscore; only in single stu view ($limuser>0)
 row[1][1][0][14] = 1 if excused
-row[0][1][0][21] = attempted (0 if not attempted, 1 if attempted by the student)
+row[1][1][0][21] = attempted (0 if not attempted, 1 if attempted by the student)
 
 row[1][1][1] = offline
 row[1][1][1][0] = score
@@ -283,14 +284,14 @@ function gbtable() {
 
 	//Pull Assessment Info
 	$now = time();
-	$query = "SELECT id,name,ptsposs,defpoints,deffeedback,timelimit,minscore,startdate,enddate,LPcutoff,itemorder,gbcategory,cntingb,avail,groupsetid,allowlate,date_by_lti";
+	$query = "SELECT GROUP_CONCAT(imas_assessment_sessions.bestscores SEPARATOR '|') as bestscores,imas_assessments.id,name,ptsposs,defpoints,deffeedback,timelimit,minscore,startdate,enddate,LPcutoff,itemorder,gbcategory,cntingb,avail,groupsetid,allowlate,date_by_lti";
 	if ($limuser>0) {
 		$query .= ',reqscoreaid,reqscore,reqscoretype';
 	}
 	if (isset($includeendmsg) && $includeendmsg) {
 		$query .= ',endmsg';
 	}
-	$query .= " FROM imas_assessments WHERE courseid=:courseid AND avail>0 ";
+	$query .= " FROM imas_assessments LEFT JOIN imas_assessment_sessions ON imas_assessments.id=imas_assessment_sessions.assessmentid WHERE courseid=:courseid AND avail>0 ";
 
 	if (!$canviewall) {
 		$query .= "AND cntingb>0 ";
@@ -304,7 +305,7 @@ function gbtable() {
 	if ($catfilter>-1) {
 		$query .= "AND gbcategory=:gbcategory ";
 	}
-	$query .= "ORDER BY enddate,name";
+	$query .= "GROUP BY imas_assessments.id ORDER BY enddate,name";
 	$stm = $DBH->prepare($query);
 	if ($catfilter>-1) {
 		$stm->execute(array(':courseid'=>$cid, ':gbcategory'=>$catfilter));
@@ -336,7 +337,21 @@ function gbtable() {
 	$allowlate = array();
 	$endmsgs = array();
 	$reqscores = array();
+	$attempteds = array();
 	while ($line=$stm->fetch(PDO::FETCH_ASSOC)) {
+		$attempteds[$kcnt] = 0;
+		$bestscores = explode('|',$line['bestscores']);
+		foreach(($bestscores) as $key => $val){
+			$scoredscores = explode(';',$val)[0];
+			
+			foreach((explode(',',$scoredscores)) as $k => $v){
+				if(is_numeric($v) && $v >= 0){
+					$attempteds[$kcnt] = 1;
+					break 2;
+				}
+			}
+		}
+		
 		if (!isset($courseitemsassoc['Assessment'.$line['id']])) {
 			continue; //assess is in hidden block - skip it
 		}
@@ -387,7 +402,6 @@ function gbtable() {
 		$possible[$kcnt] = $line['ptsposs'];
 		$kcnt++;
 	}
-
 	unset($questionpointdata);
 
 
@@ -730,6 +744,9 @@ function gbtable() {
 				if (isset($LPcutoff[$k])) {
 					$gb[0][1][$pos][14] = $LPcutoff[$k];
 				}
+				if (isset($attempteds[$k])) {
+					$gb[0][1][$pos][21] = $attempteds[$k];
+				}
 
 				$pos++;
 			}
@@ -785,6 +802,7 @@ function gbtable() {
 			$gb[0][1][$pos][3] = $avail[$k]; //0 past, 1 current, 2 future
 			$gb[0][1][$pos][4] = $cntingb[$k]; //0 no count and hide, 1 count, 2 EC, 3 no count
 			$gb[0][1][$pos][5] = ($assessmenttype[$k]=="Practice");  //0 regular, 1 practice test
+			//$gb[0][1][$pos][21] = $attempteds[$k];
 			if (isset($assessments[$k])) {
 				$gb[0][1][$pos][6] = 0; //0 online, 1 offline
 				$gb[0][1][$pos][7] = $assessments[$k];
@@ -815,6 +833,9 @@ function gbtable() {
 			}
 			if (isset($LPcutoff[$k])) {
 				$gb[0][1][$pos][14] = $LPcutoff[$k];
+			}
+			if (isset($attempteds[$k])) {
+				$gb[0][1][$pos][21] = $attempteds[$k];
 			}
 			$pos++;
 		}
@@ -857,6 +878,7 @@ function gbtable() {
 	} else {
 		$query .= "ORDER BY imas_users.LastName,imas_users.FirstName";
 	}
+	//echo $query;
 	$stm = $DBH->prepare($query);
 	$stm->execute($qarr);
 	$alt = 0;
@@ -1008,11 +1030,11 @@ function gbtable() {
 		$sp = explode(';',$l['bestscores']);
 		$scores = explode(',',$sp[0]);
 		$pts = 0;
-		$attempted = false;
+		$attempted = 0;
 		for ($j=0;$j<count($scores);$j++) {
 			$pts += getpts($scores[$j]);
 			if ($scores[$j]>=0) {
-				$attempted = true;
+				$attempted = 1;
 			}
 			//if ($scores[$i]>0) {$total += $scores[$i];}
 		}

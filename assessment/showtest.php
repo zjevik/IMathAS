@@ -323,9 +323,8 @@
 		$line = $stm->fetch(PDO::FETCH_ASSOC);
 
 		if ($adata['displaymethod']=='CanvasGradebook' && !$actas && !isset($teacherid)) {
+			$placeinhead .= '<link rel="stylesheet" href="'.$imasroot.'"/imascore.css?ver=112918 type="text/css" />';
 			require("header.php");
-			//error_reporting(E_ALL);
-			//ini_set('display_errors', 1);
 			require_once("../course/gbtable2.php");
 			//Show gradebook for one category
 			
@@ -334,7 +333,10 @@
 			}
 			$stu = $userid;
 			$includecategoryID = true;
-			$gbt = gbtable($stu);
+			global $canviewall,$secfilter;
+			//$canviewall = true;
+			$secfilter = -1;
+			$gbt = gbtable();
 			$canviewall = false;
 			$includeduedate = false;
 			$showlink = false;
@@ -365,8 +367,8 @@
 				if ($gbt[0][1][$i][1]!=$adata['gbcategory']) {
 					continue;
 				}
-
-				echo '<tr class="grid">';
+				$attempted = $gbt[0][1][$i][21]?"":"notattempted";
+				echo '<tr class="grid '.$attempted.'">';
 				if ($stu>0 && $isteacher) {
 					if ($gbt[0][1][$i][6]==0) {
 						echo '<td><input type="checkbox" name="assesschk[]" value="'.$gbt[0][1][$i][7] .'" /></td>';
@@ -523,6 +525,12 @@
 				} else {
 					echo '0%';
 				}
+				if (!empty($gbt[1][1][$i][14])) { //excused
+					echo '<sup>x</sup>';	
+				}
+				if (isset($gbt[1][1][$i][5]) && ($gbt[1][1][$i][5]&(1<<$availshow)) && !$hidepast) {
+					echo '<sub>d</sub>';
+				}
 				echo '</td>';
 				if ($stu>0) {
 					if ($includeduedate) {
@@ -538,7 +546,7 @@
 					
 				}
 				echo '</tr>';
-				if(!isset($gbt[1][1][$i][5])){
+				if(!isset($gbt[1][1][$i][5]) && ($gbt[1][1][$i][14] != 1) && $gbt[0][1][$i][21] ){
 					if(isset($gbt[1][1][$i][0]) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21])) {
 						$numerator += $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]/100:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[1][1][$i][0]/100:$gbt[1][1][$i][0]/$gbt[0][1][$i][2]);
 					}
@@ -559,7 +567,6 @@
 			
 			echo '</tbody></table><br/>';
 			echo "<p>", _('Meanings: NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception.'), "  </p>\n";
-			
 			//Record lti_sourcedid if changed
 			$ltisourcedid = $sessiondata['lti_lis_result_sourcedid'].':|:'.$sessiondata['lti_outcomeurl'].':|:'.$sessiondata['lti_origkey'].':|:'.$sessiondata['lti_keylookup'];
 			$stm = $DBH->prepare("SELECT lti_sourcedid,grade FROM imas_lti_gbcat WHERE hash=:hash");
@@ -574,8 +581,12 @@
 				$stm = $DBH->prepare("INSERT INTO imas_lti_gbcatqueue (hash, userid, gbcategory, courseid,timestamp) VALUES (:hash, :userid, :gbcategory, :courseid, DATE_ADD(now(), INTERVAL 5 MINUTE))");
 				$stm->execute(array(':hash'=>md5($userid.$adata['gbcategory'].$_GET['id']), ':userid'=>$userid, ':gbcategory'=>$adata['gbcategory'], ':courseid'=>$cid));	
 			}
-
-			
+			echo '<script>
+			$(document).ready(function(){
+				$(".notattempted").hide();
+			})
+			</script>';
+			require("../footer.php");
 			exit;
 		}
 
