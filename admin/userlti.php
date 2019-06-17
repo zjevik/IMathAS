@@ -87,7 +87,7 @@ if ($myrights < 100) {
     $user_lti = array();
   }
 
-  $query = "SELECT ilg.hash,ilg.assessmentid,ia.name FROM imas_lti_gbcat AS ilg LEFT JOIN ";
+  $query = "SELECT ilg.hash,ilg.assessmentid,ia.name,ilg.lti_sourcedid FROM imas_lti_gbcat AS ilg LEFT JOIN ";
   $query .= "imas_assessments AS ia ON ilg.assessmentid=ia.id WHERE userid=:userid";
   $stm = $DBH->prepare($query);
   $stm->execute(array(':userid'=>$uid));
@@ -214,6 +214,7 @@ if ($overwriteBody==1) {
 
     echo '<h3>'._('LTI canvas gradebook connections').'</h3>';
     echo '<table class="gb" id="ltigbcat"><thead><tr>';
+    echo '<th>'._('Sourcedid').'</th>';
     echo '<th>'._('Assessment name').'</th>';
     echo '<th>'._('Assessment ID').'</th>';
     echo '<th>'._('Remove').'</th>';
@@ -222,6 +223,7 @@ if ($overwriteBody==1) {
   
     foreach ($gbcat_lti as $u) {
       if ($alt==0) {echo "<tr class=even>"; $alt=1;} else {echo "<tr class=odd>"; $alt=0;}
+      echo '<td>',Sanitize::encodeStringForDisplay($u['lti_sourcedid']),'</td>';
       echo '<td>',Sanitize::encodeStringForDisplay($u['name']),'</td>';
       echo '<td>',Sanitize::encodeStringForDisplay($u['assessmentid']),'</td>';
       echo '<td><a onclick="return removegbcatlti(this,\''.Sanitize::encodeStringForJavascript($u['hash']).'\')" href="#">';
