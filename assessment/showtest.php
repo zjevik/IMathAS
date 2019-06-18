@@ -1521,7 +1521,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		}
 		$placeinhead .= '<script type="text/javascript">
 				if (typeof io != "undefined") {livepoll.init("'.$CFG['GEN']['livepollserver'].'","'.$livepollroom.'","'.$now.'","'.$livepollsig.'");}
-				else { $(function() {$("#livepollqcontent").html("<p>' . _("Unable to connect to LivePoll Hub.  Please try again later.") . '</p>");});}</script>';
+				else { $(function() {$("#livepollqcontent").html("<p>' . _("Unable to connect to LivePoll Hub.  Please make sure you are <strong>not</strong> connected to unsecured network (FIU_WiFi).") . '</p>");});}</script>';
 
 		$placeinhead .= '<style type="text/css">
 			.LPres td, .LPres th {padding: 8px; border: 1px solid #999;}
