@@ -1543,6 +1543,10 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		 <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
 			integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
 			crossorigin=""></script>';
+			require_once("../includes/filehandler.php");
+			$placeinhead .= '<script type="text/javascript">
+				var fileprefix = "'.getasidfileurl("").'";
+			</script>';
 	}
 	if ($sessiondata['intreereader']) {
 		$flexwidth = true;
@@ -3027,7 +3031,9 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			$qn = $_POST['toscore'];
 
 			if ($LPinf['curquestion'] != $qn || $LPinf['curstate'] != 2) {
-				echo '{error: "Wrong question or not open for submissions"}';
+				echo '{"error": "Wrong question or not open for submissions"}';
+				echo strval($LPinf['curquestion'])."-".strval($qn);
+				print_r($_POST['toscore']);
 				exit;
 			}
 			//TODO:  figure out what to do with this
@@ -3061,7 +3067,25 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				}
 
 				$r = file_get_contents('https://'.$CFG['GEN']['livepollserver'].':3000/qscored?aid='.$aid.'&qn='.$qn.'&user='.$userid.'&score='.Sanitize::encodeUrlParam($rawscore).'&now='.$now.'&la='.Sanitize::encodeUrlParam($arv).'&sig='.$livepollsig);
-				echo '{success: true}';
+				//print file feedback
+				$file = preg_replace('/@FILE:(.+?)@/',"$1",$GLOBALS['partlastanswer']);
+				$url = getasidfileurl($file);
+				$extension = substr($url,strrpos($url,'.')+1,3);
+				$filename = basename($file);
+				$out = "<br/>" . _('Last file uploaded:') . " <a href=\"$url\" target=\"_new\">$filename</a>";
+				$out .= "<input type=\"hidden\" name=\"lf$qn\" value=\"$file\"/>";
+				if (in_array(strtolower($extension),array('jpg','gif','png','bmp','jpe'))) {
+					$out .= " <span aria-expanded=\"false\" aria-controls=\"img$qn\" class=\"clickable\" id=\"filetog$qn\" onclick=\"toggleinlinebtn('img$qn','filetog$qn');\">[+]</span>";
+					$out .= " <br/><div><img id=\"img$qn\" style=\"display:none;max-width:80%;\" aria-hidden=\"true\" onclick=\"rotateimg(this)\" src=\"$url\" alt=\"Student uploaded image\"/></div>";
+				} else if (in_array(strtolower($extension),array('doc','docx','pdf','xls','xlsx','ppt','pptx'))) {
+					$out .= " <span aria-expanded=\"false\" aria-controls=\"fileprev$qn\" class=\"clickable\" id=\"filetog$qn\" onclick=\"toggleinlinebtn('fileprev$qn','filetog$qn');\">[+]</span>";
+					$out .= " <br/><iframe id=\"fileprev$qn\" style=\"display:none;\" aria-hidden=\"true\" src=\"https://docs.google.com/viewer?url=".rawurlencode($url)."&embedded=true\" width=\"80%\" height=\"600px\"></iframe>";
+				}
+				if($file == ""){
+					echo '{"error": "File not uploaded."}';
+					exit;
+				}
+				echo '{"success": true, "file": '.json_encode($out).'}';
 			//}
 			exit;
 		} else if ($_GET['action']=='livepollopenq') {

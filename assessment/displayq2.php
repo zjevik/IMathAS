@@ -3415,7 +3415,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if (isset($ansprompt)) {$out .= "<label for=\"qn$qn\">$ansprompt</label>";}
 
 		if ($colorbox!='') { $out .= '<span class="'.$colorbox.'">';}
-		$out .= "<input type=\"file\" name=\"qn$qn\" id=\"qn$qn\" />\n";
+		$out .= "<input type=\"file\" name=\"qn$qn\" id=\"qn$qn\" capture=\"camera\" />\n";
 		$out .= getcolormark($colorbox);
 		if ($colorbox!='') { $out .= '</span>';}
 		if ($la!='') {

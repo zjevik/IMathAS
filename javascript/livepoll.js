@@ -16,6 +16,8 @@ var livepoll = new function() {
 		showresonclose: true,
 		showansonclose: true
 		};
+	var counter = 0;
+	var countertimer;
 
 	this.init = function(server, room, timestamp, sig) {
 		isteacher = room.match(/teacher/);
@@ -329,6 +331,16 @@ var livepoll = new function() {
 			for (var i=0;i<sortedkeys.length;i++) {
 				imathasDraw.initCanvases("LP"+curquestion+"-"+i);
 			}
+		} else if (qdata[curquestion].anstypes=="file") { //file upload
+			out += '<div class=\"LPres floatleft\"><h2>'+_("Answers")+'</h2>';
+			var sortedkeys = getSortedKeys(datatots);
+			for (var i=0;i<sortedkeys.length;i++) {
+				out += '<img id="img'+i+'" style="min-width: 10em; max-width: 25%; transform: rotate(0deg);" aria-hidden="false" onclick="rotateimg(this)" ';
+				var filename = sortedkeys[i].replace("@FILE:","").replace("@","");
+				out += 'src="'+fileprefix+filename+'" alt="Student uploaded image">';
+			}
+			out += '</div>';
+			$("#livepollrcontent").html(out);
 		} else {
 			var sortedkeys = getSortedKeys(datatots);
 			out += '<table class=\"LPres\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">'+_("Frequency")+'</th></tr></thead><tbody>';
@@ -444,7 +456,11 @@ var livepoll = new function() {
 				$("#livepollqcontent").html(parsed.html);
 				postProcess('livepollqcontent',parsed.code);
 				//$(".sabtn").hide();
-				$("#livepollqcontent").append('<p><a href="#" onclick="livepoll.forceRegen('+qn+');return false;">' + _("Clear results and generate a new version of this question")+'</a></p>');
+				if(data.anstypes=="file"){
+					$("#livepollqcontent").append('<p><a href="#" onclick="livepoll.forceRegen('+qn+');return false;">' + _("Hide results and generate a new version of this question")+'</a></p>');
+				} else {
+					$("#livepollqcontent").append('<p><a href="#" onclick="livepoll.forceRegen('+qn+');return false;">' + _("Clear results and generate a new version of this question")+'</a></p>');
+				}
 				$("#LPstartq").show();
 				$(".question").addClass("LPinactive");
 
@@ -604,8 +620,14 @@ var livepoll = new function() {
 		$("#livepolltopright").html(timestr);
 	}
 
+	function saving(){
+		counter = counter>3?0:counter+1;
+		var text = "Saving"+".".repeat(counter)
+		$("#livepollsubmitmsg").html(text);
+	}
+
 	this.submitQuestion = function(qn) {
-		$("#livepollsubmitmsg").html(_("Saving..."));
+		countertimer = setInterval(saving,1000);
 		if (typeof tinyMCE != 'undefined') {tinyMCE.triggerSave();}
 		doonsubmit();
 		params = {
@@ -631,9 +653,50 @@ var livepoll = new function() {
 		var regex = new RegExp("^(qn|tc)("+qn+"\\b|"+(qn+1)+"\\d{3})");
 		for (var i=0;i<els.length;i++) {
 			if (els[i].name.match(regex)) {
-				if ((els[i].type!='radio' && els[i].type!='checkbox') || els[i].checked) {
+				if ( els[i].type!='file' && ((els[i].type!='radio' && els[i].type!='checkbox') || els[i].checked)) {
 					params[els[i].name] = els[i].value;
 					//params += ('&'+els[i].name+'='+encodeURIComponent(els[i].value));
+				} 
+				if (els[i].type=='file'){
+					params = new FormData();
+					params.append("qn2",$("#qn2")[0].files[0]);
+					params.append("toscore",qn);
+				}
+			}
+		}
+		$.ajax({
+			type: "POST",
+			processData: false,
+			contentType: false,
+			url: assesspostbackurl+'&action=livepollscoreq',
+			data: params
+		}).done(function(data) {
+			data = JSON.parse(data);
+			clearInterval(countertimer);
+			counter = 0;
+			if (data.hasOwnProperty("error")) {
+				$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
+			} else {
+				$("#livepollsubmitmsg").html(_("Saved"));
+			}
+			if(data.hasOwnProperty("file")){
+				$(".toppad").contents().slice(1).remove();
+				$(".toppad").append(data['file']);
+			}
+		});
+
+		/*
+		for (var i=0;i<els.length;i++) {
+			if (els[i].name.match(regex)) {
+				if ( els[i].type!='file' || ((els[i].type!='radio' && els[i].type!='checkbox') || els[i].checked)) {
+					params[els[i].name] = els[i].value;
+					//params.append(els[i].name,els[i].value);
+					//params += ('&'+els[i].name+'='+encodeURIComponent(els[i].value));
+				} else if (els[i].type='file'){
+					tmp = new FormData();
+					tmp.append("qn2",$("#qn2")[0].files[0]);
+					//params[els[i].name] = tmp;
+					//params["fileupload"]=true;
 				}
 			}
 		}
@@ -643,12 +706,14 @@ var livepoll = new function() {
 			url: assesspostbackurl+'&action=livepollscoreq',
 			data: params
 		}).done(function(data) {
+			data = JSON.parse(data);
 			if (data.hasOwnProperty("error")) {
 				$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
 			} else {
 				$("#livepollsubmitmsg").html(_("Saved"));
 			}
 		});
+		*/
 
 	}
 	function condenseDraw(str) {
