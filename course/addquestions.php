@@ -15,8 +15,13 @@ include("../includes/htmlutil.php");
 $overwriteBody = 0;
 $body = "";
 $pagetitle = "Add/Remove Questions";
+$curBreadcrumb = "";
+if(isset($sessiondata['ltiitemtype'])){
+	$curBreadcrumb .= "$breadcrumbbase <span href=\"course.php?cid=" . Sanitize::courseId($_GET['cid']) . "\">".Sanitize::encodeStringForDisplay($coursename)."</span> ";
+} else{
+	$curBreadcrumb .= "$breadcrumbbase <a href=\"course.php?cid=" . Sanitize::courseId($_GET['cid']) . "\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
+}
 
-$curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid=" . Sanitize::courseId($_GET['cid']) . "\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 if (isset($_GET['clearattempts']) || isset($_GET['clearqattempts']) || isset($_GET['withdraw'])) {
 	$curBreadcrumb .= "&gt; <a href=\"addquestions.php?cid=" . Sanitize::courseId($_GET['cid']) . "&aid=" . Sanitize::onlyInt($_GET['aid']) . "\">Add/Remove Questions</a> &gt; Confirm\n";
 	//$pagetitle = "Modify Inline Text";

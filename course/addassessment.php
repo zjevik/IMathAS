@@ -28,8 +28,13 @@ if (isset($_GET['tb'])) {
 } else {
 	$totb = 'b';
 }
+$curBreadcrumb = "";
+if(isset($sessiondata['ltiitemtype'])){
+	$curBreadcrumb .= "$breadcrumbbase <span href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</span> ";
+} else{
+	$curBreadcrumb .= "$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
+}
 
-$curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 if ($from=='gb') {
 	$curBreadcrumb .= "&gt; <a href=\"gradebook.php?cid=$cid\">Gradebook</a> ";
 } else if ($from=='mcd') {

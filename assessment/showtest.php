@@ -1579,7 +1579,11 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			if (isset($sessiondata['ltiitemtype']) && $sessiondata['ltiitemtype']==0) {
 				echo "$breadcrumbbase ", _('Assessment'), "</div>";
 			} else {
-				echo "$breadcrumbbase <a href=\"../course/course.php?cid={$testsettings['courseid']}\">{$sessiondata['coursename']}</a> ";
+				if(isset($sessiondata['ltiitemtype'])){
+					echo "$breadcrumbbase <span href=\"../course/course.php?cid={$testsettings['courseid']}\">{$sessiondata['coursename']}</span> ";
+				} else{
+					echo "$breadcrumbbase <a href=\"../course/course.php?cid={$testsettings['courseid']}\">{$sessiondata['coursename']}</a> ";
+				}
 
 				echo "&gt; ", _('Assessment'), "</div>";
 			}

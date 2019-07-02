@@ -405,7 +405,11 @@ if (isset($studentid) || $stu!=0) { //show student view
 	$placeinhead .= '<style type="text/css"> .dropdown-header {  font-size: inherit;  padding: 3px 10px;} </style>';
 
 	require("../header.php");
-	echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
+	if(isset($sessiondata['ltiitemtype'])){
+		echo "<div class=breadcrumb>$breadcrumbbase <span href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</span> ";
+	} else{
+		echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
+	}
 	echo "&gt; ", _('Gradebook'), "</div>";
 	echo "<form id=\"qform\" method=post action=\"gradebook.php?cid=$cid\">";
 
