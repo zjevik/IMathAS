@@ -361,7 +361,8 @@ if (isset($_GET['form'])) {
 	echo '<a href="listwronglibs.php">List WrongLibFlags</a><br/>';
 	echo '<a href="updatewronglibs.php">Update WrongLibFlags</a><br/>';
 	echo '<a href="blocksearch.php">Search Block titles</a><br/>';
-	echo '<a href="itemsearch.php">Search inline/linked items</a>';
+	echo '<a href="itemsearch.php">Search inline/linked items</a><br/>';
+	echo '<a href="publiclibraries.php?cid=admin">Set publicly accessible libraries</a>';
 	require("../footer.php");
 }
 ?>
