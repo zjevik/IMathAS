@@ -264,7 +264,7 @@ var livepoll = new function() {
 			if (datatots[i]>maxfreq) {maxfreq = datatots[i];}
 		}
 		if (qdata[curquestion].choices.length>0) {
-			if (qdata[curquestion].initrdisp) {
+			if (qdata[curquestion].initrdisp && qdata[curquestion].randkeys) {
 				for (i=0;i<qdata[curquestion].randkeys.length;i++) {
 					partn = qdata[curquestion].randkeys[i];
 					$("#LPresval"+partn).text(datatots[partn]);
@@ -651,6 +651,7 @@ var livepoll = new function() {
 			els.push(tags[i]);
 		}
 		var regex = new RegExp("^(qn|tc)("+qn+"\\b|"+(qn+1)+"\\d{3})");
+		var isFile = false;
 		for (var i=0;i<els.length;i++) {
 			if (els[i].name.match(regex)) {
 				if ( els[i].type!='file' && ((els[i].type!='radio' && els[i].type!='checkbox') || els[i].checked)) {
@@ -661,29 +662,47 @@ var livepoll = new function() {
 					params = new FormData();
 					params.append("qn2",$("#qn2")[0].files[0]);
 					params.append("toscore",qn);
+					isFile = true;
 				}
 			}
 		}
-		$.ajax({
-			type: "POST",
-			processData: false,
-			contentType: false,
-			url: assesspostbackurl+'&action=livepollscoreq',
-			data: params
-		}).done(function(data) {
-			data = JSON.parse(data);
-			clearInterval(countertimer);
-			counter = 0;
-			if (data.hasOwnProperty("error")) {
-				$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
-			} else {
-				$("#livepollsubmitmsg").html(_("Saved"));
-			}
-			if(data.hasOwnProperty("file")){
-				$(".toppad").contents().slice(1).remove();
-				$(".toppad").append(data['file']);
-			}
-		});
+		if(isFile){
+			$.ajax({
+				type: "POST",
+				processData: false,
+				contentType: false,
+				url: assesspostbackurl+'&action=livepollscoreq',
+				data: params
+			}).done(function(data) {
+				data = JSON.parse(data);
+				clearInterval(countertimer);
+				counter = 0;
+				if (data.hasOwnProperty("error")) {
+					$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
+				} else {
+					$("#livepollsubmitmsg").html(_("Saved"));
+				}
+				if(data.hasOwnProperty("file")){
+					$(".toppad").contents().slice(1).remove();
+					$(".toppad").append(data['file']);
+				}
+			});
+		} else {
+			$.ajax({
+				type: "POST",
+				url: assesspostbackurl+'&action=livepollscoreq',
+				data: params
+			}).done(function(data) {
+				data = JSON.parse(data);
+				clearInterval(countertimer);
+				counter = 0;
+				if (data.hasOwnProperty("error")) {
+					$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
+				} else {
+					$("#livepollsubmitmsg").html(_("Saved"));
+				}
+			});
+		}
 
 		/*
 		for (var i=0;i<els.length;i++) {
