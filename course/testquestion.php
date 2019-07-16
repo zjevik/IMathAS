@@ -359,3 +359,17 @@ if ($overwriteBody==1) {
 require("../footer.php");
 
 ?>
+
+<script type="text/javascript">
+
+$(function(){
+	if(typeof hints !== 'undefined'){
+		hints.forEach(function(el, ei){
+			el.forEach(function(ell, eii){
+				$(".parts").eq(ei).append("<p><i>Hint ("+eii+"):</i> "+ell+"</p>");
+			});
+		});
+	}
+	
+});
+</script>   
