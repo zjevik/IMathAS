@@ -161,12 +161,7 @@ if ($overwriteBody==1) {
 
 	<form id="qform" method=post action="publiclibraries.php?cid=<?php echo $cid ?>">
 		<div>
-			Check: <a href="#" onclick="return chkAllNone('qform','nchecked[]',true)">All</a> <a href="#" onclick="return chkAllNone('qform','nchecked[]',false)">None</a>
-			With Selected: <input type=submit name="transfer" value="Transfer" title="Transfer library ownership">
-			<input type=submit name="remove" value="Delete" title="Delete library">
-			<input type=submit name="setparent" value="Change Parent" title="Change the parent library">
-			<input type=submit name="chgrights" value="Change Rights" title="Change library use rights">
-			<input type=submit name="chgsort" value="Change Sort" title="Change library sort order">
+			Check: 
             <input type=submit name="update" value="Update">
 			<?php echo $page_appliesToMsg ?>
 
