@@ -61,6 +61,14 @@ function allvisfullcred() {
 function allvisnocred() {
 	$("input[name^=ud]").not(function() {return $(this).closest(".pseudohidden").length}).val("0");
 }
+function searchAllQ() {
+	$("div[id^=qnwrap]").not(function() {return $(this).closest(".pseudohidden").length}).each( function(i,el){
+		console.log($(el).text());
+		if($(el).text().toLowerCase().includes($("#ansContainText").val().toLowerCase())){
+			$(this).parent().parent().parent().find("input[name^=ud]").val($("#ansPts").val())
+		}
+	});
+}
 function preprint() {
 	$("span[id^='ans']").removeClass("hidden");
 	$(".sabtn").replaceWith("<span>Answer: </span>");

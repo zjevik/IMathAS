@@ -13,67 +13,9 @@
 		require("../footer.php");
 		exit;
 	}
-	$cid = Sanitize::courseId($_GET['cid']);
-	$aid = Sanitize::onlyInt($_GET['aid']);
 	
-	if ($isteacher) {
-		if (isset($_POST['posted']) && $_POST['posted']==_("Excuse Grade")) {
-			$calledfrom='isolateassess';
-			include("gb-excuse.php");
-		}
-		if (isset($_POST['posted']) && $_POST['posted']==_("Un-excuse Grade")) {
-			$calledfrom='isolateassess';
-			include("gb-excuse.php");
-		}
-	}
 
-	if (isset($_GET['gbmode']) && $_GET['gbmode']!='') {
-		$gbmode = $_GET['gbmode'];
-	} else if (isset($sessiondata[$cid.'gbmode'])) {
-		$gbmode =  $sessiondata[$cid.'gbmode'];
-	} else {
-		$stm = $DBH->prepare("SELECT defgbmode FROM imas_gbscheme WHERE courseid=:courseid");
-		$stm->execute(array(':courseid'=>$cid));
-		$gbmode = $stm->fetchColumn(0);
-	}
-	$hidesection = (((floor($gbmode/100000)%10)&1)==1);
-	$hidecode = (((floor($gbmode/100000)%10)&2)==2);
-	$hidelocked = ((floor($gbmode/100)%10&2)); //0: show locked, 1: hide locked
-	$includeduedate = (((floor($gbmode/100)%10)&4)==4); //0: hide due date, 4: show due date
-	
-	if (isset($tutorsection) && $tutorsection!='') {
-		$secfilter = $tutorsection;
-	} else {
-		if (isset($_GET['secfilter'])) {
-			$secfilter = $_GET['secfilter'];
-			$sessiondata[$cid.'secfilter'] = $secfilter;
-			writesessiondata();
-		} else if (isset($sessiondata[$cid.'secfilter'])) {
-			$secfilter = $sessiondata[$cid.'secfilter'];
-		} else {
-			$secfilter = -1;
-		}
-	}
-	
-	$stm = $DBH->prepare("SELECT minscore,timelimit,deffeedback,startdate,enddate,LPcutoff,allowlate,name,defpoints,itemorder FROM imas_assessments WHERE id=:id AND courseid=:cid");
-	$stm->execute(array(':id'=>$aid, ':cid'=>$cid));
-	if ($stm->rowCount()==0) {
-		echo "Invalid ID";
-		exit;
-	}
-	list($minscore,$timelimit,$deffeedback,$startdate,$enddate,$LPcutoff,$allowlate,$name,$defpoints,$itemorder) = $stm->fetch(PDO::FETCH_NUM);
-	
-	
-	$placeinhead .= '<script type="text/javascript">
-		function showfb(id,type) {
-			GB_show(_("Feedback"), "showfeedback.php?cid="+cid+"&type="+type+"&id="+id, 500, 500);
-			return false;
-		}
-		</script>';
-	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js"></script>';
-	require("../header.php");
-
-	echo '<div id="advanced">';
+	echo '<div id="simple">';
 	if(isset($sessiondata['ltiitemtype'])){
 		echo "<div class=breadcrumb>$breadcrumbbase <span href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</span> ";
 	} else{
@@ -211,7 +153,7 @@
 	if ($includeduedate) {
 		echo "<th>Due Date</th>";
 	}
-	echo "<th>Time Spent (In Questions)</th><th>Feedback</th></tr></thead><tbody>";
+	echo "</tr></thead><tbody>";
 	$now = time();
 	$lc = 1;
 	$n = 0;
@@ -348,36 +290,7 @@
 			if ($includeduedate) {
 				echo '<td>'.tzdate("n/j/y g:ia",$thisenddate).'</td>';
 			}
-			if ($line['endtime']==0 || $line['starttime']==0) {
-				echo '<td>&nbsp;</td>';
-			} else {
-				echo '<td>'.round($timeused/60).' min';
-				if ($timeontask>0) {
-					echo ' ('.$timeontask.' min)';
-					$tottimeontask += $timeontask;
-				}
-				echo '</td>';
-				$tottime += $timeused;
-				$ntime++;
-			}
-
-			$feedback = json_decode($line['feedback']);
-			if ($feedback===null) {
-				$hasfeedback = ($line['feedback'] != '');
-			} else {
-				$hasfeedback = false;
-				foreach ($feedback as $k=>$v) {
-					if ($v != '' && $v != '<p></p>') {
-						$hasfeedback = true;
-						break;
-					}
-				}
-			}
-			if ($hasfeedback) {
-				echo '<td><a href="#" class="small feedbacksh pointer" onclick="return showfb('.Sanitize::onlyInt($line['id']).',\'A\')">', _('[Show Feedback]'), '</a></td>';
-			} else {
-				echo '<td></td>';
-			}
+			
 		}
 		echo "</tr>";
 	}
@@ -418,32 +331,4 @@
 	echo '</form>';
 
 	echo '</div>';
-	require_once("isolateassessgrade-simpleUI.php");
-	require("../footer.php");
-
-
-	function getpts($sc) {
-		if (strpos($sc,'~')===false) {
-			if ($sc>0) {
-				return $sc;
-			} else {
-				return 0;
-			}
-		} else {
-			$sc = explode('~',$sc);
-			$tot = 0;
-			foreach ($sc as $s) {
-				if ($s>0) {
-					$tot+=$s;
-				}
-			}
-			return round($tot,1);
-		}
-	}
 ?>
-
-<script>
-	jQuery(document).ready(function($) {
-		addSavetoggle();
-	});
-</script>

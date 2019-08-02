@@ -265,6 +265,7 @@
 	$useeditor='review';
 	$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/rubric.js?v=113016"></script>';
 	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/gb-scoretools.js?v=021519"></script>';
+	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js"></script>';
 	$placeinhead .= "<script type=\"text/javascript\">";
 	$placeinhead .= 'function jumptostu() { ';
 	$placeinhead .= '       var stun = document.getElementById("stusel").value; ';
@@ -287,6 +288,7 @@
 	require("../includes/rubric.php");
 	$sessiondata['coursetheme'] = $coursetheme;
 	require("../assessment/header.php");
+	echo '<div id="advanced">';
 	echo "<style type=\"text/css\">p.tips {	display: none;}\n .hideongradeall { display: none;} .pseudohidden {visibility:hidden;position:absolute;}</style>\n";
 	if(isset($sessiondata['ltiitemtype'])){
 		echo "<div class=breadcrumb>$breadcrumbbase <span href=\"course.php?cid=".Sanitize::courseId($_GET['cid'])."\">".Sanitize::encodeStringForDisplay($coursename)."</span> ";
@@ -340,6 +342,8 @@
 		echo '<span class="noticetext" id="quicksavenotice">&nbsp;</span>';
 		echo '</div>';
 	}
+	echo '</div>';
+	require_once("gradeallq-simpleUI.php");
 	echo "<form id=\"mainform\" method=post action=\"gradeallq.php?stu=" . Sanitize::encodeUrlParam($stu) . "&gbmode=" . Sanitize::encodeUrlParam($gbmode) . "&cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::onlyInt($aid) . "&qid=" . Sanitize::onlyInt($qid) . "&page=" . Sanitize::encodeUrlParam($page) . "&update=true\">\n";
 	if ($isgroup>0) {
 		echo '<p><input type="checkbox" name="onepergroup" value="1" onclick="hidegroupdup(this)" /> Grade one per group</p>';
@@ -684,9 +688,6 @@
 	echo "</form>";
 	echo '<p>&nbsp;</p>';
 
-
-
-
 	require("../footer.php");
 	function getpts($sc) {
 		if (strpos($sc,'~')===false) {
@@ -782,3 +783,10 @@ function sandboxgetweights($code,$seed) {
 	return $answeights;
 }
 ?>
+
+
+<script>
+	jQuery(document).ready(function($) {
+		addSavetoggle();
+	});
+</script>

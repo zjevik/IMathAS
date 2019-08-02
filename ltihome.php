@@ -316,7 +316,12 @@ if ($hasplacement && $placementtype=='course') {
 
 //HTML Output
 $pagetitle = "LTI Home";
+$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js"></script>';
+$placeinhead .= '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.js"></script>';
+$placeinhead .= '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.css" type="text/css" />';
 require("header.php");
+
+echo '<div id="advanced">';
 if (!$hascourse || isset($_GET['chgcourselink'])) {
 	echo '<script type="text/javscript">
 	function updateCourseSelector(el) {
@@ -477,7 +482,7 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	if ($role == 'teacher') {
 		echo "<p><a href=\"course/addassessment.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Settings</a>";
 		if($line['displaymethod']!="CanvasGradebook"){
-			echo "<a href=\"course/addquestions.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\"> | Questions</a></p>";
+			echo " | <a href=\"course/addquestions.php?cid=" . Sanitize::courseId($cid) . "&aid=" . Sanitize::encodeUrlParam($typeid) . "&from=lti\">Questions</a></p>";
 		}
 		if ($sessiondata['ltiitemtype']==-1) {
 			echo '<p><a href="ltihome.php?chgplacement=true">Change assessment</a></p>';
@@ -485,6 +490,9 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		echo '<p>&nbsp;</p><p class=small>This assessment is housed in course ID '.Sanitize::courseId($cid).'</p>';
 	}
 }
+echo '</div>';
+require_once("ltihome-simpleUI.php");
+
 require("footer.php");
 
 function formatdate($date) {
@@ -496,3 +504,9 @@ function formatdate($date) {
 }
 
 ?>
+
+<script>
+	jQuery(document).ready(function($) {
+		addSavetoggle();
+	});
+</script>

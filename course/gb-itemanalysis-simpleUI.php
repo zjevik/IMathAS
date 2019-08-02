@@ -1,7 +1,8 @@
 <?php
 //IMathAS:  Item Analysis (averages)
 //(c) 2007 David Lippman
-	require("../init.php");
+//(c) 2019 Ondrej Zjevik
+
 
 	$isteacher = isset($teacherid);
 	$istutor = isset($tutorid);
@@ -64,18 +65,8 @@
 		exit;
 	}
 
-	$pagetitle = "Gradebook";
-	$placeinhead = '<script type="text/javascript">';
-	$placeinhead .= '$(function() {$("a[href*=\'gradeallq\']").attr("title","'._('Grade this question for all students').'");});';
-	$placeinhead .= 'function previewq(qn) {';
-	$placeinhead .= "var addr = '$imasroot/course/testquestion.php?cid=$cid&qsetid='+qn;";
-	$placeinhead .= "window.open(addr,'Testing','width=400,height=300,scrollbars=1,resizable=1,status=1,top=20,left='+(screen.width-420));";
-	$placeinhead .= "}\n</script>";
-	$placeinhead .= '<style type="text/css"> .manualgrade { background: #ff6;} td.pointer:hover {text-decoration: underline;}</style>';
-	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js"></script>';
-	require("../header.php");
-
-	echo '<div id="advanced">';
+	#TODO: Simple UI
+	echo '<div id="simple">';
 	if(isset($sessiondata['ltiitemtype'])){
 		echo "<div class=breadcrumb>$breadcrumbbase <span href=\"course.php?cid=".Sanitize::courseId($_GET['cid'])."\">".Sanitize::encodeStringForDisplay($coursename)."</span> ";
 	} else{
@@ -401,33 +392,4 @@
 		echo "<a href=\"gb-aidexport.php?cid=$cid&amp;aid=$aid\">Export student answer details</a></div>";
 	}
 	echo '</div>';
-	require_once("gb-itemanalysis-simpleUI.php");
-	
-	require("../footer.php");
-
-function getpts($sc) {
-	if (strpos($sc,'~')===false) {
-		if ($sc>0) {
-			return $sc;
-		} else {
-			return 0;
-		}
-	} else {
-		$sc = explode('~',$sc);
-		$tot = 0;
-		foreach ($sc as $s) {
-			if ($s>0) {
-				$tot+=$s;
-			}
-		}
-		return round($tot,1);
-	}
-}
-
 ?>
-
-<script>
-	jQuery(document).ready(function($) {
-		addSavetoggle();
-	});
-</script>

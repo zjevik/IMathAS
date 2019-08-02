@@ -823,6 +823,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 
  /******* begin html output ********/
  $placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/DatePicker.js?v=080818\"></script>";
+ $placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js"></script>';
  $placeinhead .= '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
  integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
  crossorigin=""/>
@@ -830,6 +831,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
  integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
  crossorigin=""></script>';
  require("../header.php");
+ echo '<div id="advanced">';
 
 if ($overwriteBody==1) {
 	echo $body;
@@ -1375,40 +1377,8 @@ if ($overwriteBody==1) {
 ?>
 			</span></span><br class=form>
 
-			<span class=form>Restrict Location? (Live Poll only): </span>
-			<span class=formright>
-<?php
-	writeHtmlSelect("locationtype", array(0,1,2,3), array(_('No'),_('To MMC'), _('To BBC'), _('Custom Location')), $locationtype);
-			echo '<span id="locationwrap"';
-			if ($locationtype==0) {
-				echo 'style="display:none;"';
-			}
-			echo '>';
-?> <span id="locinstructions"
-<?php
-			if ($locationtype!=3) {
-				echo 'style="display:none;"';
-			}
-?>
-><br>Drag the marker on the map to change the required location.<br></span>
-			<span id="latlonwrap">Latitude: <input type=text size=12 name="loclatitude" id="latitude" value="<?php echo $line['loclat'];?>">, 
-			Longitude: <input type=text size=12 name="loclongitude" id="longitude" value="<?php echo $line['loclng'];?>">
-
-			Radius: <input style="width: 80%;" type="range" min="100" max="1000" value="<?php echo $line['locradius'];?>" step="25" id="myRange" name="locradius">
-
-			<div id="mapdiv" style="height: 400px"></div>
-<script>
-<?php
-			if ($locationtype > 0 && $locationtype < 3) {
-				echo 'showmap('.$locationtype.');';
-			} else if ($locationtype != 0){
-				echo 'showmap('.$locationtype.','.$line["loclat"].','.$line["loclng"].','.$line["locradius"].');';
-			}
-?>
-
-</script>
-
-			</span></span></span><br class=form>
+			<span class=form>Restrict Location? (Live Poll only):</span>
+			<span class=formright>Please use Simple View</span><br class=form>
 		 </div>
 		 
 		 <div class="block grouptoggle">
@@ -1590,5 +1560,12 @@ if ($overwriteBody==1) {
 	</form>
 <?php
 }
+	echo '</div>';
+	require_once("addassessment-simpleUI.php");
 	require("../footer.php");
 ?>
+<script>
+	jQuery(document).ready(function($) {
+		addSavetoggle();
+	});
+</script>
