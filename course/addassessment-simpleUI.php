@@ -125,9 +125,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$("#myRange").on("input",function() {
 				circle.setRadius(this.value);
 			});
-			$("#myparticipation").on("input",function() {
-				$("#partPart").html(this.value);
-				$("#partCorr").html(100-this.value);
+			$(".myparticipation").on("input",function() {
+				$(".partPart").html(this.value);
+				$(".partCorr").html(100-this.value);
 			});
 		})
 		var map, tileLayer, marker, circle, latitude, longitude;
@@ -522,8 +522,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	
 				<span class="form">Participation weight:(Canvas Gradebook Category only)</span>
 				<span class="formright">
-				Final score = <span id="partCorr"><?php echo 100-$line['gbcatweight'];?></span>% Correctness + <span id="partPart"><?php echo $line['gbcatweight']==0?"0":$line['gbcatweight'];?></span>% Participation
-				<input style="width: 80%;" type="range" min="0" max="100" value="<?php echo $line['gbcatweight']==0?"0":$line['gbcatweight'];?>" step="5" id="myparticipation" name="gbcatweight">
+				Final score = <span class="partCorr"><?php echo 100-$line['gbcatweight'];?></span>% Correctness + <span class="partPart"><?php echo $line['gbcatweight']==0?"0":$line['gbcatweight'];?></span>% Participation
+				<input style="width: 80%;" type="range" min="0" max="100" value="<?php echo $line['gbcatweight']==0?"0":$line['gbcatweight'];?>" step="5" class="myparticipation" name="gbcatweight">
 				
 				
 				</span><br class="form" />

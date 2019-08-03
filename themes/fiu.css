@@ -67,6 +67,77 @@
     color: white;
   }
 
+
+  .switchLTI input { display: none; }
+
+  .switchLTI {
+    position: absolute;
+    width: 7.5em;
+    height: 2.5em;
+    align-items: right;
+    z-index: 1;
+    left: calc(100% - 130px);
+    top: 2em;
+  }
+  
+  .sliderLTI {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color:#f8c93e50;
+    box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
+    transition: 0.2s;
+    border-radius: 99999px;
+  }
+  
+  .sliderLTI::before {
+    position: absolute;
+    content: "";
+    height: 1.5em;
+    width: 1.5em;
+    left: 0.45em;
+    bottom: 0.45em;
+    background-color: white;
+    box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .sliderLTI {
+    background-color: #081E3F;
+  }
+  
+  input:focus + .sliderLTI {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .sliderLTI::before {
+    transform: translateX(5.1em);
+  }
+  
+  .sliderLTI::after {
+   content: 'Simple View';
+   color: black;
+   display: block;
+   position: absolute;
+   transform: translate(-40%,-50%);
+   transition: 0.2s;
+   top: 50%;
+   left: 50%;
+   font-size: 0.7em;
+   font-family: Verdana, sans-serif;
+  }
+  
+  input:checked + .sliderLTI::after {  
+    content: 'Advance View';
+    color: white;
+  }
+
+  
+
 /*General settings - fonts, overall page background, etc*/
 body {
 	/*font-family: "Trebuchet MS", "Arial", "Helvetica", sans-serif;*/
@@ -79,7 +150,10 @@ div.jitQuestionName{
 
 /*Link styles*/
 a:link {
-	text-decoration: none;
+	/*text-decoration: none;*/
+}
+.midwrapper a {
+    text-decoration: none;
 }
 .inset a{
 	border-bottom: 1px solid;
@@ -191,6 +265,9 @@ tr.dbltop td {
 }
 table.gbl td.locked, table.gbl th.locked {
 	border-right: 2px solid #00f;
+}
+table.gb .notattempted td{
+    background-color: lightgray;
 }
 
 /*Category header colors*/
@@ -4843,4 +4920,59 @@ section.thumbnail-grid .thumbnail-wrapper .thumbnail-caption i+h4,section.thumbn
     text-transform: none;
     padding: 10px 0;
     font-size: 0.9em
+}
+
+.column,.columns {
+    position: relative;
+    padding-left: 0.9375rem;
+    padding-right: 0.9375rem;
+    float: left
+}
+
+.medium-1 {
+    width: 8.33333%
+}
+
+.medium-2 {
+    width: 16.66667%
+}
+
+.medium-3 {
+    width: 25%
+}
+
+.medium-4 {
+    width: 33.33333%
+}
+
+.medium-5 {
+    width: 41.66667%
+}
+
+.medium-6 {
+    width: 50%
+}
+
+.medium-7 {
+    width: 58.33333%
+}
+
+.medium-8 {
+    width: 66.66667%
+}
+
+.medium-9 {
+    width: 75%
+}
+
+.medium-10 {
+    width: 83.33333%
+}
+
+.medium-11 {
+    width: 91.66667%
+}
+
+.medium-12 {
+    width: 100%
 }
