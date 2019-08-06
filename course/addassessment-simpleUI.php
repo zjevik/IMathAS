@@ -237,11 +237,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	<?php
 		if ($dates_by_lti==0) {
 	?>
-			<span class=form>Show:</span>
-			<span class=formright>
-				<input type=radio name="avail" value="0" <?php writeHtmlChecked($line['avail'],0);?> onclick="$('#datediv').slideUp(100)"/>Hide<br/>
-				<input type=radio name="avail" value="1" <?php writeHtmlChecked($line['avail'],1);?> onclick="$('#datediv').slideDown(100);"/>Show by Dates<br/>
-			</span><br class="form"/>
+			<textarea style='display:none' cols=50 rows=15 id=summary name=summary style="width: 100%"><?php echo Sanitize::encodeStringForDisplay($line['summary'], true); ?></textarea>
+			<textarea style='display:none' cols=50 rows=20 id=intro name=intro style="width: 100%"><?php echo Sanitize::encodeStringForDisplay($line['intro'], true); ?></textarea>
+			
+				
+				<input type="hidden" name="avail" value="1" <?php writeHtmlChecked($line['avail'],1);?> onclick="$('#datediv').slideDown(100);"/>
+			
 	
 			<div id="datediv" style="display:<?php echo ($line['avail']==1)?"block":"none"; ?>">
 	
@@ -258,12 +259,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	
 			<span class=form>Available Until:</span>
 			<span class=formright>
-				<input type=radio name="edatetype" value="2000000000" <?php writeHtmlChecked($enddate,"2000000000",0); ?>/>
+				<input type=radio name="edatetype" value="2000000000" <?php writeHtmlChecked($enddate,"2000000000",1); ?>/>
 				 Always after start date
 				 <?php if ($courseenddate<2000000000) {
 					  echo 'until the course end date, '.tzdate("n/j/Y", $courseenddate);
 				 }?><br/>
-				<input type=radio name="edatetype" value="edate"  <?php writeHtmlChecked($enddate,"2000000000",1); ?>/>
+				<input type=radio name="edatetype" value="edate"  <?php writeHtmlChecked($enddate,"2000000000",0); ?>/>
 				<input type=text size=10 name="edate" value="<?php echo $edate;?>">
 				<a href="#" onClick="displayDatePicker('edate', this, 'sdate', 'start date'); return false">
 				<img src="../img/cal.gif" alt="Calendar"/></A>
@@ -301,7 +302,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	?>
 			<BR class=form>
 			</div>
-	
+			<input type=hidden name="doreview" value="2000000000" <?php if ($line['reviewdate']>0) {echo 'checked';} ?>>
 			<span class=form></span>
 			<span class=formright>
 				<input type=submit value="<?php echo Sanitize::encodeStringForDisplay($savetitle); ?>"> now or continue below for Assessment Options
@@ -350,7 +351,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 						<?php if (isset($CFG['GEN']['livepollserver'])) {
 							echo '<option value="LivePoll" ';
 							writeHtmlSelected($line['displaymethod'],"LivePoll",0);
-							echo '>Live Poll (experimental)</option>';
+							echo '>Live Poll</option>';
 						}?>
 						<option value="JustInTime" <?php writeHtmlSelected($line['displaymethod'],"JustInTime",0) ?>>Just In time</option>
 						<?php if (isset($CFG['LTI']['gradebookcategory'])) {
@@ -380,8 +381,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				<span class=formright>
 					<input type=text size=4 name=defattempts value="<?php echo Sanitize::encodeStringForDisplay($line['defattempts']); ?>" >
 					<span id="showreattdiffver" class="<?php if ($testtype!="Practice" && $testtype!="Homework") {echo "show";} else {echo "hidden";} ?>">
-					 <input type=checkbox name="reattemptsdiffver" <?php writeHtmlChecked($line['shuffle']&8,8); ?> />
-					 Reattempts different versions</span>
+					 <input type="hidden" name="reattemptsdiffver" <?php writeHtmlChecked($line['shuffle']&8,8); ?> />
+					 </span>
 				 </span><BR class=form>
 	
 				<span class=form>Default penalty:</span>
@@ -444,7 +445,23 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			 <div><a href="#" onclick="groupToggleAll(1);return false;">Expand All</a>
 			<a href="#" onclick="groupToggleAll(0);return false;">Collapse All</a></div>
 			 
+			<input name="caltagact" type="hidden" size=8 value="<?php echo Sanitize::encodeStringForDisplay($line['caltag']); ?>"/>
+			<input name="showqcat" type="hidden" value="0" <?php writeHtmlChecked($showqcat,"0"); ?>>
+			<input name="showqcat" type="hidden" value="1" <?php writeHtmlChecked($showqcat,"1"); ?>>
+			<input name="showqcat" type="hidden" value="2" <?php writeHtmlChecked($showqcat,"2"); ?>>
+			<input type="hidden" value="0" name="noprint" <?php writeHtmlChecked($line['noprint'],0); ?>/>
+			<input type="hidden" name="sameseed" <?php writeHtmlChecked($line['shuffle']&2,2); ?>>
+			<input type="hidden" name="samever" <?php writeHtmlChecked($line['shuffle']&4,4); ?>>
+			<input type="hidden" name="istutorial" <?php writeHtmlChecked($line['istutorial'],1); ?>>
+			<input type="hidden" name="latepassafterdue" <?php writeHtmlChecked($line['allowlate']>10,true); ?>>
+			<input type="hidden" size=4 name=timelimit value="<?php echo Sanitize::onlyFloat(abs($timelimit));?>">
+			<input type="hidden" name="timelimitkickout" <?php if ($timelimit<0) echo 'checked="checked"';?> />
 			
+			<input type="hidden" name="showhints" <?php writeHtmlChecked($line['showhints'],1); ?>>
+			<input type="hidden" name="msgtoinstr" <?php writeHtmlChecked($line['msgtoinstr'],1); ?>/>
+			<input type="hidden" name="doposttoforum" <?php writeHtmlChecked($line['posttoforum'],0,true); ?>/>
+			
+
 			 <div class="block grouptoggle" onclick="setTimeout(function() {map.invalidateSize();}, 500);">
 			   <img class="mida" src="../img/expand.gif" />
 			   Access Control
@@ -527,6 +544,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				
 				
 				</span><br class="form" />
+				
 			 </div>
 			 
 			</div>
