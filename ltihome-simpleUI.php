@@ -77,7 +77,7 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	} else {
 		echo '<h2>Link Resource</h2>';
 	}
-	echo '<form method="post" action="ltihome.php">';
+	echo '<form method="post" id="LTIHomeForm"  action="ltihome.php">';
 	echo "<p>This placement on your LMS has not yet been linked to content on $installname. ";
 	if (isset($sessiondata['lti_selection_type']) && $sessiondata['lti_selection_type']=='assn') {
 		echo 'Select the assessment you\'d like to use: ';
@@ -91,7 +91,8 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		echo 'or do a full course placement, in which case all content of the course is available to students (but no grades are returned to Canvas). <br> Select the assessment you\'d like to use: ';
 	}
 
-	echo '<br/> <select name="setplacement"> ';
+	echo '<br/> <div class="container"><div class="small-12 medium-4 columns"><div class="fiu-button-blue">';
+	echo '<select name="setplacement" style="width: 100%;height: 100%;background-color: #081E3f;border: #081E3f;color: #fff;"> ';
 	
 	if (isset($sessiondata['lti_selection_type']) && $sessiondata['lti_selection_type']=='link') {
 		echo '<option value="course">Whole Course Placement</option>';
@@ -110,11 +111,12 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		echo '<option value="course">Whole Course Placement</option>';
 		echo '</optgroup>';
 	}
-	echo '</select>';
-	echo '<input type="Submit" value="Make Placement"/>';
-	echo "<p>If you want to create new assessments, log directly into $installname</p>";
+	echo '</select></div></div>';
+	echo '<div class="small-12 medium-4 columns"><a onClick="javascript:document.getElementById(\'LTIHomeForm\').submit();" class="fiu-button-yellow">Make Placement</a></div>';
+	echo "<div class='small-12 medium-4 columns'><a class='fiu-button-blue-outline' href='".$imasroot."/course/addassessment.php?cid=".$cid."'>New assessment</a></div>";
+	echo '</div><br class="form">';
 	echo "<p>If your LMS course is linked with the wrong course on $installname, ";
-	echo '<a href="ltihome.php?chgcourselink=true" onclick="return confirm(\'Are you SURE you want to do this? This may break existing placements.\');">Change course link</a></p>';
+	echo '<div class="small-12 medium-4 columns"><a class="fiu-button-gray" href="ltihome.php?chgcourselink=true" onclick="return confirm(\'Are you SURE you want to do this? This may break existing placements.\');">Change course link</a></div></p>';
 	echo '</form>';
 } else if ($placementtype=='course') {
 	echo '<h2>LTI Placement of whole course</h2>';
