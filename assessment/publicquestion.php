@@ -1607,14 +1607,14 @@ $(function(){
 		window.name = "0";
 	}
 	//hide the rest of the parts
-	$(".parts").slice($(".text.ansgrn").size()+1).hide();
+	$(".parts").slice($(".ansgrn").size()+1).hide();
 
 	//disable changing correct answers
-	$(".text.ansgrn").prop("readonly",true);
+	$(".ansgrn").prop("readonly",true);
 
-	if($(".text.ansgrn").size() != parseInt(window.name)){
+	if($(".ansgrn").size() != parseInt(window.name)){
 		//we answered another part correctly
-		window.name = $(".text.ansgrn").size();
+		window.name = $(".ansgrn").size();
 		$("#verattempts").val(0);
 	} else if (hints.length > parseInt(window.name) && $("#verattempts").val() > 0){
 		//another wrong answer
