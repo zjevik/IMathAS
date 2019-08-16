@@ -35,6 +35,7 @@
 		//$bestscores[$i] = -1;
 		$sessiondata['mathdisp'] = 1;
 		$sessiondata['livepreview'] = 1;
+		$sessiondata['userprefs']['drawentry'] = 1;
 
 		if ($qi[$questions[0]]['fixedseeds'] !== null && $qi[$questions[0]]['fixedseeds'] != '') {
 			$fs = explode(',',$qi[$questions[0]]['fixedseeds']);
