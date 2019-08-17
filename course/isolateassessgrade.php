@@ -444,6 +444,6 @@
 
 <script>
 	jQuery(document).ready(function($) {
-		addSavetoggle();
+		addLTItoggle();
 	});
 </script>

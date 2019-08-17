@@ -787,6 +787,6 @@ function sandboxgetweights($code,$seed) {
 
 <script>
 	jQuery(document).ready(function($) {
-		addSavetoggle();
+		addLTItoggle();
 	});
 </script>

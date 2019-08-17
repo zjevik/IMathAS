@@ -1566,6 +1566,6 @@ if ($overwriteBody==1) {
 ?>
 <script>
 	jQuery(document).ready(function($) {
-		addSavetoggle();
+		addLTItoggle();
 	});
 </script>

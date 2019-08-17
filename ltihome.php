@@ -507,6 +507,6 @@ function formatdate($date) {
 
 <script>
 	jQuery(document).ready(function($) {
-		addSavetoggle();
+		addLTItoggle();
 	});
 </script>

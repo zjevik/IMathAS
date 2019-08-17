@@ -100,7 +100,7 @@ function handleClickTextSegmentButton(e) {
 
 function refreshTable() {
 	tinymce.remove();
-	document.getElementById("curqtbl").innerHTML = generateTable();
+	$(".curqtbl").html(generateTable());
 	updateqgrpcookie();
 	initeditor("selector","div.textsegment",null,true /*inline*/,editorSetup);
 	tinymce.init({
@@ -115,7 +115,7 @@ function refreshTable() {
 	});
 	activateLastEditorIfBlank();
 	$(".dropdown-toggle").dropdown();
-	$("#curqtbl input").off('keydown.doblur').on('keydown.doblur', function(e) {
+	$(".curqtbl input").off('keydown.doblur').on('keydown.doblur', function(e) {
 			if (e.which==13) {
 				e.preventDefault();
 				$(this).blur();
@@ -1252,7 +1252,7 @@ function generateTable() {
 		submitChanges();
 		html += "<p class=noticetext>WARNING: All question in a group should be given the same point values.</p>";
 	}
-	document.getElementById("pttotal").innerHTML = pttotal;
+	$(".pttotal").html(pttotal);
 	return html;
 }
 

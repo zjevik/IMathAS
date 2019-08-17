@@ -102,7 +102,7 @@ function handleClickTextSegmentButton(e) {
 
 function refreshTable() {
   tinymce.remove();
-  document.getElementById("curqtbl").innerHTML = generateTable();
+  $(".curqtbl").html(generateTable());
 
   updateqgrpcookie();
   initeditor("selector", "div.textsegment", null, true /*inline*/ , editorSetup);
@@ -118,7 +118,7 @@ function refreshTable() {
   });
   activateLastEditorIfBlank();
   $(".dropdown-toggle").dropdown();
-  $("#curqtbl input").off('keydown.doblur').on('keydown.doblur', function(e) {
+  $(".curqtbl input").off('keydown.doblur').on('keydown.doblur', function(e) {
     if (e.which == 13) {
       e.preventDefault();
       $(this).blur();

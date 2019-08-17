@@ -1,5 +1,5 @@
 
-function addSavetoggle(){
+function addLTItoggle(){
     $(".mainbody").prepend('<label class="switchLTI"><input type="checkbox" id="view" checked><div class="sliderLTI round"></div></label>');
     $("#view").change(function() {
         if($(this).is(":checked")) {

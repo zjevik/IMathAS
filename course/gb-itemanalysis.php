@@ -428,6 +428,6 @@ function getpts($sc) {
 
 <script>
 	jQuery(document).ready(function($) {
-		addSavetoggle();
+		addLTItoggle();
 	});
 </script>
