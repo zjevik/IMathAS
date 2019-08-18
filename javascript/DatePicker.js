@@ -320,6 +320,13 @@ function splitDateString(dateString)
 function updateDateField(dateFieldName, dateString)
 {
   var targetDateField = document.getElementsByName (dateFieldName).item(0);
+  if($("#view").length > 0){
+    if($("#view").is(":checked")){
+      targetDateField = document.getElementsByName (dateFieldName).item(0);
+    } else{
+      targetDateField = document.getElementsByName (dateFieldName).item(1);
+    }
+  }
   if (dateString) {
     targetDateField.value = dateString;
     if (targetDateField.dispatchEvent) {
