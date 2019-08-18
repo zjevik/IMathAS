@@ -72,11 +72,11 @@
 
   .switchLTI {
     position: absolute;
-    width: 7.5em;
+    width: 7.75em;
     height: 2.5em;
     align-items: right;
     z-index: 1;
-    left: calc(100% - 130px);
+    left: calc(100% - 135px);
     top: 2em;
   }
   
@@ -115,7 +115,7 @@
   }
   
   input:checked + .sliderLTI::before {
-    transform: translateX(5.1em);
+    transform: translateX(5.4em);
   }
   
   .sliderLTI::after {
@@ -132,7 +132,7 @@
   }
   
   input:checked + .sliderLTI::after {  
-    content: 'Advance View';
+    content: 'Advanced View';
     color: white;
   }
 
