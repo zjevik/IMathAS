@@ -259,12 +259,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	
 			<span class=form>Available Until:</span>
 			<span class=formright>
-				<input type=radio name="edatetype" value="2000000000" <?php writeHtmlChecked($enddate,"2000000000",1); ?>/>
+				<input type=radio name="edatetype" value="2000000000" <?php writeHtmlChecked($enddate,"2000000000",0); ?>/>
 				 Always after start date
 				 <?php if ($courseenddate<2000000000) {
 					  echo 'until the course end date, '.tzdate("n/j/Y", $courseenddate);
 				 }?><br/>
-				<input type=radio name="edatetype" value="edate"  <?php writeHtmlChecked($enddate,"2000000000",0); ?>/>
+				<input type=radio name="edatetype" value="edate"  <?php writeHtmlChecked($enddate,"2000000000",1); ?>/>
 				<input type=text size=10 name="edate" value="<?php echo $edate;?>">
 				<a href="#" onClick="displayDatePicker('edate', this, 'sdate', 'start date'); return false">
 				<img src="../img/cal.gif" alt="Calendar"/></A>
@@ -302,7 +302,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 	?>
 			<BR class=form>
 			</div>
-			<input type=hidden name="doreview" value="2000000000" <?php if ($line['reviewdate']>0) {echo 'checked';} ?>>
+			<input type=hidden name="doreview" value="0" <?php if ($line['reviewdate']>0) {echo 'checked';} ?>>
 			<span class=form></span>
 			<span class=formright>
 				<input type=submit value="<?php echo Sanitize::encodeStringForDisplay($savetitle); ?>"> now or continue below for Assessment Options
@@ -359,6 +359,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 							writeHtmlSelected($line['displaymethod'],"CanvasGradebook",0);
 							echo '>Canvas Gradebook Catagory</option>';
 						}?>
+						<option value="SBG" <?php writeHtmlSelected($line['displaymethod'],"SBG",0) ?>>Specific Based Grading</option>
 					</select>
 				</span><BR class=form>
 	

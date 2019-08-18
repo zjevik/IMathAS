@@ -4,7 +4,7 @@
 
 require_once(__DIR__ . "/../includes/sanitize.php");
 
-function generateAssessmentData($itemorder,$shuffle,$aid,$arrayout=false) {
+function generateAssessmentData($itemorder,$shuffle,$aid,$arrayout=false,$sbg=false) {
 	global $DBH;
 	$ioquestions = explode(",",$itemorder);
 	$questions = array();
