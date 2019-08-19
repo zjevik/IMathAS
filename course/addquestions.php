@@ -411,9 +411,11 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 
 	if($displaymethod == "JustInTime"){
 		$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/addqsortJIT.js?v=080618\"></script>";
-	} else{
-		$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/addqsort.js?v=080618\"></script>";
 	}
+	if($displaymethod == "SBG"){
+		$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/sbg.js\"></script>";
+	}
+
 
 	// Format of imas_assessments.intro is a JSON representation like
 	// [ "original (main) intro text",

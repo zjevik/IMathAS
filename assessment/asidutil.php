@@ -91,6 +91,11 @@ function generateAssessmentData($itemorder,$shuffle,$aid,$arrayout=false,$sbg=fa
 		}
 	}
 
+	if ($sbg) { //the same seed for each hour
+		$seeds = array_fill(0,count($questions),intval(date('H'))+100);
+		$reviewseeds = array_fill(0,count($questions),$aid+100);
+	}
+
 
 	$scores = array_fill(0,count($questions),-1);
 	$attempts = array_fill(0,count($questions),0);

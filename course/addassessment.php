@@ -1188,6 +1188,7 @@ if ($overwriteBody==1) {
 						writeHtmlSelected($line['displaymethod'],"CanvasGradebook",0);
 						echo '>Canvas Gradebook Catagory</option>';
 					}?>
+					<option value="SBG" <?php writeHtmlSelected($line['displaymethod'],"SBG",0) ?>>Specific Based Grading</option>
 				</select>
 			</span><BR class=form>
 

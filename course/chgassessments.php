@@ -847,6 +847,8 @@ var map, tileLayer, marker, circle, latitude, longitude;
 					<option value="Seq" <?php writeHtmlSelected($line['displaymethod'],"Seq",0) ?>>Full test, submit one at time</option>
 					<option value="SkipAround" <?php writeHtmlSelected($line['displaymethod'],"SkipAround",0) ?>>Skip Around</option>
 					<option value="Embed" <?php writeHtmlSelected($line['displaymethod'],"Embed",0) ?>>Embedded</option>
+					<option value="JustInTime" <?php writeHtmlSelected($line['displaymethod'],"JustInTime",0) ?>>Just In time</option>
+					<option value="SBG" <?php writeHtmlSelected($line['displaymethod'],"SBG",0) ?>>Specific Based Grading</option>
 				</select>
 				</td>
 			</tr>

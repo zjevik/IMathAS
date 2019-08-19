@@ -586,7 +586,7 @@ if ($overwriteBody==1) {
 ?>
 		<form id="selq" method=post action="addquestions.php?cid=<?php echo $cid ?>&aid=<?php echo $aid ?>&addset=true">
 
-		Check: <a href="#" onclick="return chkAllNone('selq','nchecked[]',true)">All</a> <a href="#" onclick="return chkAllNone('selq','nchecked[]',false)">None</a>
+		Checked: 
 		<input name="add" type=submit value="Add" />
 		<input name="addquick" type=submit value="Add (using defaults)">
 		<input type=button value="Preview Selected" onclick="previewsel('selq')" />
