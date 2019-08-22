@@ -11,7 +11,7 @@ function addLTItoggle(){
 
     //check for cookie settings
     var showSimpleVar = getCookie("showSimple");
-    if(showSimpleVar === 'true'){
+    if(showSimpleVar === 'true' || showSimpleVar === ''){
         $("#view").click();
     } else{
         showSimple(false);
@@ -51,5 +51,5 @@ function getCookie(cname) {
         return c.substring(name.length, c.length);
         }
     }
-    return "";
+    return "true";
 }

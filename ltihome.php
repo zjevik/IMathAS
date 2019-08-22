@@ -316,7 +316,7 @@ if ($hasplacement && $placementtype=='course') {
 
 //HTML Output
 $pagetitle = "LTI Home";
-$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js?date=8212019"></script>';
+$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/LTItoggle.js?v=08222019"></script>';
 $placeinhead .= '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.js"></script>';
 $placeinhead .= '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.css" type="text/css" />';
 require("header.php");
