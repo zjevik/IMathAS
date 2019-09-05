@@ -151,7 +151,7 @@ while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 				
 			}
 			//grade 0-1
-			$grade = round($numerator/$denominator,4);
+			$grade = $denominator==0?1:round($numerator/$denominator,4);
 			//echo $student[4][0].": Student: ".$student[0][0]." -> ".$grade."| ( ".$numerator." / ".$denominator." )\n";
 		
 			$stm2 = $DBH->prepare('SELECT * FROM imas_lti_gbcat WHERE userid = :uid AND assessmentid = :aid');
