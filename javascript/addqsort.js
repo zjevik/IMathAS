@@ -1024,7 +1024,7 @@ function generateTable() {
 				html += "<td>";
 				if (j==0) {
 					if (!curisgroup) {
-						html += "<input type=checkbox id=\"qc"+ln+"\" name=\"checked[]\" value=\""+i+":"+curitems[j][0]+":"+curqnum+"\"/></td><td>";
+						html += "<input type=checkbox id=\"qc"+ln+"\" name=\"checked[]\" onclick=\"$('input#qc"+ln+"').prop('checked',this.checked)\" value=\""+i+":"+curitems[j][0]+":"+curqnum+"\"/></td><td>";
 					} else {
 						if (itemarray[i][3]==1) {
 							html += "<img src=\""+imasroot+"/img/collapse.gif\" onclick=\"collapseqgrp("+i+")\" alt=\"Collapse\"/>";
@@ -1344,7 +1344,7 @@ function submitChanges() {
 	})
 	.fail(function(xhr, status, errorThrown) {
 	    document.getElementById(target).innerHTML=" Couldn't save changes:\n"+
-			status + "\n" +req.statusText+
+			status + "\n" +xhr.statusText+
 			"\nError: "+errorThrown
 		itemarray = olditemarray;
 		refreshTable();

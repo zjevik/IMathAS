@@ -27,7 +27,7 @@ function previewq(formn,loc,qn,docheck,onlychk) {
 }
 function sethighlightrow(loc) {
 	$("tr.highlight").removeClass("highlight");
-	$("#"+loc).closest("tr").addClass("highlight");	
+	$("input#"+loc).closest("tr").addClass("highlight");	
 }
 function previewsel(formn) {
 	var form = document.getElementById(formn);

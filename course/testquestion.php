@@ -195,7 +195,7 @@ if ($overwriteBody==1) {
 	}
 
 	if (isset($_GET['checked'])) {
-		echo "<p id=usecheckwrap><input type=\"checkbox\" name=\"usecheck\" id=\"usecheck\" value=\"Mark Question for Use\" onclick=\"parentcbox.checked=this.checked;togglechk(this.checked)\" ";
+		echo "<p id=usecheckwrap><input type=\"checkbox\" name=\"usecheck\" id=\"usecheck\" value=\"Mark Question for Use\" onclick=\"opener.$('input#$loc').prop('checked',this.checked);togglechk(this.checked)\" ";
 		echo "/> Mark Question for Use</p>";
 		echo "
 		  <script type=\"text/javascript\">
