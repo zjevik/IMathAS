@@ -4554,14 +4554,14 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		// Gather all learning goals from gradebook
 		$learninggoals = array();
 		foreach ($gbt[0][1] as $val){
-			if(strpos(strtolower($val[0]),"learning goal")>-1){
+			if(strpos(strtolower($val[0]),"goal")>-1){
 				array_push($learninggoals, (int) filter_var($val[0], FILTER_SANITIZE_NUMBER_INT));
 			}
 		}
 
 		// Remove satisfied learning goals
 		foreach ($gbt[1][1] as $key => $val){
-			if(strpos(strtolower($gbt[0][1][$key][0]),"learning goal")>-1 && $val[0]){
+			if(strpos(strtolower($gbt[0][1][$key][0]),"goal")>-1 && $val[0]){
 				$learninggoals = array_diff($learninggoals, array((int) filter_var($gbt[0][1][$key][0], FILTER_SANITIZE_NUMBER_INT)));
 			}
 		}
