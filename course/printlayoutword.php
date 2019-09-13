@@ -41,7 +41,7 @@ if ($overwriteBody==1) {
 	require("../header.php");
 	echo $body;
 } if (!isset($_REQUEST['versions'])) {
-
+	$placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/DatePicker.js?v=080818\"></script>";
 	require("../header.php");
 	echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 	echo "&gt; <a href=\"addquestions.php?cid=$cid&aid=$aid\">Add/Remove Questions</a> ";
@@ -61,6 +61,10 @@ if ($overwriteBody==1) {
 	echo '<span class="form">Version separator:</span><span class="formright"><input type=text name="vsep" value="+++++++++++++++" /> </span><br class="form"/>';
 	echo '<span class="form">Include question numbers and point values:</span><span class="formright"><input type="checkbox" name="showqn" checked="checked" /> </span><br class="form"/>';
 	echo '<span class="form">Hide text entry lines?</span><span class="formright"><input type=checkbox name=hidetxtboxes checked="checked" ></span><br class="form"/>';
+	echo '<span class="form">SBG print displayed version as of: </span><span class="formright"><input type=checkbox name=SBGtime " ><input type=text size=10 name="sbgdate" value='.tzdate("m/d/Y",floor(time()/3600)*3600).'>
+	<a href="#" onClick="displayDatePicker(\'sbgdate\', this); return false">
+	<img src="../img/cal.gif" alt="Calendar"/></A>
+	at <input type=text size=8 name=sbgtime value="'.tzdate("g:i a",floor(time()/3600)*3600).'"></span> <br class="form"/>';
 
 	echo '<p>NOTE: In some versions of Word, variables in equations may appear incorrectly at first.  To fix this, ';
 	echo 'select everything (Control-A), then under the Equation Tools menu, click Linear then Professional.</p>';
@@ -140,12 +144,16 @@ if ($overwriteBody==1) {
 
 	include("../assessment/displayq2.php");
 
+	//SBG code
+	$sbg = isset($_REQUEST['SBGtime']);
+	require_once("../includes/parsedatetime.php");
 
 	if (is_numeric($_REQUEST['versions'])) {
 		$copies = $_REQUEST['versions'];
 	} else {
 		$copies = 1;
 	}
+	if ($sbg) { $copies = 1; }
 	//add interlace output
 	//add prettyprint along with text-based output option
 	$seeds = array();
@@ -183,7 +191,11 @@ if ($overwriteBody==1) {
 				}
 			}
 		}
-	}
+		}
+		if ($sbg) { //the same seed for each hour
+			$sbgdatetime = parsedatetime($_POST['sbgdate'],$_POST['sbgtime'],0);
+			$seeds[$j] = array_fill(0,count($questions),intval(date('mdH',$sbgdatetime))%10000);
+		}
 	}
 
 

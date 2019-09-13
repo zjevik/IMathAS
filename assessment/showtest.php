@@ -4573,10 +4573,11 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			}
 		}
 
-		// select up to three to display
+		// select up to two to display
 		$learninggoalsdispl = array();
-		while (count($learninggoals) > 0 && count($learninggoalsdispl) < 3) {
+		while (count($learninggoals) > 0 && count($learninggoalsdispl) < 2) {
 			$learninggoals = array_values($learninggoals);
+			// Get pseudo random number based on userID
 			$tmp = $userid + intval(date('d')) + 123*count($learninggoalsdispl);
 			$tmp = $tmp % count($learninggoals);
 			array_push($learninggoalsdispl, $learninggoals[$tmp]);
