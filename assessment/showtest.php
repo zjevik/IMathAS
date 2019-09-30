@@ -356,7 +356,13 @@
 			$hidepast = false;
 			$numerator = 0;
 			$denominator = 0;
-			$calctype = $gbt[0][2][$adata['gbcategory']][13];
+			$calctype = 1;
+			foreach ($gbt[0][2] as $cat) {
+				if($cat[10] == $adata['gbcategory']){
+					$calctype = $cat[13];
+					break;
+				}
+			}
 			for ($i=0;$i<count($gbt[0][1]);$i++) { //assessment headers
 				if (!$isteacher && !$istutor && $gbt[0][1][$i][4]==0) { //skip if hidden
 					continue;
