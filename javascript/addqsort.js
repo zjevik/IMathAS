@@ -422,7 +422,7 @@ function anyEditorIsDirty() {
 function generateMoveSelect2(num) {
 	var thisistxt = (itemarray[num][0]=="text");
 	num++; //adjust indexing
-	var sel = "<select id="+num+" onChange=\"moveitem2("+num+")\">";
+	var sel = "<select id="+num+" onChange=\"moveitem2("+num+",this.value)\">";
 	var qcnt = 1; var tcnt = 1; var curistxt = false;
 	for (var i=1; i<=itemarray.length; i++) {
 		curistxt = (itemarray[i-1][0]=="text");
@@ -491,7 +491,7 @@ function generateMoveSelect2(num) {
 
 function generateMoveSelect(num,itemarray) {
 	num++; //adjust indexing
-	var sel = "<select id="+num+" onChange=\"moveitem2("+num+")\">";
+	var sel = "<select id="+num+" onChange=\"moveitem2("+num+",this.value)\">";
 	for (var i=1; i<=cnt; i++) {
 		sel += "<option value=\""+i+"\" ";
 		if (i==num) {
@@ -547,13 +547,13 @@ function generateShowforSelect(num) {
 	}
 }
 
-function moveitem2(from) {
+function moveitem2(from,to) {
 	if (!confirm_textseg_dirty()) {
 		//if aborted restore the original value and don't save
 		document.getElementById(from).value=from;
 	} else {
 		var todo = 0;//document.getElementById("group").value;
-		var to = document.getElementById(from).value;
+		//var to = document.getElementById(from).value;
 		var tomove = itemarray.splice(from-1,1);
 		if (todo==0) { //rearrange
 			itemarray.splice(to-1,0,tomove[0]);
