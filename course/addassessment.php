@@ -223,7 +223,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 $defpenalty = 'L'.$defpenalty;
             } else if ($skippenalty_post>0) {
                 $defpenalty = 'S'.$skippenalty_post.$defpenalty;
-            }
+			}
+			$SBGgoals = Sanitize::onlyFloat($_POST['SBGgoals']);
+			$SBGtime = Sanitize::onlyFloat($_POST['SBGtime'])*60;
             
             $extrefs = array();
             $labelkeys = preg_grep('/extreflabel/', array_keys($_POST));
@@ -257,10 +259,10 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
         $defattempts = Sanitize::onlyFloat($_POST['defattempts']);
         $copyFromId = Sanitize::onlyInt($_POST['copyfrom']);
         if (!empty($copyFromId)) {
-                $stm = $DBH->prepare("SELECT timelimit,minscore,displaymethod,defpoints,defattempts,defpenalty,deffeedback,shuffle,gbcategory,password,cntingb,tutoredit,showcat,intro,summary,startdate,enddate,reviewdate,isgroup,groupmax,groupsetid,showhints,reqscore,reqscoreaid,reqscoretype,noprint,allowlate,eqnhelper,endmsg,caltag,calrtag,deffeedbacktext,showtips,exceptionpenalty,ltisecret,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs FROM imas_assessments WHERE id=:id");
+                $stm = $DBH->prepare("SELECT timelimit,minscore,displaymethod,defpoints,defattempts,defpenalty,deffeedback,shuffle,gbcategory,password,cntingb,tutoredit,showcat,intro,summary,startdate,enddate,reviewdate,isgroup,groupmax,groupsetid,showhints,reqscore,reqscoreaid,reqscoretype,noprint,allowlate,eqnhelper,endmsg,caltag,calrtag,deffeedbacktext,showtips,exceptionpenalty,ltisecret,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,SBGgoals,SBGtime FROM imas_assessments WHERE id=:id");
                 $stm->execute(array(':id'=>$copyFromId));
 
-                list($timelimit,$_POST['minscore'],$displayMethod,$defpoints,$defattempts,$defpenalty,$deffeedback,$shuffle,$grdebkcat,$assmpassword,$cntingb_int,$tutoredit,$shwqcat,$cpintro,$cpsummary,$cpstartdate,$cpenddate,$cpreviewdate,$isgroup,$grpmax,$grpsetid,$showhints,$reqscore,$_POST['reqscoreaid'],$reqscoretype,$_POST['noprint'],$allowlate,$eqnhelper,$endmsg,$_POST['caltagact'],$_POST['caltagrev'],$deffb,$showtips,$exceptpenalty,$ltisecret,$msgtoinstr,$posttoforum,$istutorial,$defoutcome,$extrefencoded) = $stm->fetch(PDO::FETCH_NUM);
+                list($timelimit,$_POST['minscore'],$displayMethod,$defpoints,$defattempts,$defpenalty,$deffeedback,$shuffle,$grdebkcat,$assmpassword,$cntingb_int,$tutoredit,$shwqcat,$cpintro,$cpsummary,$cpstartdate,$cpenddate,$cpreviewdate,$isgroup,$grpmax,$grpsetid,$showhints,$reqscore,$_POST['reqscoreaid'],$reqscoretype,$_POST['noprint'],$allowlate,$eqnhelper,$endmsg,$_POST['caltagact'],$_POST['caltagrev'],$deffb,$showtips,$exceptpenalty,$ltisecret,$msgtoinstr,$posttoforum,$istutorial,$defoutcome,$extrefencoded,$SBGgoals,$SBGtime) = $stm->fetch(PDO::FETCH_NUM);
                 if (isset($_POST['copyinstr'])) {
                     if (($introjson=json_decode($cpintro))!==null) { //is json intro
                         $_POST['intro'] = $introjson[0];
@@ -376,6 +378,14 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 if (isset($_POST['defpenalty'])) {
                     $query .= ",defpenalty=:defpenalty";
                     $qarr[':defpenalty'] = $defpenalty;	
+				} 
+				if (isset($_POST['SBGgoals'])) {
+                    $query .= ",SBGgoals=:SBGgoals";
+                    $qarr[':SBGgoals'] = $SBGgoals;	
+				} 
+				if (isset($_POST['SBGtime'])) {
+                    $query .= ",SBGtime=:SBGtime";
+                    $qarr[':SBGtime'] = $SBGtime;	
                 } 
                 if (isset($_POST['defpoints']) && $defpoints>0) {
                     $query .= ",defpoints=:defpoints";
@@ -480,12 +490,13 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 $query = "INSERT INTO imas_assessments (courseid,name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,";
                 $query .= "displaymethod,defpoints,defattempts,defpenalty,deffeedback,shuffle,gbcategory,password,cntingb,tutoredit,showcat,";
 		$query .= "eqnhelper,showtips,caltag,calrtag,isgroup,groupmax,groupsetid,showhints,reqscore,reqscoreaid,reqscoretype,noprint,avail,allowlate,";
-                $query .= "LPcutoff,exceptionpenalty,ltisecret,endmsg,deffeedbacktext,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,ptsposs,date_by_lti,loctype,locradius,loclat,loclng,gbcatweight) VALUES ";
+				$query .= "LPcutoff,exceptionpenalty,ltisecret,endmsg,deffeedbacktext,msgtoinstr,posttoforum,istutorial,defoutcome,extrefs,ptsposs,";
+				$query .= "date_by_lti,loctype,locradius,loclat,loclng,gbcatweight,SBGgoals,SBGtime) VALUES ";
                 $query .= "(:courseid, :name, :summary, :intro, :startdate, :enddate, :reviewdate, :timelimit, :minscore, :displaymethod, ";
                 $query .= ":defpoints, :defattempts, :defpenalty, :deffeedback, :shuffle, :gbcategory, :password, :cntingb, :tutoredit, ";
                 $query .= ":showcat, :eqnhelper, :showtips, :caltag, :calrtag, :isgroup, :groupmax, :groupsetid, :showhints, :reqscore, ";
 			$query .= ":reqscoreaid, :reqscoretype, :noprint, :avail, :allowlate, :LPcutoff, :exceptionpenalty, :ltisecret, :endmsg, :deffeedbacktext, :msgtoinstr, ";
-                $query .= ":posttoforum, :istutorial, :defoutcome, :extrefs, 0, :datebylti, :loctype, :locradius, :loclat, :loclng, :gbcatweight)";
+                $query .= ":posttoforum, :istutorial, :defoutcome, :extrefs, 0, :datebylti, :loctype, :locradius, :loclat, :loclng, :gbcatweight, :SBGgoals, :SBGtime)";
                 $stm = $DBH->prepare($query);
                 $stm->execute(array(':courseid'=>$cid, ':name'=>$assessName, ':summary'=>$_POST['summary'], ':intro'=>$_POST['intro'],
                     ':startdate'=>$startdate, ':enddate'=>$enddate, ':reviewdate'=>$reviewdate, ':timelimit'=>$timelimit,
@@ -499,7 +510,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                     ':allowlate'=>$allowlate, ':LPcutoff'=>$LPcutoff, ':exceptionpenalty'=>$exceptpenalty, ':ltisecret'=>$ltisecret,
                     ':endmsg'=>$endmsg, ':deffeedbacktext'=>$deffb, ':msgtoinstr'=>$msgtoinstr, ':posttoforum'=>$posttoforum,
 					':istutorial'=>$istutorial, ':defoutcome'=>$defoutcome, ':extrefs'=>$extrefencoded, ':datebylti'=>$datebylti,
-					':loctype'=>$locationtype, ':locradius'=>$locationradius, ':loclat'=>$locationlat, ':loclng'=>$locationlng, ':gbcatweight'=>$gbcatweight));
+					':loctype'=>$locationtype, ':locradius'=>$locationradius, ':loclat'=>$locationlat, ':loclng'=>$locationlng, ':gbcatweight'=>$gbcatweight,
+					':SBGgoals'=>$SBGgoals, ':SBGtime'=>$SBGtime));
                 $newaid = $DBH->lastInsertId();
                 $query = "INSERT INTO imas_items (courseid,itemtype,typeid) VALUES ";
                 $query .= "(:courseid, :itemtype, :typeid);";
@@ -552,7 +564,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                     $pcntingb = 3;
                 }
                 $showqcat = $line['showcat'];
-                $timelimit = $line['timelimit']/60;
+				$timelimit = $line['timelimit']/60;
+				$SBGgoals = $line['SBGgoals'];
+				$SBGtime = $line['SBGtime']/60;
                 if ($line['isgroup']==0) {
                     $line['groupsetid']=0;
                 }
@@ -588,7 +602,9 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
                 //$line['deffeedback'] = "AsGo";
                 $testtype = isset($CFG['AMS']['testtype'])?$CFG['AMS']['testtype']:"AsGo";
                 $showans = isset($CFG['AMS']['showans'])?$CFG['AMS']['showans']:"A";
-                $line['defpenalty'] = isset($CFG['AMS']['defpenalty'])?$CFG['AMS']['defpenalty']:10;
+				$line['defpenalty'] = isset($CFG['AMS']['defpenalty'])?$CFG['AMS']['defpenalty']:10;
+				$SBGgoals = isset($CFG['AMS']['SBGgoals'])?$CFG['AMS']['SBGgoals']:3;
+				$SBGtime = isset($CFG['AMS']['SBGtime'])?$CFG['AMS']['SBGtime']:10;
                 $line['shuffle'] = isset($CFG['AMS']['shuffle'])?$CFG['AMS']['shuffle']:0;
                 $line['minscore'] = isset($CFG['AMS']['minscore'])?$CFG['AMS']['minscore']:0;
                 $line['isgroup'] = isset($CFG['AMS']['isgroup'])?$CFG['AMS']['isgroup']:0;
@@ -912,6 +928,13 @@ if ($overwriteBody==1) {
 				$("#reqscorewrap").toggle(rqshow);
 				$(this).attr("aria-expanded", rqshow);
 		});
+		$(".displaymethod").attr("aria-controls", "SBGgoalswrap")
+				.attr("aria-expanded", $(".displaymethod").val()=="SBG")
+				.on("change", function() {
+					var rqshow = ($(this).val()=="SBG");
+					$(".SBGgoalswrap").toggle(rqshow);
+					$(this).attr("aria-expanded", rqshow);
+			});
 		$("#locationtype").attr("aria-controls", "locationwrap")
 			.attr("aria-expanded", $("#locationtype").val()>0)
 			.on("change", function() {
@@ -1170,7 +1193,7 @@ if ($overwriteBody==1) {
 			<hr/>
 			<span class=form>Display method: </span>
 			<span class=formright>
-				<select name="displaymethod">
+				<select class="displaymethod" name="displaymethod">
 					<option value="AllAtOnce" <?php writeHtmlSelected($line['displaymethod'],"AllAtOnce",0) ?>>Full test at once</option>
 					<option value="OneByOne" <?php writeHtmlSelected($line['displaymethod'],"OneByOne",0) ?>>One question at a time</option>
 					<option value="Seq" <?php writeHtmlSelected($line['displaymethod'],"Seq",0) ?>>Full test, submit one at time</option>
@@ -1190,6 +1213,13 @@ if ($overwriteBody==1) {
 					}?>
 					<option value="SBG" <?php writeHtmlSelected($line['displaymethod'],"SBG",0) ?>>Specific Based Grading</option>
 				</select>
+				<span class="SBGgoalswrap" <?php if ($line['displaymethod']!="SBG") {
+				echo 'style="display:none;"';
+			} ?>>max # of goals: 
+					<input type="text" size="2" name="SBGgoals" value="<?php echo Sanitize::encodeStringForDisplay($SBGgoals); ?>">.
+					<input type="text" size="2" name="SBGtime" value="<?php echo Sanitize::encodeStringForDisplay($SBGtime); ?>">min/goal
+				</span>
+				
 			</span><BR class=form>
 
 			<span class=form>Feedback method: </span>

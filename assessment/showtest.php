@@ -929,6 +929,10 @@
 	}
 	$timelimitkickout = ($testsettings['timelimit']<0);
 	$testsettings['timelimit'] = abs($testsettings['timelimit']);
+	if ($testsettings['displaymethod'] == "SBG") {
+		$testsettings['timelimit'] = $testsettings['SBGgoals']*$testsettings['SBGtime'];
+		$timelimitkickout = true;
+	}
 	//do time limit mult
 	$testsettings['timelimit'] *= $sessiondata['timelimitmult'];
 
@@ -4579,9 +4583,9 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			}
 		}
 
-		// select up to three to display
+		// select up to $testsettings['SBGgoals'] to display
 		$learninggoalsdispl = array();
-		while (count($learninggoals) > 0 && count($learninggoalsdispl) < 3) {
+		while (count($learninggoals) > 0 && count($learninggoalsdispl) < $testsettings['SBGgoals']) {
 			$learninggoals = array_values($learninggoals);
 			// Get pseudo random number based on userID
 			$tmp = $userid + intval(date('d')) + 123*count($learninggoalsdispl);

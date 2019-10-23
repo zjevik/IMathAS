@@ -94,6 +94,13 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 					$("#reqscorewrap").toggle(rqshow);
 					$(this).attr("aria-expanded", rqshow);
 			});
+			$(".displaymethod").attr("aria-controls", "SBGgoalswrap")
+				.attr("aria-expanded", $(".displaymethod").val()=="SBG")
+				.on("change", function() {
+					var rqshow = ($(this).val()=="SBG");
+					$(".SBGgoalswrap").toggle(rqshow);
+					$(this).attr("aria-expanded", rqshow);
+			});
 			$("#locationtype").attr("aria-controls", "locationwrap")
 				.attr("aria-expanded", $("#locationtype").val()>0)
 				.on("change", function() {
@@ -341,7 +348,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				<hr/>
 				<span class=form>Display method: </span>
 				<span class=formright>
-					<select name="displaymethod">
+					<select class="displaymethod" name="displaymethod">
 						<option value="AllAtOnce" <?php writeHtmlSelected($line['displaymethod'],"AllAtOnce",0) ?>>Full test at once</option>
 						<option value="OneByOne" <?php writeHtmlSelected($line['displaymethod'],"OneByOne",0) ?>>One question at a time</option>
 						<option value="Seq" <?php writeHtmlSelected($line['displaymethod'],"Seq",0) ?>>Full test, submit one at time</option>
@@ -361,6 +368,12 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 						}?>
 						<option value="SBG" <?php writeHtmlSelected($line['displaymethod'],"SBG",0) ?>>Specific Based Grading</option>
 					</select>
+					<span class="SBGgoalswrap" <?php if ($line['displaymethod']!="SBG") {
+						echo 'style="display:none;"';
+					} ?>>max # of goals: 
+					<input type="text" size="2" name="SBGgoals" value="<?php echo Sanitize::encodeStringForDisplay($SBGgoals); ?>">.
+					<input type="text" size="2" name="SBGtime" value="<?php echo Sanitize::encodeStringForDisplay($SBGtime); ?>">min/goal
+				</span>
 				</span><BR class=form>
 	
 				<span class=form>Feedback method: </span>
