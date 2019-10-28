@@ -932,7 +932,42 @@
 	if ($testsettings['displaymethod'] == "SBG") {
 		$testsettings['timelimit'] = $testsettings['SBGgoals']*$testsettings['SBGtime'];
 		$timelimitkickout = true;
+		//Time limit based on satisfied LG
+		require_once("../course/gbtable2.php");
+		$stu = $userid;
+		$includecategoryID = true;
+		global $canviewall,$secfilter;
+		//$canviewall = true;
+		$secfilter = -1;
+		$catfilter = 0;
+		$gbt = gbtable();
+		// Gather all learning goals from gradebook
+		$learninggoals = array();
+		foreach ($gbt[0][1] as $val){
+			if(strpos(strtolower($val[0]),"goal")>-1){
+				array_push($learninggoals, (int) filter_var($val[0], FILTER_SANITIZE_NUMBER_INT));
+			}
+		}
+
+		// Remove satisfied learning goals
+		foreach ($gbt[1][1] as $key => $val){
+			if(strpos(strtolower($gbt[0][1][$key][0]),"goal")>-1 && $val[0]){
+				$learninggoals = array_diff($learninggoals, array((int) filter_var($gbt[0][1][$key][0], FILTER_SANITIZE_NUMBER_INT)));
+			}
+		}
+
+		// Remove extra goals for which we don't test
+		foreach ($learninggoals as $key => $value) {
+			if ($value >= count($questions)){
+				unset($learninggoals[$key]);
+			}
+		}
+		if(count($learninggoals) < $testsettings['SBGgoals']){
+			$testsettings['timelimit'] = count($learninggoals)*$testsettings['SBGtime'];
+		}
 	}
+	
+
 	//do time limit mult
 	$testsettings['timelimit'] *= $sessiondata['timelimitmult'];
 
