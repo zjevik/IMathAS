@@ -2481,105 +2481,53 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				echo filter("<div id=intro role=region aria-label=\""._('Intro or instructions')."\"  class=hidden aria-hidden=true aria-expanded=false>{$testsettings['intro']}</div>\n");
 
 				$lefttodo = shownavbarSBG($questions,$scores,$next,$testsettings['showcat'],$testsettings['extrefs']);
-				if (unans($scores[$next]) || amreattempting($next)) {
-					echo "<div class=inset>\n";
-					if (isset($intropieces)) {
-						foreach ($introdividers as $k=>$v) {
-							if ($v[1]<=$next+1 && $next+1<=$v[2]) {//right divider
-								if ($next+1==$v[1] || !empty($v[3])) {
-									echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
-									echo _('Hide Question Information'), '</a></div>';
-									echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
-								} else {
-									echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="false">';
-									echo _('Show Question Information'), '</a></div>';
-									echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="false" aria-hidden="true" style="display:none;" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
-								}
-								break;
-							}
-						}
-					}
-					echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=skip&amp;score=$next\" onsubmit=\"return doonsubmit(this)\">\n";
-					echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
-					echo '<input type="hidden" name="disptime" value="'.time().'" />';
-					echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
-					echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
-					basicshowq($next);
-					showqinfobar($next,true,true);
-					echo '<input type="submit" class="btn" value="'. _('Submit'). '" />';
-					if ((($testsettings['showans']=='J' && $qi[$questions[$next]]['showans']=='0') || $qi[$questions[$next]]['showans']=='J') && $qi[$questions[$next]]['attempts']>0) {
-						echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=skip&amp;jumptoans='.$next.'&amp;to='.$next.'\'}"/>';
-					}
-					echo "</form>\n";
-					if (isset($intropieces) && $next==count($questions)-1) {
-						foreach ($introdividers as $k=>$v) {
-							if ($v[1]==$next+2) {//right divider
+				
+				echo "<div class=inset>\n";
+				if (isset($intropieces)) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]<=$next+1 && $next+1<=$v[2]) {//right divider
+							if ($next+1==$v[1] || !empty($v[3])) {
 								echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
 								echo _('Hide Question Information'), '</a></div>';
-								echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';								
-							}
-						}
-					}
-					echo "</div>\n";
-				} else {
-					echo "<div class=inset>\n";
-					echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
-					if (!isset($_GET['jumptoans'])) {
-						echo _("You've already done this problem."), "\n";
-					}
-					$reattemptsremain = false;
-					if ($showeachscore) {
-						$possible = $qi[$questions[$next]]['points'];
-						echo "<p>", _('Score on last attempt: ');
-						echo printscore($scores[$next],$next);
-						echo "</p>\n";
-						echo "<p>", _('Score in gradebook: ');
-						echo printscore($bestscores[$next],$next);
-						echo "</p>";
-					}
-					if (hasreattempts($next)) {
-						if ($reattemptduring) {
-							echo "<p><a href=\"showtest.php?action=skip&amp;to=$next&amp;reattempt=$next\">", _('Reattempt this question'), "</a></p>\n";
-						}
-						$reattemptsremain = true;
-					}
-					if ($allowregen && $qi[$questions[$next]]['allowregen']==1) {
-						$regenhref = $GLOBALS['basesiteurl'].'/assessment/'."showtest.php?action=skip&amp;to=$next&amp;regen=$next";
-						echo '<p><button type=button onclick="window.location.href=\''.$regenhref.'\'">'._('Try another similar question').'</button></p>';
-						//echo "<p><a href=\"showtest.php?action=skip&amp;to=$next&amp;regen=$next\">", _('Try another similar question'), "</a></p>\n";
-					}
-					if ($lefttodo == 0 && $testsettings['testtype']!="NoScores") {
-						echo "<a href=\"showtest.php?action=skip&amp;done=true\">", _('When you are done, click here to see a summary of your score'), "</a>\n";
-					}
-					if ($testsettings['showans']!='N') {// && $showeachscore) {  //(!$reattemptsremain || $regenonreattempt) &&
-						unset($GLOBALS['nocolormark']);
-						echo "<p>", _('Question with last attempt is displayed for your review only'), "</p>";
-
-						if (!$noraw && $showeachscore) {
-							//$colors = scorestocolors($rawscores[$next], '', $qi[$questions[$next]]['answeights'], $noraw);
-							if (strpos($rawscores[$next],'~')!==false) {
-								$colors = explode('~',$rawscores[$next]);
+								echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
 							} else {
-								$colors = array($rawscores[$next]);
+								echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="false">';
+								echo _('Show Question Information'), '</a></div>';
+								echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="false" aria-hidden="true" style="display:none;" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
 							}
-						} else {
-							$colors = array();
-						}
-						$qshowans = (($qi[$questions[$next]]['showansafterlast'] && !$reattemptsremain) ||
-								($qi[$questions[$next]]['showansduring'] && $attempts[$next]>=$qi[$questions[$next]]['showans']) ||
-								($qi[$questions[$next]]['showans']=='R' && $regenonreattempt));
-						if ($qshowans) {
-							displayq($next,$qi[$questions[$next]]['questionsetid'],$seeds[$next],2,false,$attempts[$next],false,false,false,$colors);
-						} else {
-							displayq($next,$qi[$questions[$next]]['questionsetid'],$seeds[$next],false,false,$attempts[$next],false,false,false,$colors);
-						}
-						$contactlinks = showquestioncontactlinks($next);
-						if ($contactlinks!='') {
-							echo '<div class="review">'.$contactlinks.'</div>';
+							break;
 						}
 					}
-					echo "</div>\n";
 				}
+				echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=skip&amp;score=$next\" onsubmit=\"return doonsubmit(this)\">\n";
+				echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
+				echo '<input type="hidden" name="disptime" value="'.time().'" />';
+				echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+				basicshowq($next);
+				showqinfobar($next,true,true);
+				echo '<input type="submit" class="btn" value="'. _('Submit'). '" />';
+				if ((($testsettings['showans']=='J' && $qi[$questions[$next]]['showans']=='0') || $qi[$questions[$next]]['showans']=='J') && $qi[$questions[$next]]['attempts']>0) {
+					echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=skip&amp;jumptoans='.$next.'&amp;to='.$next.'\'}"/>';
+				}
+				echo "</form>\n";
+				if (isset($intropieces) && $next==count($questions)-1) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]==$next+2) {//right divider
+							echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+							echo _('Hide Question Information'), '</a></div>';
+							echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';								
+						}
+					}
+				}
+				echo "</div>\n";
+				
+				
+				
+				$_POST["qn$next"] = "OPENED";
+				scorequestion($next);
+				recordtestdata();
+				
 			}
 			if (isset($_GET['done'])) { //are all done
 
@@ -4690,39 +4638,13 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 			} else {
 				$thisscore = getpts($bestscores[$i]);
 			}
-			if ((unans($scores[$i]) && $attempts[$i]==0) || ($noindivscores && amreattempting($i))) {
-				if (isset($CFG['TE']['navicons'])) {
-					echo "<img alt=\"" . _("untried") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['untried']}\"/> ";
-				} else {
-				echo "<img alt=\"" - _("untried") . "\" src=\"$imasroot/img/q_fullbox.gif\"/> ";
-				}
-			} else if (canimprove($i) && !$noindivscores) {
-				if (isset($CFG['TE']['navicons'])) {
-					if ($thisscore==0 || $noindivscores) {
-						echo "<img alt=\"" . _("incorrect - can retry") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['canretrywrong']}\"/> ";
-					} else {
-						echo "<img alt=\"" . _("partially correct - can retry") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['canretrypartial']}\"/> ";
-					}
-				} else {
-				echo "<img alt=\"" . _("can retry"). "\" src=\"$imasroot/img/q_halfbox.gif\"/> ";
-				}
+			
+			if (isset($CFG['TE']['navicons'])) {
+				echo "<img alt=\"" . _("untried") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['untried']}\"/> ";
 			} else {
-				if (isset($CFG['TE']['navicons'])) {
-					if (!$showeachscore) {
-						echo "<img alt=\"" . _("cannot retry") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['noretry']}\"/> ";
-					} else {
-						if ($thisscore == $qi[$questions[$i]]['points']) {
-							echo "<img alt=\"" . _("correct") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['correct']}\"/> ";
-						} else if ($thisscore==0) {
-							echo "<img alt=\"" . _("incorrect - cannot retry") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['wrong']}\"/> ";
-						} else {
-							echo "<img alt=\"" . _("partially correct - cannot retry") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['partial']}\"/> ";
-						}
-					}
-				} else {
-					echo "<img alt=\"" . _("cannot retry") . "\" src=\"$imasroot/img/q_emptybox.gif\"/> ";
-				}
+			echo "<img alt=\"" - _("untried") . "\" src=\"$imasroot/img/q_fullbox.gif\"/> ";
 			}
+			
 
 
 			if ($showcat>1 && $qi[$questions[$i]]['category']!='0') {
