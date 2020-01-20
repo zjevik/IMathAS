@@ -149,6 +149,26 @@ function setlib() {
 	}
 	
 }
+function checklib() {
+	var frm = document.getElementById("libselectform");
+	var cnt = 0;
+	var chlibs = new Array();
+	var chlibsn = new Array();
+	var firstchecked = false;
+	for (i = 0; i <= frm.elements.length; i++) {
+		try{
+			if(frm.elements[i].name == 'libs[]' || frm.elements[i].name=='libs') {
+				if ((frm.elements[i].checked == true || firstchecked) && frm.elements[i].disabled == false) {
+					if(frm.elements[i].checked){
+						firstchecked = !firstchecked;
+					}
+					frm.elements[i].checked = true;
+				}
+			}
+		} catch(er) {}
+	}
+	
+}
 
 function uncheckall(frm) {
 	for (i = 0; i <= frm.elements.length; i++) {
