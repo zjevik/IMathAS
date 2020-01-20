@@ -4,7 +4,7 @@
 
 //Edited in 2019 Ondrej Zjevik
 
-require("init.php");
+require_once("init.php");
 if (!isset($sessiondata['ltirole']) || $sessiondata['ltirole']!='instructor') {
 	echo "Not authorized to view this page";
 	exit;
