@@ -930,7 +930,6 @@
 	$timelimitkickout = ($testsettings['timelimit']<0);
 	$testsettings['timelimit'] = abs($testsettings['timelimit']);
 	if ($testsettings['displaymethod'] == "SBG") {
-		$testsettings['timelimit'] = $testsettings['SBGgoals']*$testsettings['SBGtime'];
 		$timelimitkickout = true;
 		//Time limit based on satisfied LG
 		require_once("../course/gbtable2.php");
@@ -941,6 +940,7 @@
 		$secfilter = -1;
 		$catfilter = 0;
 		$gbt = gbtable();
+		$learninggoalsExtra = 0;
 		// Gather all learning goals from gradebook
 		$learninggoals = array();
 		foreach ($gbt[0][1] as $val){
@@ -954,6 +954,9 @@
 			if(strpos(strtolower($gbt[0][1][$key][0]),"goal")>-1 && $val[0]){
 				$learninggoals = array_diff($learninggoals, array((int) filter_var($gbt[0][1][$key][0], FILTER_SANITIZE_NUMBER_INT)));
 			}
+			if(strpos(strtolower($gbt[0][1][$key][0]),"extra lg")>-1){
+				$learninggoalsExtra = $val[0];
+			}
 		}
 
 		// Remove extra goals for which we don't test
@@ -962,8 +965,9 @@
 				unset($learninggoals[$key]);
 			}
 		}
+		$testsettings['timelimit'] = ($testsettings['SBGgoals']+$learninggoalsExtra)*$testsettings['SBGtime'];
 		if(count($learninggoals) < $testsettings['SBGgoals']){
-			$testsettings['timelimit'] = count($learninggoals)*$testsettings['SBGtime'];
+			$testsettings['timelimit'] = (count($learninggoals)+$learninggoalsExtra)*$testsettings['SBGtime'];
 		}
 	}
 	
@@ -4546,6 +4550,7 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		$gbt = gbtable();
 		// Gather all learning goals from gradebook
 		$learninggoals = array();
+		$learninggoalsExtra = 0;
 		foreach ($gbt[0][1] as $val){
 			if(strpos(strtolower($val[0]),"goal")>-1){
 				array_push($learninggoals, (int) filter_var($val[0], FILTER_SANITIZE_NUMBER_INT));
@@ -4556,6 +4561,9 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		foreach ($gbt[1][1] as $key => $val){
 			if(strpos(strtolower($gbt[0][1][$key][0]),"goal")>-1 && $val[0]){
 				$learninggoals = array_diff($learninggoals, array((int) filter_var($gbt[0][1][$key][0], FILTER_SANITIZE_NUMBER_INT)));
+			}
+			if(strpos(strtolower($gbt[0][1][$key][0]),"extra lg")>-1){
+				$learninggoalsExtra = $val[0];
 			}
 		}
 
@@ -4568,7 +4576,8 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 
 		// select up to $testsettings['SBGgoals'] to display
 		$learninggoalsdispl = array();
-		while (count($learninggoals) > 0 && count($learninggoalsdispl) < $testsettings['SBGgoals']) {
+		
+		while (count($learninggoals) > 0 && count($learninggoalsdispl) < ($testsettings['SBGgoals']+$learninggoalsExtra)) {
 			$learninggoals = array_values($learninggoals);
 			// Get pseudo random number based on userID
 			$tmp = $userid + intval(date('d')) + 123*count($learninggoalsdispl);
