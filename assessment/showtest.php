@@ -552,7 +552,7 @@
 					
 				}
 				echo '</tr>';
-				if(!isset($gbt[1][1][$i][5]) && ($gbt[1][1][$i][14] != 1) && $gbt[0][1][$i][21] ){
+				if((!isset($gbt[1][1][$i][5]) || $gbt[1][1][$i][5]&8) && ($gbt[1][1][$i][14] != 1) && $gbt[0][1][$i][21] ){
 					if(isset($gbt[1][1][$i][0]) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21])) {
 						$numerator += $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]/100:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[1][1][$i][0]/100:$gbt[1][1][$i][0]/$gbt[0][1][$i][2]);
 					}
