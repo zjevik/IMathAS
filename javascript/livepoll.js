@@ -194,6 +194,7 @@ var livepoll = new function() {
 	function updateResults() {
 		var datatots = {};
 		var scoredat = {};
+		var multipartdata = [];
 		if (qdata[curquestion].choices.length>0) {
 			for (i=0;i<qdata[curquestion].choices.length;i++) {
 				datatots[i] = 0;
@@ -210,6 +211,19 @@ var livepoll = new function() {
 				scoredat[anss[i]] = 1;
 			}
 		}
+		if (qdata[curquestion].anstypes.includes(",")) {
+			for(i in qdata[curquestion].anstypes.split(",")){
+				multipartdata.push([]);
+			}
+		} else if (qdata[curquestion].anstypes=="matching") {
+			for(i in qdata[curquestion].choices){
+				var tmp = [];
+				for(i in qdata[curquestion].choices){
+					tmp.push(0);
+				}
+				multipartdata.push(tmp);
+			}
+		}
 		var ischoices = false;
 		var rescnt = 0;
 		var condenseddrawarr = [];
@@ -217,18 +231,48 @@ var livepoll = new function() {
 		var drawinitstack = [];
 		//group and total results
 		for (i in results[curquestion]) {
-			ischoices = (qdata[curquestion].anstypes=="choices" || qdata[curquestion].anstypes=="multans" || qdata[curquestion].anstypes=="matching");
+			ischoices = (qdata[curquestion].anstypes=="choices" || qdata[curquestion].anstypes=="multans");
 			if (ischoices) {
 				pts = results[curquestion][i].ans.split("$!$");
 				subpts = pts[1].split("|");
 			} else if (qdata[curquestion].anstypes=="numfunc") {
-        pts = results[curquestion][i].ans.split("$f$");
+        		pts = results[curquestion][i].ans.split("$f$");
 				subpts = [pts[0]];
-      } else {
+			} else if (qdata[curquestion].anstypes.includes(",")) {
+				subpts = results[curquestion][i].ans.split("&");
+				for(var j=0;j<subpts.length;j++){
+					if(subpts[j].includes("$!$")){
+						subpts[j] = subpts[j].split("$!$")[1].split("|");
+					} else if(subpts[j].includes("$#$")){
+						subpts[j] = [subpts[j].split("$#$")[0]];
+					}
+					if(qdata[curquestion].anstypes.split(",")[j].match(/calc/) || qdata[curquestion].anstypes.split(",")[j]=="numfunc"){
+						subpts[j] = ["`"+subpts[j]+"`"];
+					}
+				}
+				
+				for (var j=0;j<subpts.length;j++) {
+					if (!multipartdata[j].hasOwnProperty(subpts[j])) {
+						multipartdata[j].push(subpts[j]);
+					}
+				}
+			} else if(qdata[curquestion].anstypes=="matching"){
+				subpts = results[curquestion][i].ans.split("$!$")[0].split("|");
+				for(var j=0;j<subpts.length;j++){
+					if(multipartdata.length <= j){
+						var tmp = [];
+						for(i in qdata[curquestion].choices){
+							tmp.push(0);
+						}
+						multipartdata.push(tmp);
+					}
+					multipartdata[j][subpts[j]]++;
+				}
+			} else {
 				pts = results[curquestion][i].ans.split("$#$");
 				subpts = [pts[0]];
 			}
-			if (qdata[curquestion].anstypes.match(/calc/) || qdata[curquestion].anstypes=="numfunc") {
+			if (!qdata[curquestion].anstypes.includes(",") && (qdata[curquestion].anstypes.match(/calc/) || qdata[curquestion].anstypes=="numfunc")) {
 				subpts[0] = "`"+subpts[0]+"`";
 			}
 			if (qdata[curquestion].anstypes=="draw") {
@@ -249,13 +293,22 @@ var livepoll = new function() {
 			}
 			rescnt++;
 		}
-
 		//pre-explode initpts for draw
 		var initpts,drawwidth,drawheight;
 		if (qdata[curquestion].anstypes=="draw") {
 			var initpts = qdata[curquestion].drawinit.replace(/"|'/g,'').split(",");
 			for (var j=1;j<initpts.length;j++) {
 				initpts[j] *= 1;  //convert to number
+			}
+		}
+		//matching find freq
+		if(qdata[curquestion].anstypes=="matching"){
+			for (var j=0;j<multipartdata.length;j++){
+				var tmpCount = 0;
+				for(var jj=0;jj<multipartdata[j].length;jj++){
+					tmpCount += multipartdata[j][jj];
+				}
+				datatots[j] = tmpCount;
 			}
 		}
 		var out = '';
@@ -290,6 +343,17 @@ var livepoll = new function() {
 				}
 				else{
 					//Matching type
+					out = '<table class=\"LPres\"><thead><tr><th style="min-width: 8em;">'+_("Question")+'</th><th colspan="'+multipartdata[0].length+'" style="min-width:10em;width: 100%">' + _("Frequencies")+'</th></tr></thead><tbody style="text-align: center;">';
+					for (var j=0;j<multipartdata.length;j++){
+						out += '<tr>';
+						out += "<td>Question "+(j+1)+"</td>";
+						for (var i=0;i<multipartdata[j].length;i++) {
+							out += '<td><span class="LPresbarwrap"><span class="LPresbar" id="LPresbar'+multipartdata[j]+"-"+multipartdata[j][i]+'" style="width:' + Math.round(100*multipartdata[j][i]/datatots[j]) +'%;">';
+							out += '<span class="LPresval" id="LPresval'+multipartdata[j]+'">'+ multipartdata[j][i] +'</span>';
+							out += '</span></span></td>';
+						}
+						out += '</tr>';
+					}
 				}
 				out += "</tbody></table>";
 				$("#livepollrcontent").html(out);
@@ -341,7 +405,62 @@ var livepoll = new function() {
 			}
 			out += '</div>';
 			$("#livepollrcontent").html(out);
-		} else {
+		} else if (qdata[curquestion].anstypes.includes(",")) {
+			for (var j=0;j<multipartdata.length;j++){
+				var sortedkeys = multipartdata[j].sort();
+				//console.log(multipartdata[j]);
+				out += '<table class=\"LPres\" style=\"float: left;margin-right: 1em;margin-bottom: .2em;\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">'+_("Frequency")+'</th></tr></thead><tbody>';
+				for (var i=0;i<sortedkeys.length;i++) {
+					out += '<tr class="';
+					if (scoredat[sortedkeys[i]]>0) {
+						out += "LPcorrect";
+					} else {
+						out += "LPwrong";
+					}
+					out += '"><td>';
+					if (qdata[curquestion].anstypes=="draw") {
+						//initpts = qdata[curquestion].drawinit.replace(/"|'/g,'').split(",");
+						//for (var j=1;j<initpts.length;j++) {
+						//	initpts[j] *= 1;  //convert to number
+						//}
+						drawwidth = initpts[6];
+						drawheight = initpts[7];
+
+						//rewrite this at some point;
+						var la = sortedkeys[i].replace(/\(/g,"[").replace(/\)/g,"]");
+						la = la.split(";;")
+						if  (la[0]!='') {
+							la[0] = '['+la[0].replace(/;/g,"],[")+"]";
+						}
+						la = '[['+la.join('],[')+']]';
+						canvases["LP"+curquestion+"-"+i] = initpts.slice();
+						canvases["LP"+curquestion+"-"+i].unshift("LP"+curquestion+"-"+i);
+						drawla["LP"+curquestion+"-"+i] = JSON.parse(la);
+
+						out += '<canvas class="drawcanvas" id="canvasLP'+curquestion+"-"+i+'" width='+drawwidth+' height='+drawheight+'></canvas>';
+						out += '<input type="hidden" id="qnLP'+curquestion+"-"+i+'"/>';
+					} else {
+						out += sortedkeys[i];
+					}
+					out += '</td><td><span class="LPresbarwrap"><span class="LPresbar" id="LPresbar'+sortedkeys[i]+'" style="width:' + Math.round(100*datatots[sortedkeys[i]]/maxfreq) +'%;">';
+					out += '<span class="LPresval" id="LPresval'+sortedkeys[i]+'">'+ datatots[sortedkeys[i]] +'</span>';
+					out += '</span></span></td></tr>';
+					//out += "</td><td>"+datatots[sortedkeys[i]]+"</td></tr>";
+				}
+				out += "</tbody></table>";
+			}
+
+			$("#livepollrcontent").html(out);
+			if (usingASCIIMath) {
+				rendermathnode(document.getElementById("livepollrcontent"));
+			}
+			if (usingASCIISvg) {
+				setTimeout("drawPics()",100);
+			}
+			for (var i=0;i<sortedkeys.length;i++) {
+				imathasDraw.initCanvases("LP"+curquestion+"-"+i);
+			}
+		}else {
 			var sortedkeys = getSortedKeys(datatots);
 			out += '<table class=\"LPres\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">'+_("Frequency")+'</th></tr></thead><tbody>';
 			for (var i=0;i<sortedkeys.length;i++) {
