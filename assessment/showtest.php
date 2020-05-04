@@ -1224,8 +1224,8 @@
 		}
 
 		foreach($jitChildren[$ii] as $child){
-			//echo " ".$bestscores[$jitQuestionsFlip[$child]]."/".$qi[$child]['points'];
-			if($bestscores[$jitQuestionsFlip[$child]] < $qi[$child]['points'])
+			//echo " ".array_sum(explode("~",$bestscores[$jitQuestionsFlip[$child]]))."/".$qi[$child]['points'];
+			if(array_sum(explode("~",$bestscores[$jitQuestionsFlip[$child]])) < $qi[$child]['points'])
 				return false;
 		}
 		return true;
@@ -2774,13 +2774,18 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 					$reattemptsremain = false;
 					if ($showeachscore) {
 						$possible = $qi[$questions[$next]]['points'];
-						echo "<p>", _('Score on last attempt: ');
-						echo printscore($scores[$next],$next);
-						echo "</p>\n";
 						echo "<p>", _('Score in gradebook: ');
 						echo printscore($bestscores[$next],$next);
 						echo "</p>";
 					}
+					if(areChildrenCompleted($questions[$next],$jitHasChildren,$jitChildren,$jitQuestionsFlip) &&
+						$attempts[$next] == $qi[$questions[$next]]['attempts']
+					){
+						//echo "Children COMPLETEDDD <br>";
+						$attempts[$next] = 0;
+						//$immediatereattempt = true;
+					}
+					//echo areChildrenCompleted($questions[$next],$jitHasChildren,$jitChildren,$jitQuestionsFlip)." ".$attempts[$next]." ".$qi[$questions[$next]]['attempts'];
 					if (hasreattempts($next)) {
 						if ($reattemptduring) {
 							echo "<p><a href=\"showtest.php?action=jitskip&amp;to=$next&amp;reattempt=$next\">", _('Reattempt this question'), "</a></p>\n";
