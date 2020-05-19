@@ -81,6 +81,15 @@ if (!isset($init_skip_validate) || (isset($init_skip_validate) && false == $init
 } else {
 	session_start();
 }
+
+if(isset($CFG['maintenance']["enabled"]) && $CFG['maintenance']["enabled"]){
+	require_once(__DIR__ . "/header.php");
+	echo '<div class="maintenanceOuter"><div class="maintenanceInner">';
+	echo $CFG['maintenance']["message"];
+	echo '</div></div>';
+	require_once(__DIR__ . "/footer.php");
+	exit;
+}
 /*
 if (isset($_SESSION['ratelimiter']) && isset($CFG['GEN']['ratelimit']) &&
 	$_SERVER['REQUEST_METHOD'] === 'POST' &&

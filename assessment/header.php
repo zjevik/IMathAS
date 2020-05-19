@@ -11,7 +11,7 @@
 <title><?php echo $installname;?> Assessment</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="<?php echo $imasroot . "/imascore.css?ver=112918";?>" type="text/css" />
+<link rel="stylesheet" href="<?php echo $imasroot . "/imascore.css?ver=051920";?>" type="text/css" />
 <?php
 
 //load filter
@@ -326,5 +326,9 @@ if (!isset($flexwidth) && !isset($hideAllHeaderNav)) {
 }
 echo '<div class="midwrapper" role="main">';
 
-
+if(isset($CFG['maintenance']["notification"]) && !$CFG['maintenance']["enabled"] ){
+	echo '<div class="alert">';
+	echo $CFG['maintenance']["notification"];
+	echo '</div>';
+}
 ?>

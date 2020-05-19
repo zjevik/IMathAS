@@ -1416,3 +1416,20 @@ a.dropdown-toggle.arrow-down:hover {
 .dd3-handle:hover {
   background: #ddd;
 }
+
+.alert {
+	padding: 5px;
+	background-color: #f44336;
+	color: white;
+	margin-bottom: 15px;
+  }
+.maintenanceInner {
+	display: table;
+	margin: 0 auto;
+}
+
+.maintenanceOuter {
+	background: #0C2B5A;
+	color: white;
+	padding: 1em;
+}

@@ -227,7 +227,11 @@ if ($isfw!==false) {
 } else {
 	echo "<body class=\"notfw\">\n";
 }
-
+if(isset($CFG['maintenance']["notification"]) && !$CFG['maintenance']["enabled"] ){
+	echo '<div class="alert">';
+	echo $CFG['maintenance']["notification"];
+	echo '</div>';
+}
 echo '<div class="mainbody">';
 
 $insertinheaderwrapper = ' '; //"<h1>$coursename</h1>";
