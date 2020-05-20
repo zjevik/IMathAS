@@ -360,8 +360,8 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				$body .= '<input type=radio name="withdrawtype" value="groupfull" checked="1"> Set all student scores to points possible <b>for all questions in group</b><br/>';
 				$body .= '<input type=radio name="withdrawtype" value="full" > Set all student scores to points possible <b>for this question only</b>';
 			} else {
-				$body .= '<input type=radio name="withdrawtype" value="zero" > Set points possible and all student scores to zero<br/>';
-				$body .= '<input type=radio name="withdrawtype" value="full" checked="1"> Set all student scores to points possible';
+				$body .= '<input type=radio name="withdrawtype" value="zero" > Set points possible and all student scores to zero.<br/>';
+				$body .= '<input type=radio name="withdrawtype" value="full" checked="1"> Set all student scores to points possible. This only applies to students who <b>opened</b> the assessment. Students who never accessed the assessment will still have grade of N/A';
 			}
 			$body .= '<p>This action can <b>not</b> be undone.</p>';
 			$body .= '<p><input type=submit value="Withdraw Question">';
