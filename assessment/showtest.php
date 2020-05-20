@@ -342,7 +342,7 @@
 			$showlink = false;
 
 			echo '<h3>Assignment score = '.(100-$adata['gbcatweight']).'% Earned + '.($adata['gbcatweight']).'% Participation</h3>';
-			echo '<table id="myTable" class="gb" style="position:relative;">';
+			echo '<table id="myTable" class="gb livePollGB" style="position:relative;">';
 			echo '<thead><tr>';
 			$sarr = array();
 			if ($stu>0 && $isteacher) {
@@ -357,12 +357,56 @@
 			$numerator = 0;
 			$denominator = 0;
 			$calctype = 1;
+			$toDrop = 0;
 			foreach ($gbt[0][2] as $cat) {
 				if($cat[10] == $adata['gbcategory']){
 					$calctype = $cat[13];
 					break;
 				}
 			}
+			
+			//count the number of dropped assignments.
+			for ($i=0;$i<count($gbt[0][1]);$i++) {
+				if(isset($gbt[1][1][$i][5]) && $gbt[1][1][$i][5]&4 && $gbt[0][1][$i][1]==$adata['gbcategory']){
+					$toDrop++;
+					$gbt[1][1][$i][5] = $gbt[1][1][$i][5]&(~(6)); //remove drop mark
+				}
+			}
+			//drop assignments
+			for($i=0; $i<$toDrop; $i++){
+				$minScore = PHP_INT_MAX;
+				$minScoreIdx = -1;
+
+				for ($j=0;$j<count($gbt[0][1]);$j++) {
+					//skip already dropped
+					if(isset($gbt[1][1][$j][5]) && $gbt[1][1][$j][5] & 6){
+						continue;
+					}
+					if (($gbt[0][1][$j][4]==0 || $gbt[0][1][$j][4]==3)) { //skip if hidden
+						continue;
+					}
+					if ($gbt[0][1][$j][3]>$availshow) {
+						continue;
+					}
+					if ($gbt[0][1][$j][1]!=$adata['gbcategory']) {//skip if wrong category
+						continue;
+					}
+					if (!$gbt[0][1][$j][21]){
+						continue;
+					}
+					$score = 0;
+					if(isset($gbt[1][1][$j][0]) && ($gbt[1][1][$j][0] > 0 || $gbt[1][1][$j][21])) {
+						$score = $adata['gbcatweight']*($calctype==0?$gbt[0][1][$j][2]:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[1][1][$j][0]:$gbt[1][1][$j][0]/$gbt[0][1][$j][2]);
+					}
+					if($minScore > $score){
+						$minScore = $score;
+						$minScoreIdx = $j;
+					}
+				}
+				$gbt[1][1][$minScoreIdx][5] = $gbt[1][1][$minScoreIdx][5] | 6; //add drop mark
+			}
+
+
 			for ($i=0;$i<count($gbt[0][1]);$i++) { //assessment headers
 				if (!$isteacher && !$istutor && $gbt[0][1][$i][4]==0) { //skip if hidden
 					continue;
@@ -500,9 +544,7 @@
 				} else {
 					echo '-';
 				}
-				if ($haslink) { //show link
-					echo '</a>';
-				}
+				
 				$exceptionnote = '';
 				if (isset($gbt[1][1][$i][6]) ) {  //($isteacher || $istutor) &&
 					if ($gbt[1][1][$i][6]>1) {
@@ -551,8 +593,21 @@
 					}
 					
 				}
-				echo '</tr>';
-				if((!isset($gbt[1][1][$i][5]) || $gbt[1][1][$i][5]&8) && ($gbt[1][1][$i][14] != 1) && $gbt[0][1][$i][21] ){
+				$score = $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[1][1][$i][0]:$gbt[1][1][$i][0]/$gbt[0][1][$i][2]);
+				
+				
+				//skip if not counted or dropped
+				if( 
+					(isset($gbt[1][1][$i][5]) && $gbt[1][1][$i][5] & 6) || // dropped
+					!$gbt[0][1][$i][21] || // didn't use the assessment
+					(($gbt[0][1][$i][4]==0 || $gbt[0][1][$i][4]==3)) || // hidden
+					($gbt[0][1][$i][3]>$availshow) ||
+					($gbt[0][1][$i][1]!=$adata['gbcategory']) || //skip if wrong category
+					(!$gbt[0][1][$i][21])
+				 ){
+					
+				} else
+				{
 					if(isset($gbt[1][1][$i][0]) && ($gbt[1][1][$i][0] > 0 || $gbt[1][1][$i][21])) {
 						$numerator += $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]/100:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[1][1][$i][0]/100:$gbt[1][1][$i][0]/$gbt[0][1][$i][2]);
 					}

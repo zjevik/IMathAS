@@ -90,6 +90,7 @@ $stm = $DBH->prepare('SELECT t1.hash,t1.userid,gbcategory,courseid,TIMESTAMPDIFF
 $stm->execute();
 $cntsuccess = 0;
 $updatednow = 0;
+$availshow = 2;
 
 while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 	//echo "reading record ".$row['userid'].'<br/>';
@@ -140,10 +141,62 @@ while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 		if($student[4][0] < 0) continue;
 		//print_r($student);
 		foreach ($cgassignmentsid as $aid=>$perc) {
+			$toDrop = 0;
+			//count the number of dropped assignments.
+			for ($i=0;$i<count($gbt[0][1]);$i++) {
+				if(isset($student[1][$i][5]) && $student[1][$i][5]&4 && $gbt[0][1][$i][1]==$row['gbcategory']){
+					$toDrop++;
+					$student[1][$i][5] = $student[1][$i][5]&(~(6)); //remove drop mark
+				}
+			}
+			//drop assignments
+			for($i=0; $i<$toDrop; $i++){
+				$minScore = PHP_INT_MAX;
+				$minScoreIdx = -1;
+
+				for ($j=0;$j<count($gbt[0][1]);$j++) {
+					//skip already dropped
+					if(isset($student[1][$j][5]) && $student[1][$j][5] & 6){
+						continue;
+					}
+					if (($gbt[0][1][$j][4]==0 || $gbt[0][1][$j][4]==3)) { //skip if hidden
+						continue;
+					}
+					if ($gbt[0][1][$j][3]>$availshow) {
+						continue;
+					}
+					if ($gbt[0][1][$j][1]!=$row['gbcategory']) {//skip if wrong category
+						continue;
+					}
+					if (!$gbt[0][1][$j][21]){
+						continue;
+					}
+					$score = 0;
+					if(isset($student[1][$j][0]) && ($student[1][$j][0] > 0 || $student[1][$j][21])) {
+						$score = $perc*($calctype==0?$gbt[0][1][$j][2]:1) + (100-$perc)*($calctype==0?$student[1][$j][0]:$student[1][$j][0]/$gbt[0][1][$j][2]);
+					}
+					if($minScore > $score){
+						$minScore = $score;
+						$minScoreIdx = $j;
+					}
+				}
+				$student[1][$minScoreIdx][5] = $student[1][$minScoreIdx][5] | 6; //add drop mark
+			}
+
 			$numerator = 0;
 			$denominator = 0;
 			foreach ($alist as $el) {
-				if((!isset($student[1][$el][5]) || $student[1][$el][5]&8) && ($student[1][$el][14] != 1) && $gbt[0][1][$el][21] ){
+				if( 
+					(isset($student[1][$el][5]) && $student[1][$el][5] & 6) || // dropped
+					!$gbt[0][1][$el][21] || // didn't use the assessment
+					(($gbt[0][1][$el][4]==0 || $gbt[0][1][$el][4]==3)) || // hidden
+					($gbt[0][1][$el][3]>$availshow) ||
+					($gbt[0][1][$el][1]!=$row['gbcategory']) || //skip if wrong category
+					(!$gbt[0][1][$el][21])
+				 ){
+					 //skip hidden, dropped, etc. assignments
+				} else
+				{
 					if(isset($student[1][$el][0]) && ($student[1][$el][0] > 0 || $student[1][$el][21])) 
 						$numerator += $perc/100*($calctype==0?$gbt[0][1][$el][2]:1) + (100-$perc)/100*($calctype==0?$student[1][$el][0]:$student[1][$el][0]/$gbt[0][1][$el][2]);
 					$denominator += $calctype==0?$gbt[0][1][$el][2]:1;
@@ -170,6 +223,7 @@ while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 				addToLTIQueue($stu['lti_sourcedid'],$grade,$row['ageofcreation']>0?true:false);
 			}
 		}
+		//echo "<br>";
 	}
 
 	$DBH->exec("DELETE FROM imas_lti_gbcatqueue WHERE hash = '".$row['hash']."'");

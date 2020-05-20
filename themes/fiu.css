@@ -387,7 +387,7 @@ div.navbar {
 	border:1px solid #081E3f;
 	color:#000;
 }
-div.navbar a {
+div.navbar a , .livePollGB a{
 	color: blue;
 }
 span.current {
