@@ -395,7 +395,11 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 				<span class=formright>
 					<input type=text size=4 name=defattempts value="<?php echo Sanitize::encodeStringForDisplay($line['defattempts']); ?>" >
 					<span id="showreattdiffver" class="<?php if ($testtype!="Practice" && $testtype!="Homework") {echo "show";} else {echo "hidden";} ?>">
-					 <input type="hidden" name="reattemptsdiffver" <?php writeHtmlChecked($line['shuffle']&8,8); ?> />
+					 <?php
+					 if ($line['shuffle']&8 == 8){
+						 echo ' <input type="hidden" name="reattemptsdiffver" />';
+					 }
+					 ?>
 					 </span>
 				 </span><BR class=form>
 	
