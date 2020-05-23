@@ -17,7 +17,7 @@ var livepoll = new function() {
 		showansonclose: true
 		};
 	var counter = 0;
-	var countertimer;
+	window.countertimer = null;
 
 	this.init = function(server, room, timestamp, sig) {
 		isteacher = room.match(/teacher/);
@@ -746,7 +746,10 @@ var livepoll = new function() {
 	}
 
 	this.submitQuestion = function(qn) {
-		countertimer = setInterval(saving,1000);
+		if(window.countertimer != null){
+			clearInterval(window.countertimer);
+		}
+		window.countertimer = setInterval(saving,1000);
 		if (typeof tinyMCE != 'undefined') {tinyMCE.triggerSave();}
 		doonsubmit();
 		params = {
@@ -794,7 +797,8 @@ var livepoll = new function() {
 				data: params
 			}).done(function(data) {
 				data = JSON.parse(data);
-				clearInterval(countertimer);
+				clearInterval(window.countertimer);
+				window.countertimer = null;
 				counter = 0;
 				if (data.hasOwnProperty("error")) {
 					$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
@@ -813,7 +817,8 @@ var livepoll = new function() {
 				data: params
 			}).done(function(data) {
 				data = JSON.parse(data);
-				clearInterval(countertimer);
+				clearInterval(window.countertimer);
+				window.countertimer = null;
 				counter = 0;
 				if (data.hasOwnProperty("error")) {
 					$("#livepollsubmitmsg").html(_("Error") + ": "+data.error);
