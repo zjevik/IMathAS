@@ -82,8 +82,7 @@ numerical or algebraic expression answers.
 </p>
 
 <p>If you already have an account, you can log on using the box to the right.</p>
-<p>If you are a new student to the system, <a href="<?php echo $imasroot; ?>/forms.php?action=newuser">Register as a new student</a></p>
-<p>If you are an instructor, you can <a href="<?php echo $imasroot;?>/newinstructor.php">request an account</a></p>
+<p>If you are an instructor, you can <a href="<?php echo $imasroot;?>/newinstructor.php"><b>request an account</b>.</a></p>
 
 <p>Also available:
 <ul>
