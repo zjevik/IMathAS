@@ -99,7 +99,7 @@
 	echo "<span class=form>Last Name</span><span class=formright><input type=text id=lastname name=lastname value=\"$lastname\" size=40></span><br class=form />\n";
 	echo "<span class=form>Email Address</span><span class=formright><input type=text id=email name=email value=\"$email\" size=40></span><br class=form />\n";
 	echo "<span class=form>Phone Number</span><span class=formright><input type=text id=phone name=phone value=\"$phone\" size=40></span><br class=form />\n";
-	echo "<span class=form>College/Department</span><span class=formright><input type=text id=school name=school value=\"$school\" size=40></span><br class=form />\n";
+	echo "<span class=form>Department</span><span class=formright><input type=text id=school name=school value=\"$school\" size=40></span><br class=form />\n";
 	echo "<span class=form>Panther ID</span><span class=formright><input type=text id=SID name=SID value=\"$username\" size=40></span><br class=form />\n";
 	echo "<span class=form>Requested Password</span><span class=formright><input type=password id=pw1 name=pw1 size=40></span><br class=form />\n";
 	echo "<span class=form>Retype Password</span><span class=formright><input type=password id=pw2 name=pw2 size=40></span><br class=form />\n";
