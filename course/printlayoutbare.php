@@ -22,6 +22,10 @@ if (!(isset($teacherid))) {
 }
 
 /******* begin html output ********/
+//SBG code
+$sbg = isset($_REQUEST['SBGtime']);
+require_once("../includes/parsedatetime.php");
+
 if (isset($_POST['versions'])) {
 	$placeinhead = "<link rel=\"stylesheet\" type=\"text/css\" href=\"$imasroot/assessment/print.css?v=100213\"/>\n";
 }
@@ -74,6 +78,10 @@ if ($overwriteBody==1) {
 	echo '<span class="form">Math display:</span><span class="formright"><input type="radio" name="mathdisp" value="img" checked="checked" /> Images <input type="radio" name="mathdisp" value="text"/> Text <input type="radio" name="mathdisp" value="tex"/> TeX <input type="radio" name="mathdisp" value="textandimg"/> Images, then again in text</span><br class="form"/>';
 	echo '<span class="form">Include question numbers and point values:</span><span class="formright"><input type="checkbox" name="showqn" checked="checked" /> </span><br class="form"/>';
 	echo '<span class="form">Hide text entry lines?</span><span class="formright"><input type=checkbox name=hidetxtboxes ></span><br class="form"/>';
+	echo '<span class="form">SBG print displayed version as of: </span><span class="formright"><input type=checkbox name=SBGtime " ><input type=text size=10 name="sbgdate" value='.$sdate.'>
+	<a href="#" onClick="displayDatePicker(\'sbgdate\', this); return false">
+	<img src="../img/cal.gif" alt="Calendar"/></A>
+	at <input type=text size=8 name=sbgtime value="'.$stime.'"></span> <br class="form"/>';
 
 	echo '<div class="submit"><input type=submit value="Continue"></div></form>';
 
@@ -170,6 +178,7 @@ if ($overwriteBody==1) {
 	} else {
 		$copies = 1;
 	}
+	if ($sbg) { $copies = 1; }
 	//add interlace output
 	//add prettyprint along with text-based output option
 	$seeds = array();
@@ -203,10 +212,14 @@ if ($overwriteBody==1) {
 						$seeds[$j][] = $fixedseeds[$questions[$i]][($x+$j)%$n];
 					} else {
 					$seeds[$j][] = rand(1,9999);
+					}
 				}
 			}
 		}
-	}
+		if ($sbg) { //the same seed for each hour
+			$sbgdatetime = parsedatetime($_POST['sbgdate'],$_POST['sbgtime'],0);
+			$seeds[$j] = array_fill(0,count($questions),intval(gmdate('mdH',$sbgdatetime))%10000);
+		}
 	}
 
 	for ($pt=0;$pt<$printtwice;$pt++) {

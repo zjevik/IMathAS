@@ -248,6 +248,10 @@ if ($overwriteBody==1) {
 
 	//echo "<div class=maintest>\n";
 	echo "<form method=post action=\"printtest.php?cid=$cid&aid=$aid\" onSubmit=\"return packheights()\">\n";
+	
+	//SBG code
+	$sbg = isset($_REQUEST['SBGtime']);
+	require_once("../includes/parsedatetime.php");
 
 	if ($isfinal) {
 		$copies = $_POST['versions'];
@@ -274,6 +278,10 @@ if ($overwriteBody==1) {
 				$seeds[] = rand(1,9999);
 			}
 		}
+		}
+		if ($sbg) { //the same seed for each hour
+			$sbgdatetime = parsedatetime($_POST['sbgdate'],$_POST['sbgtime'],0);
+			$seeds[$j] = array_fill(0,count($questions),intval(gmdate('mdH',$sbgdatetime))%10000);
 		}
 
 		$headerleft = '';

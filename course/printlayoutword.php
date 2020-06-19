@@ -206,7 +206,7 @@ if ($overwriteBody==1) {
 		}
 		if ($sbg) { //the same seed for each hour
 			$sbgdatetime = parsedatetime($_POST['sbgdate'],$_POST['sbgtime'],0);
-			$seeds[$j] = array_fill(0,count($questions),intval(date('mdH',$sbgdatetime))%10000);
+			$seeds[$j] = array_fill(0,count($questions),intval(gmdate('mdH',$sbgdatetime))%10000);
 		}
 	}
 
