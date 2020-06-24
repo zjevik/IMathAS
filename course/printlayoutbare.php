@@ -53,6 +53,19 @@ $assessver = 2;
 if ($overwriteBody==1) {
 	echo $body;
 } if (!isset($_POST['versions'])) {
+	$stm = $DBH->prepare("SELECT startdate FROM imas_assessments WHERE id=:id");
+	$stm->execute(array(':id'=>$aid));
+	$line = $stm->fetch(PDO::FETCH_ASSOC);
+	$startdate = $line['startdate'];
+	if ($startdate!=0) {
+		$sdate = tzdate("m/d/Y",$startdate);
+		$stime = tzdate("g:i a",$startdate);
+	} else {
+		$sdate = tzdate("m/d/Y",time());
+		$stime = tzdate("g:i a",floor(time()/3600)*3600); //$stime = tzdate("g:i a",time());
+	}
+
+	$placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/DatePicker.js?v=080818\"></script>";
 	require("../header.php");
 	echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 	echo "&gt; <a href=\"addquestions.php?cid=$cid&aid=$aid\">Add/Remove Questions</a> ";
