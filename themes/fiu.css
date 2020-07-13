@@ -968,11 +968,19 @@ iframe {
     background: #f1f1f1!important
 }
 
-
 body.fw1000{
-	background: url("fiu_background.jpg") no-repeat right top fixed;
-	background-size: cover;
-	margin: 0px;
+    margin: 0px;
+}
+
+@media (min-width: 1025px){
+    .no-webp body.fw1000{
+        background: url("fiu_background.jpg") no-repeat right top fixed;
+        background-size: cover;
+    }
+    .webp body.fw1000{
+        background: url("fiu_background.webp") no-repeat right top fixed;
+        background-size: cover;
+    }
 }
 
 @keyframes bounceRight {

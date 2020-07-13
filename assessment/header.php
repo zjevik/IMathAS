@@ -53,6 +53,7 @@ if (!empty($CFG['GEN']['uselocaljs'])) {
 } else {
 	echo '<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js" type="text/javascript"></script>';
 }
+echo '<script defer src="'.$imasroot.'/javascript/modernizr-custom.js"></script>';
 
 if (isset($CFG['locale'])) {
 	$lang = substr($CFG['locale'],0,2);
