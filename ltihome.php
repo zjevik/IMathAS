@@ -437,6 +437,7 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	echo "<h2>LTI Placement of " . Sanitize::encodeStringForDisplay($line['name']) . "</h2>";
 	if($line['displaymethod']=="CanvasGradebook"){
 		echo _('This assessment synchronizes grades between Live Poll assessments and Canvas. Please make sure you place it in your Canvas Assignments tab and that it is available to students. <font color="red">Each student must open this assessment only once in the semester</font> for their grade synchronization to be enabled. Beyond that, you will not need to access it.');
+		echo "<p><a target='_blank' href=\"assessment/showtest.php?cid=" . Sanitize::courseId($cid) . "&id=" . Sanitize::encodeUrlParam($typeid) . "\">See gradebook</a>";
 		echo '<p><a href="ltihome.php?gradesync=true" >Initiate Grade Sync</a>';
 		if(isset($_GET['gradesync'])){
 			echo " | Canvas grades will be updated shortly.";

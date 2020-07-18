@@ -323,7 +323,7 @@
 		$line = $stm->fetch(PDO::FETCH_ASSOC);
 
 		if ($adata['displaymethod']=='CanvasGradebook' && !$actas && !isset($teacherid)) {
-			$placeinhead .= '<link rel="stylesheet" href="'.$imasroot.'"/imascore.css?ver=112918 type="text/css" />';
+			$placeinhead .= '<link rel="stylesheet" href="'.$imasroot.'"/imascore.css?ver=07182020 type="text/css" />';
 			require("header.php");
 			require_once("../course/gbtable2.php");
 			//Show gradebook for one category
@@ -603,7 +603,8 @@
 					(($gbt[0][1][$i][4]==0 || $gbt[0][1][$i][4]==3)) || // hidden
 					($gbt[0][1][$i][3]>$availshow) ||
 					($gbt[0][1][$i][1]!=$adata['gbcategory']) || //skip if wrong category
-					(!$gbt[0][1][$i][21])
+					(!$gbt[0][1][$i][21]) ||
+					(!empty($gbt[1][1][$i][14]))	//excused
 				 ){
 					
 				} else
@@ -648,6 +649,223 @@
 			})
 			</script>';
 			require("../footer.php");
+			exit;
+		}
+
+		if ($adata['displaymethod']=='CanvasGradebook' && !$actas && isset($teacherid)) {
+			$placeinhead .= '<link rel="stylesheet" href="'.$imasroot.'"/imascore.css?ver=07182020 type="text/css" />';
+			$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/tablesorter.js\"></script>\n";
+			$placeinhead .= '<script type="text/javascript" src="../javascript/LPgradebook.js?v=071520"></script>';
+			$usefullwidth = true;
+			//echo "<div class=breadcrumb>$breadcrumbbase <a href=\"../course/course.php?cid={$testsettings['courseid']}\">{$sessiondata['coursename']}</a> </div>";
+			$hideAllHeaderNav = true;
+			require("header.php");
+			require_once("../course/gbtable2.php");
+			//Show gradebook for one category
+			
+			if (isset($sessiondata['actas'])) {
+				$userid = $sessiondata['actas'];
+			}
+			$includecategoryID = true;
+			global $canviewall,$secfilter;
+			$canviewall = true;
+			$secfilter = -1;
+			$catfilter = $adata['gbcategory'];
+			$gbt = gbtable();
+			//print_r($gbt);
+			$canviewall = true;
+			$includeduedate = false;
+			$showlink = false;
+			echo '<h2>Live Poll Gradebook</h2>';
+			echo '<h3>Assignment grade = '.(100-$adata['gbcatweight']).'% Earned + '.($adata['gbcatweight']).'% Participation</h3>';
+			echo '<table id="myTable" class="gb instlivePollGB" style="position:relative;">';
+			echo '<thead><tr>';
+			$sarr = array();
+			echo '<th>', _('Name'), '</th>';
+			for ($i=0;$i<count($gbt[0][1]);$i++) { //assessment headers
+				//name and points
+				$attempted = $gbt[0][1][$i][21]?"":"notattempted";
+				echo '<th class="cat'.$gbt[0][1][$i][1].' '.$attempted.'"><div>'.$gbt[0][1][$i][0].'<br/>';
+				if ($gbt[0][1][$i][4]==0 || $gbt[0][1][$i][4]==3) {
+					echo $gbt[0][1][$i][2].'&nbsp;', _('pts'), ' ', _('(Not Counted)');
+				} else {
+					echo $gbt[0][1][$i][2].'&nbsp;', _('pts');
+					if ($gbt[0][1][$i][4]==2) {
+						echo ' (EC)';
+					}
+				}
+				
+			}
+			echo '<th class="cat'.Sanitize::onlyInt($adata['gbcategory']).'" colspan="2">Total Grade:</th>';
+			echo '</tr></thead><tbody>';
+			$hidenc = true;
+			$availshow = 2;//don't show future assignments
+			$hidepast = false;
+			$calctype = 1;
+			foreach ($gbt[0][2] as $cat) {
+				if($cat[10] == $adata['gbcategory']){
+					$calctype = $cat[13];
+					break;
+				}
+			}
+
+			// print a row for each student
+			for ($j=1;$j<count($gbt)-1;$j++) {
+			//for ($j=3;$j<5;$j++) {
+				$numerator = 0;
+				$denominator = 0;
+				$toDrop = 0;
+
+				//count the number of dropped assignments.
+				for ($i=0;$i<count($gbt[0][1]);$i++) {
+					if(isset($gbt[$j][1][$i][5]) && $gbt[$j][1][$i][5]&4 && $gbt[0][1][$i][1]==$adata['gbcategory']){
+						$toDrop++;
+						$gbt[$j][1][$i][5] = $gbt[$j][1][$i][5]&(~(6)); //remove drop mark
+					}
+				}
+				//drop assignments
+				for($i=0; $i<$toDrop; $i++){
+					$minScore = PHP_INT_MAX;
+					$minScoreIdx = -1;
+
+					for ($jj=0;$jj<count($gbt[0][1]);$jj++) {
+						//skip already dropped
+						if(isset($gbt[$j][1][$jj][5]) && $gbt[$j][1][$jj][5] & 6){
+							continue;
+						}
+						if (($gbt[0][1][$jj][4]==0 || $gbt[0][1][$jj][4]==3)) { //skip if hidden
+							continue;
+						}
+						if ($gbt[0][1][$jj][3]>$availshow) {
+							continue;
+						}
+						if ($gbt[0][1][$jj][1]!=$adata['gbcategory']) {//skip if wrong category
+							continue;
+						}
+						if (!$gbt[0][1][$jj][21]){
+							continue;
+						}
+						$score = 0;
+						if(isset($gbt[$j][1][$jj][0]) && ($gbt[$j][1][$jj][0] > 0 || $gbt[$j][1][$jj][21])) {
+							$score = $adata['gbcatweight']*($calctype==0?$gbt[0][1][$jj][2]:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[$j][1][$jj][0]:$gbt[$j][1][$jj][0]/$gbt[0][1][$jj][2]);
+						}
+						if($minScore > $score){
+							$minScore = $score;
+							$minScoreIdx = $jj;
+						}
+					}
+					$gbt[$j][1][$minScoreIdx][5] = $gbt[$j][1][$minScoreIdx][5] | 6; //add drop mark
+				}
+
+				if ($j%2!=0) {
+					echo "<tr class=even onMouseOver=\"highlightrow(this)\" onMouseOut=\"unhighlightrow(this)\">";
+				} else {
+					echo "<tr class=odd onMouseOver=\"highlightrow(this)\" onMouseOut=\"unhighlightrow(this)\">";
+				}
+				echo '<td class="locked" scope="row"><div class="trld">';
+				if ($gbt[$j][4][1]>0) {
+					echo '<span class="greystrike">'.$gbt[$j][0][0].'</span>';
+				} else {
+					echo Sanitize::encodeStringForDisplay($gbt[$j][0][0]);
+				}
+				echo '</div></td>';
+
+				//print earned pts and scores
+				for ($i=0;$i<count($gbt[0][1]);$i++) {
+					$LPscore = 0;
+					echo "<td><div class='tooltip'><div class='tooltiptext'><span class='small'>";
+					if (isset($gbt[$j][1][$i][0]) && isset($gbt[$j][1][$i][21]) && ($gbt[$j][1][$i][21] || $gbt[$j][1][$i][0]>0)) {
+						echo _("Earned: ");
+						if ($gbt[$j][1][$i][3]>9) {
+							$gbt[$j][1][$i][3] -= 10;
+						}
+						echo $gbt[$j][1][$i][0]." pts";
+						$LPscore = $gbt[$j][1][$i][0];
+						if ($gbt[$j][1][$i][3]==1) {
+							echo ' (NC)';
+						}
+						if (!empty($gbt[$j][1][$i][14])) { //excused
+							echo '<sup>x</sup>';	
+						}
+						if (isset($gbt[$j][1][$i][5]) && ($gbt[$j][1][$i][5]&(1<<$availshow)) && !$hidepast) {
+							echo '<sub>d</sub>';
+						}
+						echo "<br />";
+						if ($calctype==0){
+							//total based on pts
+							echo "Grade: ";
+							echo $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]/100:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[$j][1][$i][0]/100:$gbt[$j][1][$i][0]/$gbt[0][1][$i][2]);
+							echo " pts<br />";
+							echo "</span><br /><span class='small'>"._("Grade computation:")."</span><br /><span class='small'>";
+							echo ($adata['gbcatweight']/100)."*".($gbt[0][1][$i][2])." + ".((100-$adata['gbcatweight'])/100)."*".($gbt[$j][1][$i][0]);
+						} else{
+							echo "</span><br /><span class='small'>"._("Grade computation:")."</span><br /><span class='small'>";
+							echo $LPscore."/".$gbt[0][1][$i][2]."*".($adata['gbcatweight']/100)."+".((100-$adata['gbcatweight'])/100);
+						}
+
+						
+					} else{
+						echo "Did not participate.";
+					}
+					
+					echo "</span></div>";
+					if (isset($gbt[$j][1][$i][0])){
+						echo "<a href=\"../course/gb-viewasidLP.php?bid={$aid}&stu=0&amp;cid=$cid&amp;asid={$gbt[$j][1][$i][4]}&amp;uid={$gbt[$j][4][0]}\">";
+						if ((isset($gbt[$j][1][$i][0]) && is_numeric($gbt[$j][1][$i][0])) && ($gbt[$j][1][$i][0] > 0 || $gbt[$j][1][$i][21] )) {
+							if ($gbt[0][1][$i][2]>0) {
+								//account for participation credit
+								echo round($adata['gbcatweight'] + (100-$adata['gbcatweight'])*$gbt[$j][1][$i][0]/$gbt[0][1][$i][2],1).'%';
+							}
+						} else {
+							echo '0%';
+						}
+					} else{
+						echo "<a href=\"../course/gb-viewasidLP.php?bid={$aid}&stu=0&amp;cid=$cid&amp;asid=new&amp;aid={$gbt[0][1][$i][7]}&amp;uid={$gbt[$j][4][0]}\">-";
+					}
+					if (!empty($gbt[$j][1][$i][14])) { //excused
+						echo '<sup>x</sup>';	
+					}
+					if (isset($gbt[$j][1][$i][5]) && ($gbt[$j][1][$i][5]&(1<<$availshow)) && !$hidepast) {
+						echo '<sub>d</sub>';
+					}
+					echo "</a>";
+					echo "</div>";
+
+					//grade computation for total
+					//skip if not counted or dropped
+					if( 
+						(isset($gbt[$j][1][$i][5]) && $gbt[$j][1][$i][5] & 6) || // dropped
+						!$gbt[0][1][$i][21] || // didn't use the assessment
+						(($gbt[0][1][$i][4]==0 || $gbt[0][1][$i][4]==3)) || // hidden
+						($gbt[0][1][$i][3]>$availshow) ||
+						($gbt[0][1][$i][1]!=$adata['gbcategory']) || //skip if wrong category
+						(!$gbt[0][1][$i][21]) ||
+						(!empty($gbt[$j][1][$i][14]))	//excused
+					){
+						
+					} else
+					{
+						if(isset($gbt[$j][1][$i][0]) && ($gbt[$j][1][$i][0] > 0 || $gbt[$j][1][$i][21])) {
+							$numerator += $adata['gbcatweight']*($calctype==0?$gbt[0][1][$i][2]/100:1) + (100-$adata['gbcatweight'])*($calctype==0?$gbt[$j][1][$i][0]/100:$gbt[$j][1][$i][0]/$gbt[0][1][$i][2]);
+						}
+						$denominator += $calctype==0?$gbt[0][1][$i][2]:100;
+					}
+					echo "</td>";
+				}
+				//print total score
+				$grade = round($numerator/$denominator,4);
+				if($calctype == 0){
+					echo "<td><div class='tooltip'><div class='tooltiptext'><span class='small'>Using point total:<br>".$numerator.'/'.$denominator."</span></div>".(100*$grade)."%</div></td>";
+				} else {
+					echo "<td><div class='tooltip'><div class='tooltiptext'><span class='small'>Using averaged percents:</div>".(100*$grade)."%</div></td>";
+				}
+				echo "</tr>";
+			}
+			
+			echo '</tbody></table><br/>';
+			echo "<p>", _('Meanings: NC-no credit<br/><sub>d</sub> Dropped score.  <sup>x</sup> Excused score.  <sup>e</sup> Has exception.'), "  </p>\n";
+			require("../footer.php");
+			echo "<script>initSortTable('myTable',Array('S'),true,true)</script>\n";
 			exit;
 		}
 

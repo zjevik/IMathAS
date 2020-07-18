@@ -192,7 +192,8 @@ while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 					(($gbt[0][1][$el][4]==0 || $gbt[0][1][$el][4]==3)) || // hidden
 					($gbt[0][1][$el][3]>$availshow) ||
 					($gbt[0][1][$el][1]!=$row['gbcategory']) || //skip if wrong category
-					(!$gbt[0][1][$el][21])
+					(!$gbt[0][1][$el][21]) ||
+					(!empty($student[1][$el][14]))	//excused
 				 ){
 					 //skip hidden, dropped, etc. assignments
 				} else
