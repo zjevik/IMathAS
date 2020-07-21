@@ -800,7 +800,7 @@
 							echo ($adata['gbcatweight']/100)."*".($gbt[0][1][$i][2])." + ".((100-$adata['gbcatweight'])/100)."*".($gbt[$j][1][$i][0]);
 						} else{
 							echo "</span><br /><span class='small'>"._("Grade computation:")."</span><br /><span class='small'>";
-							echo $LPscore."/".$gbt[0][1][$i][2]."*".($adata['gbcatweight']/100)."+".((100-$adata['gbcatweight'])/100);
+							echo $LPscore."/".$gbt[0][1][$i][2]."*".((100-$adata['gbcatweight'])/100)."+".($adata['gbcatweight']/100);
 						}
 
 						
