@@ -49,14 +49,6 @@ if ($isstudent && $viewInGb == 'never') {
   exit;
 }
 
-// log gradebook view
-if ($isstudent) {
-  $query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime) VALUES ";
-  $query .= "(:userid, :courseid, 'gbviewassess', :typeid, :viewtime)";
-  $stm = $DBH->prepare($query);
-  $stm->execute(array(':userid'=>$userid, ':courseid'=>$cid, ':typeid'=>$aid, ':viewtime'=>$now));
-}
-
 // load question settings and code
 $assess_info->loadQuestionSettings('all', true);
 
@@ -79,19 +71,24 @@ $assess_info->getLatePassBlockedByView();
 //load user's assessment record - start with scored data
 $assess_record = new AssessRecord($DBH, $assess_info, false);
 $assess_record->loadRecord($uid);
+$assess_record->setInGb(true);
 if (!$assess_record->hasRecord()) {
   // if there's no record yet, and we're a teacher, create a record
   if ($isActualTeacher || ($istutor && $tutoredit == 1)) {
     $isGroup = $assess_info->getSetting('isgroup');
     if ($isGroup > 0) {
-      if ($isGroup == 3) {
-        $groupsetid = $assess_info->getSetting('groupsetid');
-        list($stugroupid, $current_members) = AssessUtils::getGroupMembers($uid, $groupsetid);
-        if ($stugroupid == 0) {
+      $groupsetid = $assess_info->getSetting('groupsetid');
+      list($stugroupid, $current_members) = AssessUtils::getGroupMembers($uid, $groupsetid);
+      if ($stugroup == 0) {
+        if ($isGroup == 3) {
           // no group yet - can't do anything
           echo '{"error": "need_group"}';
           exit;
+        } else {
+          $current_members = false; // just create for user if no group yet
         }
+      } else {
+        $current_members = array_keys($current_members); // we just want the user IDs
       }
       // creating for group
       $assess_record->createRecord($current_members, $stugroupid, false, '');
@@ -117,6 +114,28 @@ $assessInfoOut = $assess_info->extractSettings($include_from_assess_info);
 if ($isstudent && $viewInGb == 'after_due' && $now < $assessInfoOut['enddate']) {
   echo '{"error": "no_access"}';
   exit;
+}
+
+if ($isstudent) {
+  $LPblockingView = true;
+  // non-blocking views are ones where viewing work in GB was already allowed by settings
+  if ($assessInfoOut['viewingb'] === 'immediately' ||
+    ($assessInfoOut['submitby'] === 'by_assessment' && $assessInfoOut['viewingb'] == 'after_take')
+  ) {
+    // non-blocking views are ones where answers aren't showing
+    $ansingb = $assess_info->getSetting('ansingb');
+    if ($ansingb === 'never' || $ansingb === 'after_take') {
+      $LPblockingView = false;
+    } else if ($ansingb === 'after_due' && $now < $assessInfoOut['enddate']) {
+      $LPblockingView = false;
+    }
+  }
+  // log gradebook view
+  $query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime) VALUES ";
+  $query .= "(:userid, :courseid, :type, :typeid, :viewtime)";
+  $stm = $DBH->prepare($query);
+  $stm->execute(array(':userid'=>$userid, ':courseid'=>$cid, ':typeid'=>$aid,
+    ':type'=> $LPblockingView ? 'gbviewassess' : 'gbviewsafe', ':viewtime'=>$now));
 }
 
 // indicate whether teacher/tutor can edit scores or not
@@ -174,8 +193,13 @@ $assessInfoOut['lti_sourcedid'] = $assess_record->getLTIsourcedId();
 // generating answeights may have changed the record; save if needed
 $assess_record->saveRecordIfNeeded();
 
+// check to see if qerror
+if (isset($CFG['GEN']['qerrorsendto'][2])) {
+  $assessInfoOut['qerrortitle'] = $CFG['GEN']['qerrorsendto'][2] .' '._("to report problems");
+}
+
 //prep date display
 prepDateDisp($assessInfoOut);
 
 //output JSON object
-echo json_encode($assessInfoOut);
+echo json_encode($assessInfoOut, JSON_INVALID_UTF8_IGNORE);

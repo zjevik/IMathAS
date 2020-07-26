@@ -19,6 +19,17 @@ $pagetitle = _("Drill Assessment");
 
 $cid = intval($_GET['cid']);
 $daid = intval($_GET['daid']);
+$now = time();
+
+if (isset($studentid) && !isset($_SESSION['stuview']) &&
+	!isset($_GET['start']) && !isset($_GET['score'])
+) {
+	$query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime) VALUES ";
+	$query .= "(:userid, :courseid, :type, :typeid, :viewtime)";
+	$stm = $DBH->prepare($query);
+	$stm->execute(array(':userid'=>$userid, ':courseid'=>$cid, ':type'=>'drill', ':typeid'=>$daid, ':viewtime'=>$now));
+}
+
 $stm = $DBH->prepare("SELECT * FROM imas_drillassess WHERE id=:id AND courseid=:courseid");
 $stm->execute(array(':id'=>$daid, ':courseid'=>$cid));
 if ($stm->rowCount()==0) {
@@ -32,13 +43,13 @@ $showscore = ($sa==0 || $sa==1 || $sa==4);
 $scoretype = $dadata['scoretype'];
 $showtostu = $dadata['showtostu'];
 $classbests = explode(',',$dadata['classbests']);
-if ($scoretype{0}=='t') {
+if ($scoretype[0]=='t') {
 	$mode = 'cntdown';
 	$torecord = 'cc';   //count  correct
 } else {
 	$mode = 'cntup';
-	$stopattype = $scoretype{1};  //a: attempted, c: correct, s: streak
-	$torecord = $scoretype{2}; //t: time, c: total count
+	$stopattype = $scoretype[1];  //a: attempted, c: correct, s: streak
+	$torecord = $scoretype[2]; //t: time, c: total count
 }
 $itemids = explode(',',$dadata['itemids']);
 $itemdescr = explode(',',$dadata['itemdescr']);

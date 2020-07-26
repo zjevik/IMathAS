@@ -2,6 +2,7 @@ const path = require('path');
 
 module.exports = {
   outputDir: path.resolve(__dirname, '../vue'),
+  publicPath: process.env.NODE_ENV === 'production' ? './vue/' : '/',
   pluginOptions: {
     i18n: {
       locale: 'en',
@@ -22,7 +23,7 @@ module.exports = {
   },
   // in dev server mode, proxy all requests to localhost
   devServer: {
-    proxy: 'http://localhost'
+    proxy: process.env.VUE_APP_PROXY
   },
   pages: {
     index: 'src/main.js',

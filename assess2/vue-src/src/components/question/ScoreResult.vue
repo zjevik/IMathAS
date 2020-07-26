@@ -2,6 +2,7 @@
   <transition name="fade">
     <div
       :class="['scoreresult', status]"
+      tabindex = "-1"
       v-if="expanded"
     >
       <p v-if="showScores">
@@ -24,9 +25,8 @@
           v-if = "showNext"
           :to="'/skip/' + (this.qn + 2)"
           tag="button"
-          :aria-label="$t('next')"
         >
-          <icons name="right" />
+          <icons name="right" alt=""/>
           {{ $t('scoreresult.next') }}
         </router-link>
         <button
@@ -42,7 +42,7 @@
           type = "button"
           @click = "trySimilar"
         >
-          <icons name="retake" />
+          <icons name="retake" alt="" />
           {{ $t('scoreresult.trysimilar') }}
         </button>
         <span v-if = "qdata.canretry">
@@ -89,10 +89,21 @@ export default {
       ) {
         return 'neutral';
       }
+      if (this.qdata.singlescore) {
+        if (this.qdata.rawscore > 0.99) {
+          return 'correct';
+        } else if (this.qdata.rawscore < 0.01) {
+          return 'incorrect';
+        } else {
+          return 'partial';
+        }
+      }
       let correct = 0;
       let incorrect = 0;
       for (let i = 0; i < this.qdata.parts.length; i++) {
-        if (this.qdata.parts[i].rawscore > 0.99) {
+        if (!this.qdata.parts[i].hasOwnProperty('rawscore')) {
+          continue; // neither correct or incorrect - untried
+        } else if (this.qdata.parts[i].rawscore > 0.99) {
           correct++;
         } else if (this.qdata.parts[i].rawscore < 0.01) {
           incorrect++;

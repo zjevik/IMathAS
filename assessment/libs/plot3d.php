@@ -79,7 +79,7 @@ function plot3d($func,$umin=-2,$umax=2,$vmin=-2,$vmax=2,$disc=20,$width=300,$hei
 
 	  $useragent = $_SERVER['HTTP_USER_AGENT'];
 	  $oldschool = false;
-	  if (isset($GLOBALS['sessiondata']['useflash'])) {
+	  if (isset($_SESSION['useflash'])) {
 		$oldschool = true;
 	  } else if (preg_match('/MSIE\s*(\d+)/i',$useragent,$matches)) {
 		if ($matches[1]<9) {
@@ -87,12 +87,8 @@ function plot3d($func,$umin=-2,$umax=2,$vmin=-2,$vmax=2,$disc=20,$width=300,$hei
 		}
 	  }
 
-	  if ($oldschool || isset($GLOBALS['sessiondata']['useflash'])) {
-	  	  if (!isset($GLOBALS['3dplotcnt'])) {
-			  $r = 1;
-		  } else {
-			  $r = $GLOBALS['3dplotcnt']+1;
-		  }
+	  if ($oldschool || isset($_SESSION['useflash'])) {
+	  	$r = uniqid();
 		  $GLOBALS['3dplotcnt'] = $r;
 		  $html .= "<div id=\"plot3d$r\">";
 		  $html .= '<p><a href="http://www.adobe.com/go/getflashplayer"><img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></p>';
@@ -105,13 +101,9 @@ function plot3d($func,$umin=-2,$umax=2,$vmin=-2,$vmax=2,$disc=20,$width=300,$hei
 		  $html .= "  swfobject.embedSWF(\"$imasroot/assessment/libs/viewer3d.swf\", \"plot3d$r\", \"$width\", \"$height\", \"9.0.0\", \"$imasroot/assessment/libs/expressInstall.swf\",FlashVars);";
 		  $html .= '</script>';
 	  } else {
-	  	 if (!isset($GLOBALS['3dplotcnt'])) {
-			  $r = 1;
-		  } else {
-			  $r = $GLOBALS['3dplotcnt']+1;
-		  }
+	  	$r = uniqid();
 			if (!isset($GLOBALS['3dplotcnt']) || (isset($GLOBALS['assessUIver']) && $GLOBALS['assessUIver'] > 1)) {
-				$html .= '<script type="text/javascript" src="'.$imasroot.'/javascript/3dviewer.js"></script>';
+				$html .= '<script type="text/javascript" src="'.$imasroot.'/javascript/3dviewer.js?v=1"></script>';
 			}
 	  	  $GLOBALS['3dplotcnt'] = $r;
 	  	  $html .= "<canvas id=\"plot3d$r\" width=\"$width\" height=\"$height\" ";
@@ -125,7 +117,7 @@ function plot3d($func,$umin=-2,$umax=2,$vmin=-2,$vmax=2,$disc=20,$width=300,$hei
 	  	  $url = $GLOBALS['basesiteurl'] . substr($_SERVER['SCRIPT_NAME'],strlen($imasroot)) . (isset($_SERVER['QUERY_STRING'])?'?'.Sanitize::encodeStringForDisplay($_SERVER['QUERY_STRING']).'&useflash=true':'?useflash=true');
 		  $html .= "<span aria-hidden=true>Not seeing the 3D graph?  <a href=\"$url\">Try Flash Alternate</a></span>";
 	  	  $html .= "</canvas>";
-				$init = "var plot3d$r = new Viewer3D({verts: '$verts', faces: '$faces', $bndtxt width: '$width', height:'$height'}, 'plot3d$r');";
+				$init = "var plot3d$r = new Viewer3D({verts: '$verts', faces: '$faces', $bndtxt width: '$width', height:'$height', showaxes:$axes}, 'plot3d$r');";
 				if (isset($GLOBALS['assessUIver']) && $GLOBALS['assessUIver'] > 1) {
 					$html .= "<script type=\"text/javascript\"> $init </script>";
 				} else {
@@ -176,7 +168,7 @@ function spacecurve($func,$tmin,$tmax) {
 
 	$useragent = $_SERVER['HTTP_USER_AGENT'];
 	$oldschool = false;
-	if (isset($GLOBALS['sessiondata']['useflash'])) {
+	if (isset($_SESSION['useflash'])) {
 		$oldschool = true;
 	} else if (preg_match('/MSIE\s*(\d+)/i',$useragent,$matches)) {
 		if ($matches[1]<9) {
@@ -202,7 +194,7 @@ function spacecurve($func,$tmin,$tmax) {
 			  for ($j=0;$j<$disc;$j++) {
 				  if ($count > 0) { $verts .= '~';}
 				  $u = 1.571*$i;
-				  $t = $vmin+$dt*$j;
+				  $t = $tmin+$dt*$j;
 
 				  $x = $usefunc[0](['u'=>$u, 't'=>$t]);
 				  $y = $usefunc[1](['u'=>$u, 't'=>$t]);
@@ -224,11 +216,7 @@ function spacecurve($func,$tmin,$tmax) {
 				  $count++;
 			  }
 		  }
-		  if (!isset($GLOBALS['3dplotcnt'])) {
-			  $r = 1;
-		  } else {
-			  $r = $GLOBALS['3dplotcnt']+1;
-		  }
+		  $r = uniqid();
 		  $GLOBALS['3dplotcnt'] = $r;
 		  $html .= "<div id=\"plot3d$r\">";
 		  $html .= '<p><a href="http://www.adobe.com/go/getflashplayer"><img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></p>';
@@ -253,7 +241,7 @@ function spacecurve($func,$tmin,$tmax) {
 		$dt = ($tmax-$tmin)/($disc-1);
 		for ($j=0;$j<$disc;$j++) {
 			  if ($count > 0) { $verts .= '~';}
-			  $t = $vmin+$dt*$j;
+			  $t = $tmin+$dt*$j;
 
 			  $x = $usefunc[0](['t'=>$t]);
 			  $y = $usefunc[1](['t'=>$t]);
@@ -263,11 +251,7 @@ function spacecurve($func,$tmin,$tmax) {
 			  $count++;
 		 }
 
-	   if (!isset($GLOBALS['3dplotcnt'])) {
-			  $r = 1;
-		 } else {
-			  $r = $GLOBALS['3dplotcnt']+1;
-		 }
+	   $r = uniqid();
 		 if (!isset($GLOBALS['3dplotcnt']) || (isset($GLOBALS['assessUIver']) && $GLOBALS['assessUIver'] > 1)) {
 			 $html .= '<script type="text/javascript" src="'.$imasroot.'/javascript/3dviewer.js"></script>';
 		 }
@@ -280,7 +264,7 @@ function spacecurve($func,$tmin,$tmax) {
 
 		 $html .= "<span aria-hidden=true>Not seeing the 3D graph?  <a href=\"$url\">Try Alternate</a></span>";
 	  	 $html .= "</canvas>";
-			 $init = "var plot3d$r = new Viewer3D({verts: '$verts', curves: true, width: '$width', height:'$height'}, 'plot3d$r');";
+			 $init = "var plot3d$r = new Viewer3D({verts: '$verts', curves: true, width: '$width', height:'$height', showaxes:$axes}, 'plot3d$r');";
 			 if (isset($GLOBALS['assessUIver']) && $GLOBALS['assessUIver'] > 1) {
 				 $html .= "<script type=\"text/javascript\"> $init </script>";
 			 } else {

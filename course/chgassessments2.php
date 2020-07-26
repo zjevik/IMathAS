@@ -7,6 +7,7 @@ require("../init.php");
 require("../includes/htmlutil.php");
 require("../includes/copyiteminc.php");
 require("../includes/loaditemshowdata.php");
+require_once("../includes/TeacherAuditLog.php");
 
 /*** pre-html data manipulation, including function code *******/
 
@@ -48,7 +49,7 @@ if (!(isset($teacherid))) {
 		$sets = array();
 		$qarr = array();
 		if ($_POST['copyopts'] != 'DNC') {
-			$tocopy = 'displaymethod,submitby,defregens,defregenpenalty,keepscore,defattempts,defpenalty,showscores,showans,viewingb,scoresingb,ansingb,gbcategory,caltag,shuffle,noprint,istutorial,showcat,allowlate,timelimit,password,reqscoretype,showhints,msgtoinstr,posttoforum,extrefs,showtips,cntingb,minscore,deffeedbacktext,tutoredit,exceptionpenalty,defoutcome';
+			$tocopy = 'displaymethod,submitby,defregens,defregenpenalty,keepscore,defattempts,defpenalty,showscores,showans,viewingb,scoresingb,ansingb,gbcategory,caltag,shuffle,showwork,noprint,istutorial,showcat,allowlate,timelimit,password,reqscoretype,showhints,msgtoinstr,posttoforum,extrefs,showtips,cntingb,minscore,deffeedbacktext,tutoredit,exceptionpenalty,defoutcome';
 			$stm = $DBH->prepare("SELECT $tocopy FROM imas_assessments WHERE id=:id");
 			$stm->execute(array(':id'=>Sanitize::onlyInt($_POST['copyopts'])));
 			$qarr = $stm->fetch(PDO::FETCH_ASSOC);
@@ -77,6 +78,11 @@ if (!(isset($teacherid))) {
 				} else {
 					$turnoffshuffle +=4;
 				}
+			}
+
+			if ($_POST['showwork'] !== 'DNC') {
+				$sets[] = "showwork=:showwork";
+				$qarr[':showwork'] = Sanitize::onlyInt($_POST['showwork']);
 			}
 
 			if ($_POST['displaymethod'] !== 'DNC') {
@@ -120,7 +126,7 @@ if (!(isset($teacherid))) {
 					$defregenpenalty = 0;
 				}
 			}
-			if ($submitby == 'by_assessment') {
+			if ($submitby == 'by_assessment' && $defregens > 1) {
 				if ($_POST['keepscore'] === 'DNC') {
 					$coreOK = false;
 				} else {
@@ -160,8 +166,16 @@ if (!(isset($teacherid))) {
 				$showans = Sanitize::simpleASCII($_POST['showans']);
 			}
 			$viewingb = Sanitize::simpleASCII($_POST['viewingb']);
-			$scoresingb = Sanitize::simpleASCII($_POST['scoresingb']);
-			$ansingb = Sanitize::simpleASCII($_POST['ansingb']);
+			if (!isset($_POST['scoresingb'])) {
+				$scoresingb = 'never';
+			} else {
+				$scoresingb = Sanitize::simpleASCII($_POST['scoresingb']);
+			}
+			if (!isset($_POST['ansingb'])) {
+				$ansingb = 'never';
+			} else {
+				$ansingb = Sanitize::simpleASCII($_POST['ansingb']);
+			}
 			if ($showscores === 'DNC' || $showans === 'DNC' || $viewingb === 'DNC' ||
 				$scoresingb === 'DNC' || $ansingb === 'DNC'
 			) {
@@ -262,8 +276,8 @@ if (!(isset($teacherid))) {
 					$sets[] = "reqscoretype=(reqscoretype & ~2)";
 				}
 			}
-			if ($_POST['reqscoretype'] !== 'DNC') {
-				if ($_POST['reqscoretype']==0) {
+			if ($_POST['reqscoreshowtype'] !== 'DNC') {
+				if ($_POST['reqscoreshowtype']==0) {
 					$sets[] = 'reqscore=ABS(reqscore)';
 					$sets[] = 'reqscoretype=(reqscoretype & ~1)';
 				} else {
@@ -300,7 +314,7 @@ if (!(isset($teacherid))) {
 					}
 				}
 				$sets[] = "extrefs=:extrefs";
-				$qarr[':extrefs'] = json_encode($extrefs);
+				$qarr[':extrefs'] = json_encode($extrefs, JSON_INVALID_UTF8_IGNORE);
 			}
 
 			if ($_POST['showtips'] !== 'DNC') {
@@ -398,10 +412,17 @@ if (!(isset($teacherid))) {
 			$qarr[':endmsg'] = $stm->fetchColumn(0);
 		}
 
+		$metadata = array('assessments'=>$checkedlist);
 		if (count($sets)>0) {
 			$setslist = implode(',',$sets);
-			$stm = $DBH->prepare("UPDATE imas_assessments SET $setslist WHERE id IN ($checkedlist)");
+			$qarr[':cid'] = $cid;
+			$stm = $DBH->prepare("UPDATE imas_assessments SET $setslist WHERE id IN ($checkedlist) AND courseid=:cid");
 			$stm->execute($qarr);
+			if ($stm->rowCount()>0) {
+				$updated_settings = true;
+				$metadata = $metadata + $qarr;
+				unset($metadata[':cid']);
+			}
 		}
 		if ($_POST['intro'] !== 'DNC') {
 			$stm = $DBH->prepare("SELECT intro FROM imas_assessments WHERE id=:id");
@@ -412,21 +433,35 @@ if (!(isset($teacherid))) {
 			} else {
 				$newintro = $cpintro;
 			}
+			$metadata['intro'] = $newintro;
 			$stm = $DBH->query("SELECT id,intro FROM imas_assessments WHERE id IN ($checkedlist)");
 			$stmupd = $DBH->prepare("UPDATE imas_assessments SET intro=:intro WHERE id=:id");
 			while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 				if (($introjson=json_decode($row['intro']))!==null) { //is json intro
 					$introjson[0] = $newintro;
-					$outintro = json_encode($introjson);
+					$outintro = json_encode($introjson, JSON_INVALID_UTF8_IGNORE);
 				} else {
 					$outintro = $newintro;
 				}
 				$stmupd->execute(array(':id'=>$row['id'], ':intro'=>$outintro));
+				if ($stmupd->rowCount()>0) {
+					$updated_settings = true;
+				}
 			}
 		}
 
 		if (isset($_POST['removeperq'])) {
 			$stm = $DBH->query("UPDATE imas_questions SET points=9999,attempts=9999,penalty=9999,regen=0,showans=0,showhints=-1,fixedseeds=NULL WHERE assessmentid IN ($checkedlist)");
+			$metadata['perq'] = "Removed per-question settings";
+			$updated_settings = true;
+		}
+		if ($updated_settings === true) {
+			TeacherAuditLog::addTracking(
+				$cid,
+				"Mass Assessment Settings Change",
+				null,
+				$metadata
+			);
 		}
 		if ($_POST['copyopts'] != 'DNC' || $_POST['defpoints'] !== '' || isset($_POST['removeperq'])) {
 			//update points possible
@@ -437,7 +472,8 @@ if (!(isset($teacherid))) {
 			// re-total existing assessment attempts to adjust scores
 			require("../assess2/AssessInfo.php");
 			require("../assess2/AssessRecord.php");
-			$stm = $DBH->query("SELECT * FROM imas_assessment_records WHERE assessmentid IN ($checkedlist) ORDER BY assessmentid");
+			$DBH->beginTransaction();
+			$stm = $DBH->query("SELECT * FROM imas_assessment_records WHERE assessmentid IN ($checkedlist) ORDER BY assessmentid FOR UPDATE");
 			$lastAid = 0;
 			while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
 				if ($row['assessmentid'] != $lastAid) {
@@ -454,11 +490,13 @@ if (!(isset($teacherid))) {
 				$assess_record->reTotalAssess();
 				$assess_record->saveRecord();
 			}
+			$DBH->commit();
 		}
 		if (isset($_POST['chgendmsg'])) {
 			include("assessendmsg.php");
 		} else {
-		  header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=" . Sanitize::courseId($_GET['cid']) . "&r=" . Sanitize::randomQueryStringParam());
+			$btf = isset($_GET['btf']) ? '&folder=' . Sanitize::encodeUrlParam($_GET['btf']) : '';
+			header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=" . Sanitize::courseId($_GET['cid']) .$btf. "&r=" . Sanitize::randomQueryStringParam());
 		}
 		exit;
 
@@ -696,6 +734,10 @@ function tabToSettings() {
 	<div id="headerchgassessments" class="pagetitle"><h1>Mass Change Assessment Settings
 		<img src="<?php echo $imasroot ?>/img/help.gif" alt="Help" onClick="window.open('<?php echo $imasroot ?>/help.php?section=assessments','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))"/>
 	</h1></div>
+
+	<div class="cpmid">
+	<a href="masschgprereqs.php?cid=<?php echo $cid;?>"><?php echo _('Mass Change Prereqs'); ?></a>
+	</div>
 
 	<p>This form will allow you to change the assessment settings for several or all assessments at once.</p>
 	<p><b>Be aware</b> that changing some settings after an assessment has been

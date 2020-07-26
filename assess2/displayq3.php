@@ -583,7 +583,7 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$partattemp
 		if ($qdata['extref']!= '') {
 			$extref = explode('~~',$qdata['extref']);
 
-			if (isset($GLOBALS['questions']) && (!isset($GLOBALS['sessiondata']['isteacher']) || $GLOBALS['sessiondata']['isteacher']==false) && !isset($GLOBALS['sessiondata']['stuview'])) {
+			if (isset($GLOBALS['questions']) && (!isset($_SESSION['isteacher']) || $_SESSION['isteacher']==false) && !isset($_SESSION['stuview'])) {
 				$qref = $GLOBALS['questions'][$qnidx].'-'.($qnidx+1);
 			} else {
 				$qref = '';
@@ -602,7 +602,7 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$partattemp
 			}
 		}
 		if (($qdata['solutionopts']&2)==2 && $qdata['solution']!='') {
-			$addr = $GLOBALS['basesiteurl'] . "/assessment/showsoln.php?id=".$qidx.'&sig='.md5($qidx.$GLOBALS['sessiondata']['secsalt']);
+			$addr = $GLOBALS['basesiteurl'] . "/assessment/showsoln.php?id=".$qidx.'&sig='.md5($qidx.$_SESSION['secsalt']);
 			$addr .= '&t='.($qdata['solutionopts']&1).'&cid='.$GLOBALS['cid'];
 			if ($GLOBALS['cid']=='embedq' && isset($GLOBALS['theme'])) {
 				$addr .= '&theme='.Sanitize::encodeUrlParam($GLOBALS['theme']);
@@ -1111,7 +1111,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 			}
 		}
 		if (isset($reqsigfigs)) {
-			if ($reqsigfigs{0}=='=') {
+			if ($reqsigfigs[0]=='=') {
 				$reqsigfigs = substr($reqsigfigs,1);
 				if (in_array('list',$ansformats) || in_array('exactlist',$ansformats) || in_array('orderedlist',$ansformats)) {
 					$answer = implode(',', prettysigfig(explode(',', $answer), $reqsigfigs));
@@ -1120,7 +1120,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 				}
 				$tip .= "<br/>" . sprintf(_('Your answer should have exactly %d significant figures.'), $reqsigfigs);
 				$shorttip .= sprintf(_(', with exactly %d significant figures'), $reqsigfigs);
-			} else if ($reqsigfigs{0}=='[') {
+			} else if ($reqsigfigs[0]=='[') {
 				$reqsigfigparts = explode(',',substr($reqsigfigs,1,-1));
 				$tip .= "<br/>" . sprintf(_('Your answer should have between %d and %d significant figures.'), $reqsigfigparts[0], $reqsigfigparts[1]);
 				$shorttip .= sprintf(_(', with %d - %d significant figures'), $reqsigfigparts[0], $reqsigfigparts[1]);
@@ -1269,7 +1269,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($displayformat == 'column') { $displayformat = '2column';}
 
 		if (substr($displayformat,1)=='column') {
-			$ncol = $displayformat{0};
+			$ncol = $displayformat[0];
 			$itempercol = ceil(count($randkeys)/$ncol);
 			$displayformat = 'column';
 		}
@@ -1284,7 +1284,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($displayformat == "select") {
 			$msg = '?';
 			foreach ($questions as $qv) {
-				if (strlen($qv)>2 && !($qv{0}=='&' && $qv{strlen($qv)-1}==';')) {
+				if (strlen($qv)>2 && !($qv[0]=='&' && $qv[strlen($qv)-1]==';')) {
 					$msg = _('Select an answer');
 					break;
 				}
@@ -1402,7 +1402,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($displayformat == 'column') { $displayformat = '2column';}
 
 		if (substr($displayformat,1)=='column') {
-			$ncol = $displayformat{0};
+			$ncol = $displayformat[0];
 			$itempercol = ceil(count($randkeys)/$ncol);
 			$displayformat = 'column';
 		}
@@ -1515,7 +1515,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 
 		$ncol = 1;
 		if (substr($displayformat,1)=='columnselect') {
-			$ncol = $displayformat{0};
+			$ncol = $displayformat[0];
 			$itempercol = ceil(count($randqkeys)/$ncol);
 			$displayformat = 'select';
 		}
@@ -1664,7 +1664,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 			unset($reqsigfigs);
 		}
 		if (isset($reqsigfigs)) {
-			if ($reqsigfigs{0}=='=') {
+			if ($reqsigfigs[0]=='=') {
 				$reqsigfigs = substr($reqsigfigs,1);
 				if (in_array('list',$ansformats) || in_array('exactlist',$ansformats) || in_array('orderedlist',$ansformats)) {
 					$answer = implode(',', prettysigfig(explode(',', $answer), $reqsigfigs,'',false,in_array("scinot",$ansformats)||in_array("scinotordec",$ansformats)));
@@ -1673,7 +1673,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 				}
 				$tip .= "<br/>" . sprintf(_('Your answer should have exactly %d significant figures.'), $reqsigfigs);
 				$shorttip .= sprintf(_(', with exactly %d significant figures'), $reqsigfigs);
-			} else if ($reqsigfigs{0}=='[') {
+			} else if ($reqsigfigs[0]=='[') {
 				$reqsigfigparts = explode(',',substr($reqsigfigs,1,-1));
 				$tip .= "<br/>" . sprintf(_('Your answer should have between %d and %d significant figures.'), $reqsigfigparts[0], $reqsigfigparts[1]);
 				$shorttip .= sprintf(_(', with %d - %d significant figures'), $reqsigfigparts[0], $reqsigfigparts[1]);
@@ -1711,7 +1711,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($useeqnhelper) {
 			$params['helper'] = 1;
 		}
-		if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+		if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
 			$params['preview'] = 1;
 		}
 		$params['calcformat'] = $answerformat;
@@ -2067,7 +2067,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($useeqnhelper) {
 			$params['helper'] = 1;
 		}
-		if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+		if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
 			$params['preview'] = 1;
 		}
 		$params['calcformat'] = Sanitize::encodeStringForDisplay($answerformat);
@@ -2265,7 +2265,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($useeqnhelper) {
 			$params['helper'] = 1;
 		}
-		if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+		if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
 			$params['preview'] = 1;
 		}
 
@@ -2328,7 +2328,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($useeqnhelper) {
 			$params['helper'] = 1;
 		}
-		if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+		if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
 			$params['preview'] = 1;
 		}
 
@@ -2389,7 +2389,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($useeqnhelper) {
 			$params['helper'] = 1;
 		}
-		if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+		if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
 			$params['preview'] = 1;
 		}
 		$params['calcformat'] = $answerformat;
@@ -2511,7 +2511,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 			if ($useeqnhelper && $displayformat == 'usepreview') {
 				$params['helper'] = 1;
 			}
-			if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+			if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
 				$params['preview'] = 1;
 			}
 			$params['calcformat'] = $answerformat;
@@ -2670,7 +2670,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 
 		$ansformats = array_map('trim',explode(',',$answerformat));
 
-		if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+		if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
 			$top = _('Enter your answer by selecting the shade type, and by clicking and dragging the sliders on the normal curve');
 			$shorttip = _('Adjust the sliders');
 		} else {
@@ -2687,7 +2687,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 			}
 			$shorttip = _('Enter an interval using interval notation');
 		}
-		if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+		if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
 			$out .=  '<div style="background:#fff;padding:10px;">';
 			$out .=  '<p style="margin:0px";>Shade: <select id="shaderegions'.$qn.'" onchange="imathasDraw.chgnormtype(this.id.substring(12));"><option value="1L">' . _('Left of a value') . '</option><option value="1R">' . _('Right of a value') . '</option>';
 			$out .=  '<option value="2B">' . _('Between two values') . '</option><option value="2O">' . _('2 regions') . '</option></select>. ' . _('Click and drag the arrows to adjust the values.');
@@ -2726,7 +2726,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if ($useeqnhelper) {
 			$params['helper'] = 1;
 		}
-		if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+		if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
 			$classes[] = 'pseudohidden';
 			$params['format'] = 'normslider';
 		}
@@ -2741,7 +2741,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 			$answer = str_replace('"','',$answer);
 		}
 		if (isset($answer)) {
-			if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+			if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
 				$sa .=  '<div style="position: relative; width: 500px; height:200px;padding:0px;background:#fff;">';
 				$answer = preg_replace('/\s/','',$answer);
 				if (preg_match('/\(-oo,([\-\d\.]+)\)U\(([\-\d\.]+),oo\)/',$answer,$matches)) {
@@ -2920,7 +2920,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 					if (strpos($grid[$i],':')!==false) {
 						$pts = explode(':',$grid[$i]);
 						foreach ($pts as $k=>$v) {
-							if ($v{0}==="h") {
+							if ($v[0]==="h") {
 								$pts[$k] = "h".evalbasic(substr($v,1));
 							} else {
 								$pts[$k] = evalbasic($v);
@@ -3008,10 +3008,10 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 				$settings[7] = $newheight;
 			}
 		}
-		if ($GLOBALS['sessiondata']['userprefs']['drawentry']==1 && $GLOBALS['sessiondata']['graphdisp']==0) {
+		if ($_SESSION['userprefs']['drawentry']==1 && $_SESSION['graphdisp']==0) {
 			//can't imagine why someone would pick this, but if they do, need to set graphdisp to 2 temporarily
 			$revertgraphdisp = true;
-			$GLOBALS['sessiondata']['graphdisp']=2;
+			$_SESSION['graphdisp']=2;
 		} else {
 			$revertgraphdisp = false;
 		}
@@ -3045,7 +3045,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		if (isset($GLOBALS['hidedrawcontrols'])) {
 			$out .= $plot;
 		} else {
-			if ($GLOBALS['sessiondata']['userprefs']['drawentry']==0) { //accessible entry
+			if ($_SESSION['userprefs']['drawentry']==0) { //accessible entry
 				$bg = 'a11ydraw:'.implode(',', $answerformat);
 				$out .= '<p>'._('Graph to add drawings to:').'</p>';
 				$out .= '<p>'.$plot.'</p>';
@@ -3299,7 +3299,7 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 			}
 		}
 		if ($revertgraphdisp) {
-			$GLOBALS['sessiondata']['graphdisp']=0;
+			$_SESSION['graphdisp']=0;
 		}
 		$tip = _('Enter your answer by drawing on the graph.');
 		if (isset($answers)) {
@@ -3476,8 +3476,8 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi,$colorbox='') {
 		$out .= getcolormark($colorbox);
 		if ($colorbox!='') { $out .= '</span>';}
 		if ($la!='') {
-			if (isset($GLOBALS['testsettings']) && isset($GLOBALS['sessiondata']['groupid']) && $GLOBALS['testsettings']>0 && $GLOBALS['sessiondata']['groupid']>0) {
-				$s3asid = 'grp'.$GLOBALS['sessiondata']['groupid'].'/'.$GLOBALS['testsettings']['id'];
+			if (isset($GLOBALS['testsettings']) && isset($_SESSION['groupid']) && $GLOBALS['testsettings']>0 && $_SESSION['groupid']>0) {
+				$s3asid = 'grp'.$_SESSION['groupid'].'/'.$GLOBALS['testsettings']['id'];
 			} else if (isset($GLOBALS['asid'])) {
 				$s3asid = $GLOBALS['asid'];
 			}
@@ -3613,7 +3613,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 		if ($givenans == null) {return 0;}
 		if (in_array('set',$ansformats) || in_array('exactset',$ansformats)) {
 			$givenans = trim($givenans);
-			if ($givenans{0}!='{' || substr($givenans,-1)!='}') { return 0; }
+			if ($givenans[0]!='{' || substr($givenans,-1)!='}') { return 0; }
 			$answer = str_replace(array('{','}'),'', $answer);
 			$givenans = str_replace(array('{','}'),'', $givenans);
 			$answerformat = str_replace('set','list',$answerformat);
@@ -3679,7 +3679,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 		}
 		if (in_array('parenneg',$ansformats)) {
 			foreach ($gaarr as $k=>$v) {
-				if ($v{0}=='(') {
+				if ($v[0]=='(') {
 					$gaarr[$k] = -1*substr($v,1,-1);
 				}
 			}
@@ -7759,7 +7759,7 @@ function parsecomplex($v) {
 			//look left
 			$nd = 0;
 			for ($L=$p-1;$L>0;$L--) {
-				$c = $v{$L};
+				$c = $v[$L];
 				if ($c==')') {
 					$nd++;
 				} else if ($c=='(') {
@@ -7776,7 +7776,7 @@ function parsecomplex($v) {
 			$nd = 0;
 
 			for ($R=$p+1;$R<$len;$R++) {
-				$c = $v{$R};
+				$c = $v[$R];
 				if ($c=='(') {
 					$nd++;
 				} else if ($c==')') {
@@ -7794,11 +7794,11 @@ function parsecomplex($v) {
 				if ($R==$len) {// real + AiB
 					$real = substr($v,0,$L);
 					$imag = substr($v,$L,$p-$L);
-					$imag .= '*'.substr($v,$p+1+($v{$p+1}=='*'?1:0),$R-$p-1);
+					$imag .= '*'.substr($v,$p+1+($v[$p+1]=='*'?1:0),$R-$p-1);
 				} else if ($L==0) { //AiB + real
 					$real = substr($v,$R);
 					$imag = substr($v,0,$p);
-					$imag .= '*'.substr($v,$p+1+($v{$p+1}=='*'?1:0),$R-$p-1);
+					$imag .= '*'.substr($v,$p+1+($v[$p+1]=='*'?1:0),$R-$p-1);
 				} else {
 					return _('error - invalid form');
 				}
@@ -7809,34 +7809,34 @@ function parsecomplex($v) {
 				$real = substr($v,0,$L) . substr($v,$p+1);
 			} else if ($R-$p>1) {
 				if ($p>0) {
-					if ($v{$p-1}!='+' && $v{$p-1}!='-') {
+					if ($v[$p-1]!='+' && $v[$p-1]!='-') {
 						return _('error - invalid form');
 					}
-					$imag = $v{$p-1}.substr($v,$p+1+($v{$p+1}=='*'?1:0),$R-$p-1);
+					$imag = $v[$p-1].substr($v,$p+1+($v[$p+1]=='*'?1:0),$R-$p-1);
 					$real = substr($v,0,$p-1) . substr($v,$R);
 				} else {
 					$imag = substr($v,$p+1,$R-$p-1);
 					$real = substr($v,0,$p) . substr($v,$R);
 				}
 			} else { //i or +i or -i or 3i  (one digit)
-				if ($v{$L}=='+') {
+				if ($v[$L]=='+') {
 					$imag = 1;
-				} else if ($v{$L}=='-') {
+				} else if ($v[$L]=='-') {
 					$imag = -1;
 				} else if ($p==0) {
 					$imag = 1;
 				} else {
-					$imag = $v{$L};
+					$imag = $v[$L];
 				}
 				$real = ($p>0?substr($v,0,$L):'') . substr($v,$p+1);
 			}
 			if ($real=='') {
 				$real = 0;
 			}
-			if ($imag{0}=='/') {
+			if ($imag[0]=='/') {
 				$imag = '1'.$imag;
-			} else if (($imag{0}=='+' || $imag{0}=='-') && $imag{1}=='/') {
-				$imag = $imag{0}.'1'.substr($imag,1);
+			} else if (($imag[0]=='+' || $imag[0]=='-') && $imag[1]=='/') {
+				$imag = $imag[0].'1'.substr($imag,1);
 			}
 			$imag = str_replace('*/','/',$imag);
 			if (substr($imag,-1)=='*') {

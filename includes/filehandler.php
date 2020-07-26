@@ -90,6 +90,28 @@ function relocatefileifneeded($file, $key, $sec="public") {
 	}
 }
 
+function relocategraphfileifneeded($file, $key) {
+	global $imasroot;
+	if (getfilehandlertype('filehandlertypecfiles') == 's3') {
+		$s3 = new S3($GLOBALS['AWSkey'],$GLOBALS['AWSsecret']);
+		if ($s3->putObjectFile($file,$GLOBALS['AWSbucket'],'gimgs/'.$key,"public-read")) {
+			return 'https://'.$GLOBALS['AWSbucket'].".s3.amazonaws.com/gimgs/$key";;
+		} else {
+			return false;
+		}
+	} else {
+		return $imasroot.'/filter/graph/imgs/'.$key;
+	}
+}
+function getgraphfileurl($key) {
+	global $imasroot;
+	if (getfilehandlertype('filehandlertypecfiles') == 's3') {
+		return 'https://'.$GLOBALS['AWSbucket'].".s3.amazonaws.com/gimgs/$key";;
+	} else {
+		return $imasroot.'/filter/graph/imgs/'.$key;
+	}
+}
+
 //copies file at URL
 function rehostfile($url, $keydir, $sec="public", $prependToFilename="") {
 	if (substr($url,0,4)!=='http') {return false;}
@@ -175,17 +197,68 @@ function storeuploadedfile($id,$key,$sec="private") {
 	}
 }
 
+function storeimportfile($id) {
+	$key = uniqid();
+	if (getfilehandlertype('filehandlertypecfiles') == 's3') {
+		$sec = "private";
+		if (is_uploaded_file($_FILES[$id]['tmp_name'])) {
+			$s3 = new S3($GLOBALS['AWSkey'],$GLOBALS['AWSsecret']);
+			// $_FILES[]['tmp_name'] is not user provided. This is safe.
+			if ($s3->putObjectFile(realpath($_FILES[$id]['tmp_name']),$GLOBALS['AWSbucket'],'import/'.$key,$sec)) {
+				return $key;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	} else {
+		if (is_uploaded_file($_FILES[$id]['tmp_name'])) {
+			$base = rtrim(dirname(dirname(__FILE__)), '/\\').'/admin/import/';
+			$key = Sanitize::sanitizeFilePathAndCheckBlacklist($key);
+			if (move_uploaded_file($_FILES[$id]['tmp_name'], $base.$key)) {
+				return $key;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+}
+
+function getimportfilepath($key) {
+	if (getfilehandlertype('filehandlertypecfiles') == 's3') {
+		$s3 = new S3($GLOBALS['AWSkey'],$GLOBALS['AWSsecret']);
+		return $s3->queryStringGet($GLOBALS['AWSbucket'],'import/'.$key,7200);
+	} else {
+		$base = rtrim(dirname(dirname(__FILE__)), '/\\').'/admin/import/';
+		return $base . Sanitize::sanitizeFilePathAndCheckBlacklist($key);
+	}
+}
+function deleteimport($key) {
+	if (getfilehandlertype('filehandlertypecfiles') == 's3') {
+		$s3 = new S3($GLOBALS['AWSkey'],$GLOBALS['AWSsecret']);
+		$s3->deleteObject($GLOBALS['AWSbucket'],'import/'.$key);
+	} else {
+		$base = rtrim(dirname(dirname(__FILE__)), '/\\').'/admin/import/';
+		unlink(realpath($base.$key));
+	}
+}
+
 function downsizeimage($fileinfo) {
 	if (preg_match('/\.(jpg|jpeg)/', $fileinfo['name'])) {
 		$imgdata = getimagesize($fileinfo['tmp_name']);
+		if ($imgdata === false || $imgdata[2] !== IMAGETYPE_JPEG) {
+			return;
+		}
 		try {
 			$exif = exif_read_data($fileinfo['tmp_name']);
 		} catch (Exception $exp) {
 			$exif = false;
 		}
 		$changed = false;
-		if ($imgdata!==false && $imgdata['mime'] == 'image/jpeg' &&
-		   (min($imgdata[0],$imgdata[1])>1000 || (isset($exif['Orientation']) && $exif['Orientation']>1)) &&
+		if ((min($imgdata[0],$imgdata[1])>1000 || !empty($exif['Orientation'])) &&
 		   ($imgdata[0]*$imgdata[1]*3*2/1048576 < 80)) {  //make sure mem use will be under 80MB
 			if (min($imgdata[0],$imgdata[1])>1000) {
 				$r = $imgdata[0]/$imgdata[1]; // width/height
@@ -852,6 +925,14 @@ function doesfileexist($type,$key) {
 			return $s3->getObjectInfo($GLOBALS['AWSbucket'], 'cfiles/'.$key, false);
 		} else {
 			$base = rtrim(dirname(dirname(__FILE__)), '/\\').'/course/files/';
+			return file_exists($base.$key);
+		}
+	} else if ($type=='graphimg') {
+		if (getfilehandlertype('filehandlertypecfiles') == 's3') {
+			$s3 = new S3($GLOBALS['AWSkey'],$GLOBALS['AWSsecret']);
+			return $s3->getObjectInfo($GLOBALS['AWSbucket'], 'gimgs/'.$key, false);
+		} else {
+			$base = rtrim(dirname(dirname(__FILE__)), '/\\').'/filter/graph/imgs/';
 			return file_exists($base.$key);
 		}
 	} else {

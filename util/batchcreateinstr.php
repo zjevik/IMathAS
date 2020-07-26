@@ -3,17 +3,17 @@
 //(c) 2017 David Lippman for Lumen Learning
 
 
-ini_set("max_input_time", "1600");
+
 ini_set("max_execution_time", "1600");
-ini_set("memory_limit", "104857600");
-ini_set("upload_max_filesize", "10485760");
-ini_set("post_max_size", "10485760");
+
+
+
 
 require("../init.php");
 require_once("../includes/copyiteminc.php");
 //Look to see if a hook file is defined, and include if it is
 if (isset($CFG['hooks']['util/batchcreateinstr'])) {
-	require(__DIR__.'/../'.$CFG['hooks']['util/batchcreateinstr']);
+    require($CFG['hooks']['util/batchcreateinstr']);
 }
 
 if ($myrights < 100 && ($myspecialrights&16)!=16 && ($myspecialrights&32)!=32) {
@@ -123,8 +123,8 @@ if (isset($_POST['groupid']) && is_uploaded_file($_FILES['uploadedfile']['tmp_na
       $blockcnt = 1;
       $itemorder = serialize(array());
       $DBH->beginTransaction();
-      $query = "INSERT INTO imas_courses (name,ownerid,enrollkey,hideicons,picicons,allowunenroll,copyrights,msgset,toolset,UIver,showlatepass,itemorder,available,istemplate,deftime,deflatepass,theme,ltisecret,blockcnt) ";
-      $query .= "SELECT name,:ownerid,enrollkey,hideicons,picicons,allowunenroll,copyrights,msgset,toolset,UIver,showlatepass,:itemorder,available,0,deftime,deflatepass,theme,'',1 ";
+      $query = "INSERT INTO imas_courses (name,ownerid,enrollkey,allowunenroll,copyrights,msgset,toolset,UIver,showlatepass,itemorder,available,istemplate,deftime,deflatepass,theme,ltisecret,blockcnt) ";
+      $query .= "SELECT name,:ownerid,enrollkey,allowunenroll,copyrights,msgset,toolset,UIver,showlatepass,:itemorder,available,0,deftime,deflatepass,theme,'',1 ";
       $query .= "FROM imas_courses WHERE id=:sourceid";
       $stm = $DBH->prepare($query);
       $stm->execute(array(':ownerid'=>$uid, ':itemorder'=>$itemorder, ':sourceid'=>$sourcecid));
@@ -208,7 +208,7 @@ if (isset($_POST['groupid']) && is_uploaded_file($_FILES['uploadedfile']['tmp_na
       $usereplaceby = "all";
       $newitems = array();
       copyallsub($items,'0',$newitems,$gbcats);
-      doaftercopy($sourcecid);
+      doaftercopy($sourcecid, $newitems);
       $itemorder = serialize($newitems);
       $stm = $DBH->prepare("UPDATE imas_courses SET itemorder=:itemorder,blockcnt=:blockcnt,ancestors=:ancestors,outcomes=:outcomes,latepasshrs=:latepasshrs WHERE id=:id");
       $stm->execute(array(':itemorder'=>$itemorder, ':blockcnt'=>$blockcnt, ':ancestors'=>$ancestors, ':outcomes'=>$newoutcomearr, ':latepasshrs'=>$latepasshrs, ':id'=>$cid));
@@ -307,7 +307,8 @@ function fopen_utf8 ($filename, $mode) {
     $file = @fopen($filename, $mode);
     $bom = fread($file, 3);
     if ($bom != b"\xEF\xBB\xBF") {
-        rewind($file);
+      fclose($file);
+      $file = @fopen($filename, $mode);
     }
     return $file;
 }

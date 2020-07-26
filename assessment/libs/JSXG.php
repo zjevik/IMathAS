@@ -15,6 +15,8 @@ $allowedmacros[] = "JSXG_addFunction";
 $allowedmacros[] = "JSXG_addParametric";
 $allowedmacros[] = "JSXG_addText";
 $allowedmacros[] = "JSXG_addSlider";
+$allowedmacros[] = "JSXG_addTangent";
+$allowedmacros[] = "JSXG_setAttribute";
 
 // Geometry macros
 $allowedmacros[] = "JSXG_createBlankBoard";
@@ -30,17 +32,17 @@ $allowedmacros[] = "JSXG_addGlider";
 
 ####### BASIC FUNCTION THAT JUST LOADS THE JSXGRAPH SCRIPT
 function loadJSX() {
-    echo getJSXscript();
+    return getJSXscript();
 }
 function getJSXscript () {
   if (isset($GLOBALS['assessUIver']) && $GLOBALS['assessUIver'] > 1) {
-		return '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsxgraph/0.99.3/jsxgraphcore.js"></script>';
+		return '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsxgraph/0.99.6/jsxgraphcore.js"></script>';
   } else {
 		return '<script type="text/javascript">if (typeof JXG === "undefined" && typeof JXGscriptloaded === "undefined") {
 			var jsxgloadscript = document.createElement("script");
-			jsxgloadscript.src = "//cdnjs.cloudflare.com/ajax/libs/jsxgraph/0.99.3/jsxgraphcore.js";
+      jsxgloadscript.src = "//cdnjs.cloudflare.com/ajax/libs/jsxgraph/0.99.6/jsxgraphcore.js";
 			document.getElementsByTagName("head")[0].appendChild(jsxgloadscript);
-			JXGscriptloaded = true;
+      JXGscriptloaded = true;
 		}</script>';
   }
 }
@@ -50,16 +52,21 @@ function getJSXscript () {
 # Set up a board. Auxillary functions
 function JSXG_setUpBoard($label, $width=350, $height=350, $centered=true){
   $cntrd = $centered===true ? "margin:auto;" : "";
+  $ratio = 100*($height/$width);
   // Start output string by getting script
   $out = getJSXscript();
   // make board
-  $out .= "<div id='jxgboard_{$label}' style='background-color:#FFF; width:{$width}px; height:{$height}px; {$cntrd}'></div>";
+  $out .= "<div class='jxgboardwrapper' style='max-width:{$width}px; max-height:{$height}px; {$cntrd}'>";
+  $out .= "<div id='jxgboard_{$label}' style='background-color:#FFF; width:100%; height:0px; padding-bottom:{$ratio}%;'></div>";
+  $out .= "</div>";
   // Start script
   $out .= "<script type='text/javascript'>";
   // We build construction function inline, push function to initstack to load async
   $out .= "function makeBoard{$label}(){
            try{";
   $out .= "JXG.Options.text.fontSize = 16;";
+  $out .= 'JXG.Options.text.cssDefaultStyle = "font-family:Serif;";';
+  $out .= 'JXG.Options.axis.lastArrow.size = 5;';
    // This is where new content gets inserted
    $out .= "/*INSERTHERE*/";
    // End of construction function. Push it to initstack
@@ -304,7 +311,7 @@ function JSXG_addSlider($board, $sname, $ops=array()){
 ######### JSXG_addFunction ##########
 # This will add a basic function plot to the board
 
-function JSXG_addFunction($board, $ops=array()){
+function JSXG_addFunction($board, $ops=array(), $ref=null){
   // Get Label string - so we know how to link elements
   $labStart = strpos($board, "jxgboard_") + 9;
   $labEnd = strpos($board, "'", $labStart);
@@ -319,6 +326,11 @@ function JSXG_addFunction($board, $ops=array()){
 
   // Determine if bounds are properly set for the function (setting domain of func)
   $isBounds = ($ops['bounds']!== null && count($ops['bounds'])==2) ? true : false;
+
+  // If $ref provided, then give the function a name
+  if ($ref!==null){
+	$out .= "var func_{$label}_{$ref} = ";
+  }
 
   // Start the output string
   $out .= "board_{$label}.create('functiongraph', [function({$inpVar}){";
@@ -2011,5 +2023,79 @@ function JSXG_createBlankBoard($label, $ops){
       return substr_replace($board, $out, strpos($board, "/*INSERTHERE*/"),0);
   }
 
+
+	function JSXG_addTangent($board, $ops=array(), $ref=null) {
+	
+		// Get Label string -- so we know how to link elements
+		$labStart = strpos($board, "jxgboard_") + 9;
+		$labEnd = strpos($board, "'", $labStart);
+		$label = substr($board, $labStart, $labEnd - $labStart);
+	
+		 // Defaults for visual apperance/name
+		$color = $ops['color'] !== null ? $ops['color'] : 'blue';
+		$dash = $ops['dash'] !== null ? $ops['dash'] : 0;
+		$width = $ops['width'] !== null ? $ops['width'] : 2;
+
+		$ops['visible'] = $ops['visible'] === null ?  'true' : $ops['visible'];
+		$visible = $ops['visible'] ? 'true' : 'false';
+		
+		// You must have a glider to attach a tangent to, if this isn't set then exit
+	    $obj = $ops['glider'] !== null ? $ops['glider'] : '';
+	
+		if($obj !== '') {
+				
+			// If $ref provided, then give the object a name
+			if ($ref !== null) {
+				$out .= " var tangent_{$label}_{$ref} = ";
+			}
+			
+			// Create the tangent line
+			$out .= "board_{$label}.create('tangent', [ {$obj} ], { ";
+			
+			// Add any attributes that were specified
+			
+			// -- The name field is a bit more complex so that math 
+			//    notation can be used; f'(x) needs wrapped in "f'(x)" for instance
+			$out .= 'name: "' . ($ops['label']!==null ? $ops['label'] : "") . '",';
+			
+			$out .= "
+				strokeColor: '{$color}',
+				dash: {$dash},
+				strokeWidth: {$width},
+				visible: {$visible},
+				withLabel: true,
+				fixed: false,
+				highlight: false,
+				label: { color:'{$color}', useMathJax: true }
+			})";
+			if ($ops['attributes'] !== null) {
+				$out .= ".setAttribute({$ops['attributes']});";
+			} else {
+				$out .= ";";
+			}
+	
+			// Append new output string to the board string{
+			return substr_replace($board, $out, strpos($board, "/*INSERTHERE*/"),0);
+			
+		} else {
+			echo "Eek! You must provide the name of a glider to attach the tangent line to.";
+			return $board;
+		}
+
+	}
+
+	function JSXG_setAttribute($board, $obj, $parameters) {
+	
+		// Get Label string -- so we know how to link elements
+		$labStart = strpos($board, "jxgboard_") + 9;
+		$labEnd = strpos($board, "'", $labStart);
+		$label = substr($board, $labStart, $labEnd - $labStart);
+			
+		$out .= "{$obj}.setAttribute( ".$parameters." );";
+	
+		// Append new output string to the board string{
+		return substr_replace($board, $out, strpos($board, "/*INSERTHERE*/"),0);
+
+	}
 
 ?>

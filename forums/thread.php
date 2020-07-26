@@ -137,7 +137,7 @@ $duedates = '';
 if (($postby>0 && $postby<2000000000) || ($replyby>0 && $replyby<2000000000)) {
 	$exception = null; $latepasses = 0;
 	require_once("../includes/exceptionfuncs.php");
-	if (isset($studentid) && !isset($sessiondata['stuview'])) {
+	if (isset($studentid) && !isset($_SESSION['stuview'])) {
 		$stm = $DBH->prepare("SELECT startdate,enddate,islatepass,waivereqscore,itemtype FROM imas_exceptions WHERE assessmentid=:assessmentid AND userid=:userid AND (itemtype='F' OR itemtype='P' OR itemtype='R')");
 		$stm->execute(array(':assessmentid'=>$forumid, ':userid'=>$userid));
 		if ($stm->rowCount()>0) {
@@ -195,8 +195,7 @@ $now = time();
 $grpqs = '';
 if ($groupsetid>0) {
 	if (isset($_GET['ffilter'])) {
-		$sessiondata['ffilter'.$forumid] = $_GET['ffilter'];
-		writesessiondata();
+		$_SESSION['ffilter'.$forumid] = $_GET['ffilter'];
 	}
 	if (!$isteacher) {
 		$query = 'SELECT i_sg.id,i_sg.name FROM imas_stugroups AS i_sg JOIN imas_stugroupmembers as i_sgm ON i_sgm.stugroupid=i_sg.id ';
@@ -210,8 +209,8 @@ if ($groupsetid>0) {
 		}
 		$dofilter = true;
 	} else {
-		if (isset($sessiondata['ffilter'.$forumid]) && $sessiondata['ffilter'.$forumid]>-1) {
-			$groupid = $sessiondata['ffilter'.$forumid];
+		if (isset($_SESSION['ffilter'.$forumid]) && $_SESSION['ffilter'.$forumid]>-1) {
+			$groupid = $_SESSION['ffilter'.$forumid];
 			$dofilter = true;
 			$grpqs = "&grp=$groupid";
 		} else {
@@ -242,11 +241,10 @@ if ($groupsetid>0) {
 }
 
 if (isset($_GET['tagfilter'])) {
-	$sessiondata['tagfilter'.$forumid] = stripslashes($_GET['tagfilter']);
-	writesessiondata();
+	$_SESSION['tagfilter'.$forumid] = stripslashes($_GET['tagfilter']);
 	$tagfilter = stripslashes($_GET['tagfilter']);
-} else if (isset($sessiondata['tagfilter'.$forumid]) && $sessiondata['tagfilter'.$forumid]!='') {
-	$tagfilter = $sessiondata['tagfilter'.$forumid];
+} else if (isset($_SESSION['tagfilter'.$forumid]) && $_SESSION['tagfilter'.$forumid]!='') {
+	$tagfilter = $_SESSION['tagfilter'.$forumid];
 } else {
 	$tagfilter = '';
 }
@@ -375,7 +373,7 @@ if (isset($_GET['markallread'])) {
 
 $pagetitle = "Threads";
 $placeinhead = "<style type=\"text/css\">\n@import url(\"$imasroot/forums/forums.css\"); td.pointer:hover {text-decoration: underline;}\n</style>\n";
-$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/thread.js\"></script>";
+$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/thread.js?v=050220\"></script>";
 $placeinhead .= "<script type=\"text/javascript\">var AHAHsaveurl = '" . $GLOBALS['basesiteurl'] . "/forums/savetagged.php?cid=$cid';";
 $placeinhead .= '$(function() {$("img[src*=\'flag\']").attr("title","Flag Message");});';
 $placeinhead .= "var tagfilterurl = '" . $GLOBALS['basesiteurl'] . "/forums/thread.php?page=$pages&cid=$cid&forum=$forumid';</script>";
@@ -528,14 +526,14 @@ echo "<input type=hidden name=cid value=\"$cid\"/>";
 echo "<input type=hidden name=forum value=\"$forumid\"/>";
 
 ?>
-<label for="search">Search</label>: <input type=text name="search" id="search" /> 
-<input type=checkbox name="allforums" id="allforums" /> <label for="allforums">All forums in course?</label> 
+<label for="search">Search</label>: <input type=text name="search" id="search" />
+<input type=checkbox name="allforums" id="allforums" /> <label for="allforums">All forums in course?</label>
 <input type="submit" value="Search"/>
 </form>
 <?php
 if ($isteacher && $groupsetid>0) {
-	if (isset( $sessiondata['ffilter'.$forumid])) {
-		$curfilter = $sessiondata['ffilter'.$forumid];
+	if (isset( $_SESSION['ffilter'.$forumid])) {
+		$curfilter = $_SESSION['ffilter'.$forumid];
 	} else {
 		$curfilter = -1;
 	}
@@ -652,7 +650,7 @@ echo "</p>";
 			$stm->execute(array(':forumid'=>$forumid));
 			// $result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 			while ($row = $stm->fetch(PDO::FETCH_NUM)) {
-				$uniqviews[$row[0]] = $row[1]-1;
+				$uniqviews[$row[0]] = $row[1];
 			}
 			$query = "SELECT imas_forum_posts.*,imas_forum_threads.views as tviews,imas_users.LastName,imas_users.FirstName,imas_forum_threads.stugroupid,imas_forum_threads.lastposttime ";
 			$query .= "FROM imas_forum_posts,imas_users,imas_forum_threads WHERE ";
@@ -690,11 +688,16 @@ echo "</p>";
 					$posts = 0;
 					$lastpost = '';
 				}
-				echo "<tr id=\"tr".Sanitize::onlyInt($line['id'])."\"";
+				$classes = array();
 				if ($line['posttype']>0) {
-					echo "class=sticky";
-				} else if (isset($flags[$line['id']])) {
-					echo "class=tagged";
+					$classes[] = "sticky";
+				}
+				if (isset($flags[$line['id']])) {
+					$classes[] = "tagged";
+				}
+				echo "<tr id=\"tr".Sanitize::onlyInt($line['id'])."\"";
+				if (count($classes)>0) {
+					 echo ' class="'.implode(' ',$classes).'"';
 				}
 				echo "><td>";
 				echo "<span class=\"right\">\n";
@@ -705,13 +708,12 @@ echo "</p>";
 					echo '<span class="forumcattag">'.Sanitize::encodeStringForDisplay($line['tag']).'</span> ';
 				}
 
-				if ($line['posttype']==0) {
-					if (isset($flags[$line['id']])) {
-						echo "<img class=\"pointer\" id=\"tag". Sanitize::onlyInt($line['id'])."\" src=\"$imasroot/img/flagfilled.gif\" onClick=\"toggletagged(". Sanitize::onlyInt($line['id']) . ");return false;\" alt=\"Flagged\" />";
-					} else {
-						echo "<img class=\"pointer\" id=\"tag". Sanitize::onlyInt($line['id'])."\" src=\"$imasroot/img/flagempty.gif\" onClick=\"toggletagged(". Sanitize::onlyInt($line['id'])  . ");return false;\" alt=\"Not flagged\"/>";
-					}
-				} else if ($isteacher) {
+				if (isset($flags[$line['id']])) {
+					echo "<img class=\"pointer\" id=\"tag". Sanitize::onlyInt($line['id'])."\" src=\"$imasroot/img/flagfilled.gif\" onClick=\"toggletagged(". Sanitize::onlyInt($line['id']) . ");return false;\" alt=\"Flagged\" />";
+				} else {
+					echo "<img class=\"pointer\" id=\"tag". Sanitize::onlyInt($line['id'])."\" src=\"$imasroot/img/flagempty.gif\" onClick=\"toggletagged(". Sanitize::onlyInt($line['id'])  . ");return false;\" alt=\"Not flagged\"/>";
+				}
+				if ($isteacher) {
 					if ($line['posttype']==2) {
 						echo "<img class=mida src=\"$imasroot/img/lock.png\" alt=\"Lock\" title=\"Locked (no replies)\" /> ";
 					} else if ($line['posttype']==3) {

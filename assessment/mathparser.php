@@ -116,7 +116,7 @@ class MathParser
   private $tokens = [];
   private $operatorStack = [];
   private $operandStack = [];
-  private $AST = [];
+  public $AST = [];
   private $regex = '';
   private $funcregex = '';
   private $numvarregex = '';
@@ -147,9 +147,9 @@ class MathParser
     //build regex's for matching symbols
     $allwords = array_merge($this->functions, $this->variables);
     usort($allwords, function ($a,$b) { return strlen($b) - strlen($a);});
-    $this->regex = '/^('.implode('|',$allwords).')/';
-    $this->funcregex = '/^('.implode('|',$this->functions).')/i';
-    $this->numvarregex = '/^(\d+\.?\d*|'.implode('|', $this->variables).')/';
+    $this->regex = '/^('.implode('|',array_map('preg_quote', $allwords)).')/';
+    $this->funcregex = '/^('.implode('|',array_map('preg_quote', $this->functions)).')/i';
+    $this->numvarregex = '/^(\d+\.?\d*|'.implode('|', array_map('preg_quote', $this->variables)).')/';
 
     //define operators
     $this->operators = [
@@ -209,12 +209,16 @@ class MathParser
   public function parse($str) {
     // Rewrite sin^(-1) as arcsin
     $str = str_replace(
-      array("sin^-1","cos^-1","tan^-1","sin^(-1)","cos^(-1)","tan^(-1)","sinh^-1","cosh^-1","tanh^-1","sinh^(-1)","cosh^(-1)","tanh^(-1)"),
-      array("arcsin","arccos","arctan","arcsin","arccos","arctan","arcsinh","arccosh","arctanh","arcsinh","arccosh","arctanh"),
+      array("sin^-1","cos^-1","tan^-1","sin^(-1)","cos^(-1)","tan^(-1)",
+        "sec^-1","csc^-1","cot^-1","sec^(-1)","csc^(-1)","cot^(-1)",
+        "sinh^-1","cosh^-1","tanh^-1","sinh^(-1)","cosh^(-1)","tanh^(-1)"),
+      array("arcsin","arccos","arctan","arcsin","arccos","arctan",
+        "arcsec","arccsc","arccot","arcsec","arccsc","arccot",
+        "arcsinh","arccosh","arctanh","arcsinh","arccosh","arctanh"),
       $str
     );
-    $str = str_replace('\\','',$str);
-    $str = preg_replace('/log_\(([a-zA-Z\/\d\.]+)\)\s*\(/', 'log_$1(', $str);
+
+    $str = str_replace(array('\\','[',']'), array('','(',')'), $str);
     $this->tokenize($str);
     $this->handleImplicit();
     $this->buildTree();
@@ -396,6 +400,9 @@ class MathParser
                   'symbol'=> $sub[1]
                 ];
                 $n += strlen($sub[1]) + 1;
+              } else if ($str[$n+2] == '(') { // handle later
+                $tokens[count($tokens)-1]['symbol'] .= '_';
+                $n += 1;
               }
             } else if ($peek == '^') {
               // found something like sin^2; append power to symbol for now
@@ -484,7 +491,7 @@ class MathParser
     foreach ($this->tokens as $tokenindex => &$token) {
       if ($token['symbol'] == ')') {
         // end of sub expression - handle it
-        $this->handleSubExpression();
+        $this->handleSubExpression($tokenindex);
       } else if ($token['type'] == 'number' || $token['type'] == 'variable') {
         $this->operandStack[] = $token;
       } else if ($token['type'] == 'function') {
@@ -624,7 +631,7 @@ class MathParser
    * until we find a matching open paren
    * @return void
    */
-  private function handleSubExpression() {
+  private function handleSubExpression($tokenindex) {
     $clean = false;
     while ($popped = array_pop($this->operatorStack)) {
       if ($popped['symbol'] == '(') {
@@ -645,7 +652,17 @@ class MathParser
       if ($previous['type'] == 'function') {
         $node = array_pop($this->operatorStack); //this is the function node
         $operand = array_pop($this->operandStack);
-        $node['input'] = $operand;  // assign argument to function
+        if ($node['symbol'] == 'log_') {
+          $node['symbol'] = 'log';
+          $node['index'] = $operand;
+          $this->operatorStack[] = $node;
+          if ($this->tokens[$tokenindex+1]['symbol'] == '*') {
+            unset($this->tokens[$tokenindex+1]); // remove implicit mult
+          };
+          return;
+        } else {
+          $node['input'] = $operand;  // assign argument to function
+        }
         if (strpos($node['symbol'], '^') !== false) { // if it's sin^2, transform now
           list($subSymbol, $power) = explode('^', $node['symbol']);
           if ($power === '-1' && function_exists('a'.$subSymbol)) {
@@ -692,7 +709,9 @@ class MathParser
     } else if ($node['type'] === 'function') {
       // find the value of the input to the function
       $insideval = $this->evalNode($node['input']);
-
+      if (isset($node['index'])) {
+        $indexval = $this->evalNode($node['index']);
+      }
       $funcname = $node['symbol'];
       // check for syntax errors or domain issues
       switch ($funcname) {
@@ -705,12 +724,20 @@ class MathParser
           if ($insideval <= 0) {
             throw new MathParserException("Invalid input to $funcname");
           }
+          if ($indexval <= 0) {
+            throw new MathParserException("Invalid base to $funcname");
+          }
           break;
         case 'arcsin':
         case 'arccos':
+          $insideval = round($insideval, 12);
+          if ($insideval < -1 || $insideval > 1) {
+            throw new MathParserException("Invalid input to $funcname");
+          }
+          break;
         case 'arcsec':
         case 'arccsc':
-          if ($insideval < -1 || $insideval > 1) {
+          if ($insideval > -1 && $insideval < 1) {
             throw new MathParserException("Invalid input to $funcname");
           }
           break;
@@ -727,7 +754,7 @@ class MathParser
           }
           break;
         case 'nthroot':
-          if ($node['index']%2==0 && $insideval<0) {
+          if ($indexval%2==0 && $insideval<0) {
             throw new MathParserException("no even root of negative");
           }
           break;
@@ -742,7 +769,7 @@ class MathParser
       //rewrite arctan to atan to match php function name
       $funcname = str_replace('arc', 'a', $funcname);
       if (!empty($node['index'])) {
-        return call_user_func($funcname, $insideval, $this->evalNode($node['index']));
+        return call_user_func($funcname, $insideval, $indexval);
       }
       return call_user_func($funcname, $insideval);
     } else if ($node['symbol'] === '~') {
@@ -824,13 +851,18 @@ class MathParser
     }
   }
 
+  public function removeOneTimes() {
+    $this->walkRemoveOne($this->AST);
+  }
+
   /**
    * Normalize the tree and get the result as a string
    * @return string
    */
   public function normalizeTreeString() {
-    return $this->normalizeNodeToString($this->AST);
-    //return $this->toOutputString($this->normalizeNode($this->AST));
+    $this->removeOneTimes();
+    //return $this->normalizeNodeToString($this->AST);
+    return $this->toOutputString($this->normalizeNode($this->AST));
   }
 
   /**
@@ -1107,6 +1139,47 @@ class MathParser
       }
     }
   }
+
+  private function walkRemoveOne(&$node) {
+    if ($node['symbol'] == '*') {
+      if ($node['right']['symbol'] == '1') {
+        $node = $node['left'];
+        $this->walkRemoveOne($node);
+        return;
+      } else if ($node['left']['symbol'] == '1') {
+        $node = $node['right'];
+        $this->walkRemoveOne($node);
+        return;
+      } else if ($node['left']['symbol'] == '~' &&
+        $node['left']['left']['symbol'] == '1'
+      ) {
+        if ($node['right']['symbol'] == '~') { // both neg; remove both negs
+          $node = $node['right']['left'];
+        } else { // make right neg and remove a level
+          $node['left']['left'] = $node['right'];
+          $node = $node['left'];
+        }
+      } else if ($node['right']['symbol'] == '~' &&
+        $node['right']['left']['symbol'] == '1'
+      ) {
+        if ($node['left']['symbol'] == '~') { // both neg; remove both negs
+          $node = $node['left']['left'];
+        } else { // make left neg and remove a level
+          $node['right']['left'] = $node['left'];
+          $node = $node['right'];
+        }
+      }
+    }
+    if (isset($node['left'])) {
+      $this->walkRemoveOne($node['left']);
+    }
+    if (isset($node['right'])) {
+      $this->walkRemoveOne($node['right']);
+    }
+    if (isset($node['input'])) {
+      $this->walkRemoveOne($node['input']);
+    }
+  }
 }
 
 
@@ -1226,7 +1299,7 @@ function asec($x) {
   if (abs($x)<1e-16) {
     throw new MathParserException("Invalid input for arcsec");
   }
-  $inv = 1/$x;
+  $inv = round(1/$x, 12);
   if ($inv < -1 || $inv > 1) {
     throw new MathParserException("Invalid input for arcsec");
   }
@@ -1236,17 +1309,20 @@ function acsc($x) {
   if (abs($x)<1e-16) {
     throw new MathParserException("Invalid input for arccsc");
   }
-  $inv = 1/$x;
+  $inv = round(1/$x, 12);
   if ($inv < -1 || $inv > 1) {
     throw new MathParserException("Invalid input for arccsc");
   }
-  return acos($inv);
+  return asin($inv);
 }
 function acot($x) {
-  if (abs($x)<1e-16) {
-    throw new MathParserException("Invalid input for arccot");
-  }
-  return atan(1/$x);
+  return M_PI/2 - atan($x);
+}
+function safeasin($x) {
+  return asin(round($x,12));  
+}
+function safeacos($x) {
+  return acos(round($x,12));  
 }
 function sign($a,$str=false) {
 	if ($str==="onlyneg") {
@@ -1256,4 +1332,7 @@ function sign($a,$str=false) {
 	} else {
 		return ($a<0)?-1:1;
 	}
+}
+function sgn($a) {
+	return ($a==0)?0:(($a<0)?-1:1);
 }

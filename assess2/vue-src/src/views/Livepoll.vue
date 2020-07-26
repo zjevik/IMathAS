@@ -158,6 +158,7 @@ export default {
       if (data.action === 'showq') {
         // On question show, server sends as data:
         //  action: "showq", qn: qn, seed: seed, startt:startt
+        actions.clearInitValue(data.qn);
         this.$set(store.assessInfo, 'livepoll_status', {
           curstate: 2,
           curquestion: parseInt(data.qn) + 1,
@@ -178,7 +179,7 @@ export default {
       // called by teacher when they select a question
       // If 0, show the settings
       clearTimeout(this.livepollTimer);
-      let qn = parseInt(dispqn) - 1;
+      const qn = parseInt(dispqn) - 1;
       if (qn === -1) {
         this.onSettings = true;
         return;
@@ -211,7 +212,7 @@ export default {
     },
     closeInput () {
       clearTimeout(this.livepollTimer);
-      let nextState = this.showAnswers ? 4 : 3;
+      const nextState = this.showAnswers ? 4 : 3;
       if (store.livepollSettings.showResultsAfter) {
         this.showResults = true;
       }
@@ -231,7 +232,7 @@ export default {
     updateShowAnswers () {
       // if already showing results, need to call the server with new state
       if (this.curstate > 2) {
-        let nextState = this.showAnswers ? 4 : 3;
+        const nextState = this.showAnswers ? 4 : 3;
         actions.setLivepollStatus({
           newquestion: this.curqn + 1,
           newstate: nextState
@@ -241,8 +242,8 @@ export default {
   },
   mounted () {
     // connect to livepoll server
-    let server = store.assessInfo.livepoll_server;
-    let LPdata = store.assessInfo.livepoll_data;
+    const server = store.assessInfo.livepoll_server;
+    const LPdata = store.assessInfo.livepoll_data;
 
     let querystr = 'room=' + LPdata.room + '&now=' + LPdata.now;
     if (LPdata.sig) {

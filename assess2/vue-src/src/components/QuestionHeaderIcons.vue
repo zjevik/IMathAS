@@ -1,8 +1,8 @@
 <template>
   <div class="headericons">
     <tooltip-span
-      v-if="showscore"
-      :tip="$t('qdetails.gbscore')"
+      v-if="scoreDisplay !== ''"
+      :tip="scoreTip"
     >
       <icons name="square-check" />
       {{ scoreDisplay }}
@@ -44,10 +44,10 @@ export default {
   name: 'QuestionHeaderIcons',
   props: ['showscore', 'curQData', 'qn', 'showretry'],
   components: {
-    QuestionDetailsPane,
     Dropdown,
-    TooltipSpan,
-    Icons
+    Icons,
+    QuestionDetailsPane,
+    TooltipSpan
   },
   computed: {
     dispqn () {
@@ -56,10 +56,17 @@ export default {
     scoreDisplay () {
       if (this.dispqn === 0) {
         return '';
-      } else if (this.curQData.hasOwnProperty('gbscore') && this.curQData.tries_max > 1) {
+      } else if (this.showscore && this.curQData.hasOwnProperty('gbscore') && this.curQData.tries_max > 1) {
         return this.curQData.gbscore + '/' + this.$tc('header.pts', this.curQData.points_possible);
       } else {
         return this.$tc('header.pts', this.curQData.points_possible);
+      }
+    },
+    scoreTip () {
+      if (this.showscore && this.curQData.hasOwnProperty('gbscore') && this.curQData.tries_max > 1) {
+        return this.$t('qdetails.gbscore');
+      } else {
+        return this.$tc('header.possible', this.curQData.points_possible);
       }
     },
     retryInfo () {
@@ -69,7 +76,7 @@ export default {
       let trymsg;
       let trycnt;
       if (this.curQData.hasOwnProperty('tries_remaining_range')) {
-        let range = this.curQData.tries_remaining_range;
+        const range = this.curQData.tries_remaining_range;
         trymsg = this.$t('qinfo.tries_remaining_range', {
           min: range[0],
           max: range[1]
@@ -88,7 +95,7 @@ export default {
       if (this.qn < 0) {
         return false;
       }
-      let hasCategory = this.curQData.hasOwnProperty('category') &&
+      const hasCategory = this.curQData.hasOwnProperty('category') &&
         this.curQData.category !== '';
       return (this.curQData.has_details ||
         hasCategory ||

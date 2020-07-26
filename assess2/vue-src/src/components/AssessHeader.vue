@@ -20,7 +20,7 @@
       :grace="ainfo.timelimit_local_grace">
     </timer>
 
-    <div class="flexgroup" v-if = "saveInHeader">
+    <div class="flexgroup">
       <button
         v-if = "saveStatus === 3"
         class = "secondary"
@@ -37,7 +37,7 @@
       </span>
       <button
         v-if = "assessSubmitLabel !== ''"
-        :class="{primary: ainfo.submitby === 'by_assessment' }"
+        :class="{ primary: primarySubmit, secondary: !primarySubmit }"
         @click="handleSubmit"
         :disabled = "!canSubmit"
       >
@@ -109,24 +109,25 @@ import Icons from '@/components/widgets/Icons.vue';
 import LtiMenu from '@/components/LtiMenu.vue';
 import LtiMsgs from '@/components/LtiMsgs.vue';
 import TooltipSpan from '@/components/widgets/TooltipSpan.vue';
-
+import { attemptedMixin } from '@/mixins/attemptedMixin';
 import { store, actions } from '../basicstore';
 
 export default {
   name: 'AssessHeader',
   components: {
-    Timer,
-    MenuButton,
-    TooltipSpan,
     Icons,
     LtiMenu,
-    LtiMsgs
+    LtiMsgs,
+    MenuButton,
+    Timer,
+    TooltipSpan
   },
   data: function () {
     return {
       resourceMenuShowing: false
     };
   },
+  mixins: [attemptedMixin],
   computed: {
     ainfo () {
       return store.assessInfo;
@@ -134,10 +135,18 @@ export default {
     canSubmit () {
       return (!store.inTransit);
     },
+    primarySubmit () {
+      // primary if by_assessment and all questions loaded
+      return ((this.ainfo.submitby === 'by_assessment' &&
+        Object.keys(store.initValues).length === this.ainfo.questions.length) ||
+        (this.ainfo.submitby === 'by_question' &&
+        this.qAttempted === this.ainfo.questions.length)
+      );
+    },
     curScorePoints () {
       let pointsPossible = 0;
       let pointsEarned = 0;
-      for (let i in this.ainfo.questions) {
+      for (const i in this.ainfo.questions) {
         pointsPossible += this.ainfo.questions[i].points_possible * 1;
         if (this.ainfo.show_scores_during) {
           if (this.ainfo.questions[i].hasOwnProperty('gbscore')) {
@@ -145,37 +154,35 @@ export default {
           }
         }
       }
+      pointsEarned = Math.round(pointsEarned * 1000) / 1000;
       if (this.ainfo.in_practice) {
         return this.$t('header.practicescore', { pts: pointsEarned, poss: pointsPossible });
       } else if (this.ainfo.show_scores_during) {
         return this.$t('header.score', { pts: pointsEarned, poss: pointsPossible });
       } else {
-        return this.$t('header.possible', { poss: pointsPossible });
+        return this.$tc('header.possible', pointsPossible);
       }
     },
     qAttempted () {
       let qAttempted = 0;
-      for (let i in this.ainfo.questions) {
-        if (this.ainfo.questions[i].try > 0) {
+      for (let i = 0; i < this.qsAttempted.length; i++) {
+        if (this.qsAttempted[i] === 1) {
           qAttempted++;
         }
       }
       return qAttempted;
     },
     curAnswered () {
-      let nQuestions = this.ainfo.questions.length;
+      const nQuestions = this.ainfo.questions.length;
       return this.$t('header.answered', { n: this.qAttempted, tot: nQuestions });
     },
-    saveInHeader () {
-      return (this.ainfo.submitby === 'by_assessment');
-    },
     assessSubmitLabel () {
-      if (this.ainfo.submitby === 'by_assessment' && this.ainfo.displaymethod !== 'skip') {
+      if (this.ainfo.submitby === 'by_assessment') {
         return this.$t('header.assess_submit');
+      } else if (this.hasShowWorkAfter) {
+        return this.$t('work.add');
       } else {
-        // don't have
-        return '';
-        // return this.$t('header.done');
+        return this.$t('header.done');
       }
     },
     saveStatus () {
@@ -202,11 +209,25 @@ export default {
     },
     MQenabled () {
       return store.enableMQ;
+    },
+    hasShowWorkAfter () {
+      let hasShowWorkAfter = false;
+      for (let k = 0; k < store.assessInfo.questions.length; k++) {
+        if (store.assessInfo.questions[k].showwork & 2) {
+          hasShowWorkAfter = true;
+          break;
+        }
+      }
+      return hasShowWorkAfter;
     }
   },
   methods: {
     handleSubmit () {
-      actions.submitAssessment();
+      if (this.ainfo.submitby === 'by_assessment') {
+        actions.submitAssessment();
+      } else {
+        actions.gotoSummary();
+      }
     },
     handleSaveWork () {
       if (Object.keys(store.autosaveQueue).length === 0) {

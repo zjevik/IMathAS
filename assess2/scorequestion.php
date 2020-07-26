@@ -58,15 +58,20 @@ $now = time();
 
 // load settings
 $assess_info = new AssessInfo($DBH, $aid, $cid, false);
-$assess_info->loadException($uid, $isstudent, $studentinfo['latepasses'] , $latepasshrs, $courseenddate);
+$assess_info->loadException($uid, $isstudent);
 if ($isstudent) {
   $assess_info->applyTimelimitMultiplier($studentinfo['timelimitmult']);
 }
+
+$preview_all = ($canViewAll && !empty($_POST['preview_all']));
 
 // reject if not available
 if ($assess_info->getSetting('available') === 'practice' && !empty($_POST['practice'])) {
   $in_practice = true;
   $end_attempt = false;
+} else if ($assess_info->getSetting('available') === 'yes' && !empty($_POST['practice'])) {
+  echo '{"error": "not_practice"}';
+  exit;
 } else if ($assess_info->getSetting('available') === 'yes' || $canViewAll) {
   $in_practice = false;
   if ($canViewAll) {
@@ -119,11 +124,17 @@ if (!$isteacher && $assess_info->getSetting('displaymethod') === 'livepoll') {
     echo '{"error": "livepoll_notopen"}';
     exit;
   }
+  // override settings to prevent score/key display
+  $assess_info->overrideSetting('showscores', 'at_end');
+  $assess_info->overrideSetting('showans', 'never');
 }
 
 // If in practice, now we overwrite settings
 if ($in_practice) {
   $assess_info->overridePracticeSettings();
+}
+if ($preview_all) {
+  $assess_record->setTeacherInGb(true); // enables answers showing
 }
 
 // grab any assessment info fields that may have updated:
@@ -133,8 +144,7 @@ if ($in_practice) {
 // help_features, intro, resources, video_id, category_urls
 $include_from_assess_info = array(
   'available', 'startdate', 'enddate', 'original_enddate', 'submitby',
-  'extended_with', 'allowed_attempts', 'latepasses_avail', 'latepass_extendto',
-  'showscores', 'timelimit'
+  'extended_with', 'allowed_attempts', 'showscores', 'timelimit', 'enddate_in'
 );
 $assessInfoOut = $assess_info->extractSettings($include_from_assess_info);
 //get attempt info
@@ -161,7 +171,7 @@ if (count($qns) > 0) {
       $assessInfoOut['questions'][$qn] = $assess_record->getQuestionObject($qn, $showscores, true, true);
     }
     $assessInfoOut['error'] = "already_submitted";
-    echo json_encode($assessInfoOut);
+    echo json_encode($assessInfoOut, JSON_INVALID_UTF8_IGNORE);
     exit;
   }
 
@@ -194,7 +204,7 @@ if (count($qns) > 0) {
     if (!isset($timeactive[$k])) {
       $timeactive[$k] = 0;
     }
-    $parts_to_score = $assess_record->isSubmissionAllowed($qn, $qids[$qn]);
+    $parts_to_score = $assess_record->isSubmissionAllowed($qn, $qids[$qn], $qnstoscore[$qn]);
     // only score the non-blank ones
     foreach ($parts_to_score as $pn=>$v) {
       if ($v === true && !in_array($pn, $qnstoscore[$qn])) {
@@ -203,14 +213,14 @@ if (count($qns) > 0) {
     }
 
     $errors = $assess_record->scoreQuestion($qn, $timeactive[$k], $submission, $parts_to_score);
-    if (count($errors)>0) {
+    if (!empty($errors)) {
       $scoreErrors[$qn] = $errors;
     }
   }
 
   // If it's full test, we'll score time at the assessment attempt level
   if ($assess_info->getSetting('displaymethod') === 'full') {
-    $minloaded = round(min($lastloaded)/1000); // front end sends milliseconds
+    $minloaded = round(max($lastloaded)/1000); // front end sends milliseconds
     if ($minloaded > 0) {
       $assess_record->addTotalAttemptTime($now - $minloaded);
     }
@@ -242,7 +252,7 @@ if ($end_attempt) {
 if ($end_attempt) {
   // grab all questions settings and scores, based on end-of-assessment settings
   $showscores = $assess_info->showScoresAtEnd();
-  $reshowQs = $assess_info->reshowQuestionsAtEnd();
+  $reshowQs = $assess_info->reshowQuestionsAtEnd() && $showscores;
   $assessInfoOut['questions'] = $assess_record->getAllQuestionObjects($showscores, true, $reshowQs, 'last');
   $assessInfoOut['score'] = $assess_record->getAttemptScore();
   $totalScore = $assessInfoOut['score'];
@@ -259,20 +269,17 @@ if ($end_attempt) {
   }
 
   // get endmsg
-  if ($assessInfoOut['showscores'] != 'none') {
     $assessInfoOut['endmsg'] = AssessUtils::getEndMsg(
       $assess_info->getSetting('endmsg'),
       $totalScore,
       $assess_info->getSetting('points_possible')
     );
-  }
+
 
 } else {
   if ($assess_info->getSetting('displaymethod') === 'livepoll') {
     // don't show scores until question is closed for livepoll
     $showscores = false;
-    $assess_info->overrideSetting('showscores', 'at_end');
-    $assessInfoOut['showscores'] = 'at_end';
 
     if (!$isteacher) {
       // call the livepoll server with the result
@@ -283,8 +290,8 @@ if ($end_attempt) {
       $lastResults = $assess_record->getLastRawResult($qn);
       //TODO: Need to figure out the format they should be in (for multipart)
       //TODO: Or, just don't support multipart
-      $rawscores = json_encode($lastResults['raw']);
-      $lastAnswer = json_encode($lastResults['stuans']);
+      $rawscores = json_encode($lastResults['raw'], JSON_INVALID_UTF8_IGNORE);
+      $lastAnswer = json_encode($lastResults['stuans'], JSON_INVALID_UTF8_IGNORE);
 
       $toSign = $aid.$qn.$uid.$rawscores.$lastAnswer;
       $now = time();
@@ -327,7 +334,7 @@ if ($assessInfoOut['submitby'] == 'by_question' || $end_attempt) {
     $gbscore = $assess_record->getGbScore();
     require_once("../includes/ltioutcomes.php");
     $aidposs = $assess_info->getSetting('points_possible');
-    calcandupdateLTIgrade($lti_sourcedid, $aid, $gbscore['gbscore'], false, $aidposs);
+    calcandupdateLTIgrade($lti_sourcedid, $aid, $uid, $gbscore['gbscore'], false, $aidposs);
   }
 }
 

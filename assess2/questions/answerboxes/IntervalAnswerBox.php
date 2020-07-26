@@ -45,17 +45,18 @@ class IntervalAnswerBox implements AnswerBox
         if (isset($options['answer'])) {if (is_array($options['answer'])) {$answer = $options['answer'][$partnum];} else {$answer = $options['answer'];}}
         if (isset($options['reqdecimals'])) {if (is_array($options['reqdecimals'])) {$reqdecimals = $options['reqdecimals'][$partnum];} else {$reqdecimals = $options['reqdecimals'];}}
         if (isset($options['answerformat'])) {if (is_array($options['answerformat'])) {$answerformat = $options['answerformat'][$partnum];} else {$answerformat = $options['answerformat'];}}
+        if (isset($options['readerlabel'])) {if (is_array($options['readerlabel'])) {$readerlabel = $options['readerlabel'][$partnum];} else {$readerlabel = $options['readerlabel'];}}
 
         if (!isset($sz)) { $sz = 20;}
         if ($multi) { $qn = ($qn+1)*1000+$partnum; }
 
         if (isset($ansprompt)) {
-          $out .= "<label for=\"qn$qn\">$ansprompt</label>";
+          $out .= $ansprompt;
         }
 
         $ansformats = array_map('trim',explode(',',$answerformat));
 
-    		if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+    		if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
     			$top = _('Enter your answer by selecting the shade type, and by clicking and dragging the sliders on the normal curve');
     			$shorttip = _('Adjust the sliders');
     		} else {
@@ -72,7 +73,7 @@ class IntervalAnswerBox implements AnswerBox
     			}
     			$shorttip = _('Enter an interval using interval notation');
     		}
-    		if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+    		if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
           $out .= '<div id="qnwrap'.$qn.'" class="'.$colorbox.'">';
     			$out .=  '<div style="background:#fff;padding:10px;">';
     			$out .=  '<p style="margin:0px";>Shade: <select id="shaderegions'.$qn.'" onchange="imathasDraw.chgnormtype(this.id.substring(12));"><option value="1L">' . _('Left of a value') . '</option><option value="1R">' . _('Right of a value') . '</option>';
@@ -105,25 +106,27 @@ class IntervalAnswerBox implements AnswerBox
     			'name' => "qn$qn",
     			'id' => "qn$qn",
     			'value' => $la,
-    			'autocomplete' => 'off'
+    			'autocomplete' => 'off',
+                'aria-label' => $this->answerBoxParams->getQuestionIdentifierString() . 
+                    (!empty($readerlabel) ? ' '.Sanitize::encodeStringForDisplay($readerlabel) : '')
     		];
     		$params['tip'] = $shorttip;
-        $params['longtip'] = $tip;
-        $params['calcformat'] = 'decimal';
+            $params['longtip'] = $tip;
+            $params['calcformat'] = 'decimal';
     		if ($useeqnhelper) {
     			$params['helper'] = 1;
     		}
-    		if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+    		if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
     			$classes[] = 'hidden';
     			$params['format'] = 'normslider';
           $params['helper'] = 0;
     		}
 
     		$out .= '<input ' .
-    						Sanitize::generateAttributeString($attributes) .
+                Sanitize::generateAttributeString($attributes) .
     						'class="'.implode(' ', $classes) .
     						'" />';
-                
+
         $preview .= "<span id=p$qn></span> ";
 
     		if (in_array('nosoln',$ansformats))  {
@@ -131,7 +134,7 @@ class IntervalAnswerBox implements AnswerBox
     			$answer = str_replace('"','',$answer);
     		}
     		if (isset($answer)) {
-    			if (in_array('normalcurve',$ansformats) && $GLOBALS['sessiondata']['graphdisp']!=0) {
+    			if (in_array('normalcurve',$ansformats) && $_SESSION['graphdisp']!=0) {
     				$sa .=  '<div style="position: relative; width: 500px; height:200px;padding:0px;background:#fff;">';
     				$answer = preg_replace('/\s/','',$answer);
     				if (preg_match('/\(-oo,([\-\d\.]+)\)U\(([\-\d\.]+),oo\)/',$answer,$matches)) {

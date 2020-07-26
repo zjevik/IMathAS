@@ -40,7 +40,7 @@
 
 	if (isset($_GET['markunread'])) {
 		$msg = Sanitize::onlyInt($_GET['msgid']);
-		$stm = $DBH->prepare("UPDATE imas_msgs SET isread=isread-1 WHERE id=:id and isread>0");
+		$stm = $DBH->prepare("UPDATE imas_msgs SET viewed=0 WHERE id=:id and viewed>0");
 		$stm->execute(array(':id'=>$msg));
 		if ($type=='new') {
 			header('Location: ' . $GLOBALS['basesiteurl'] . "/msgs/newmsglist.php?cid=$cid&r=" .Sanitize::randomQueryStringParam());
@@ -64,7 +64,7 @@
 		</script>';
 	require("../header.php");
 	echo "<div class=breadcrumb>$breadcrumbbase ";
-	if ($cid>0 && (!isset($sessiondata['ltiitemtype']) || $sessiondata['ltiitemtype']!=0)) {
+	if ($cid>0 && (!isset($_SESSION['ltiitemtype']) || $_SESSION['ltiitemtype']!=0)) {
 		echo " <a href=\"../course/course.php?cid=$cid\">".Sanitize::encodeStringForDisplay($coursename)."</a> &gt; ";
 	}
 	if ($type=='sent') {
@@ -186,7 +186,8 @@
 	echo "</td></tr><tr><td><b>Sent:</b></td><td>$senddate</td></tr>";
 	echo "<tr><td><b>Subject:</b></td><td>".Sanitize::encodeStringForDisplay($line['title']);
 	if ($myrights>=20 && preg_match('/Question\s+ID\s+(\d+),\s+seed\s+(\d+)/',$line['message'],$matches)) {
-		echo " <span class=small><a href=\"$imasroot/course/testquestion.php?cid=0&qsetid=".Sanitize::encodeUrlParam($matches[1])."&seed=".Sanitize::encodeUrlParam($matches[2])."\" target=\"_blank\">Preview</a>";
+		$testqpage = ($courseUIver>1) ? 'testquestion2.php' : 'testquestion.php';
+		echo " <span class=small><a href=\"$imasroot/course/$testqpage?cid=0&qsetid=".Sanitize::encodeUrlParam($matches[1])."&seed=".Sanitize::encodeUrlParam($matches[2])."\" target=\"_blank\">Preview</a>";
 		echo " | <a href=\"$imasroot/course/moddataset.php?cid=0&id=".Sanitize::encodeUrlParam($matches[1])."\" target=\"_blank\">Edit</a></span>";
 	}
 	echo "</td></tr>";
@@ -205,7 +206,7 @@
 			$msgset = $stm->fetchColumn(0);
 			$msgmonitor = floor($msgset/5);
 			$msgset = $msgset%5;
-			if ($msgset<3 || $isteacher) {
+			if ($msgset<3 || ($isteacher && $msgset < 4)) {
 				$cansendmsgs = true;
 				if ($msgset==1 && !$isteacher) { //check if sending to teacher
 					$stm = $DBH->prepare("SELECT id FROM imas_teachers WHERE userid=:userid and courseid=:courseid");
@@ -259,8 +260,8 @@
 			."\">View Conversation</a>";
 
 	}
-	if ($type!='sent' && $type!='allstu' && ($line['isread']==0 || $line['isread']==4)) {
-		$stm = $DBH->prepare("UPDATE imas_msgs SET isread=isread+1 WHERE id=:id");
+	if ($type!='sent' && $type!='allstu' && $line['viewed']==0) {
+		$stm = $DBH->prepare("UPDATE imas_msgs SET viewed=1 WHERE id=:id");
 		$stm->execute(array(':id'=>$msgid));
 	}
 	echo '<p>&nbsp;</p>';

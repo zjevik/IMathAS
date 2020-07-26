@@ -2,7 +2,7 @@
 // IMathAS: Main launch page for assess2 assessment player
 // (c) 2019 David Lippman
 
-$lastupdate = '20191009';
+$lastupdate = '20200717';
 
 require('../init.php');
 if (empty($_GET['cid']) || empty($_GET['aid'])) {
@@ -16,11 +16,11 @@ if (!isset($teacherid) && !isset($tutorid) && !isset($studentid) && !isset($inst
 $cid = Sanitize::onlyInt($_GET['cid']);
 $aid = Sanitize::onlyInt($_GET['aid']);
 
-$isltilimited = (isset($sessiondata['ltiitemtype']) && $sessiondata['ltiitemtype']==0);
+$isltilimited = (isset($_SESSION['ltiitemtype']) && $_SESSION['ltiitemtype']==0);
 $inTreeReader = (strpos($_SERVER['HTTP_REFERER'],'treereader') !== false);
-$isdiag = isset($sessiondata['isdiag']);
+$isdiag = isset($_SESSION['isdiag']);
 if ($isdiag) {
-  $diagid = Sanitize::onlyInt($sessiondata['isdiag']);
+  $diagid = Sanitize::onlyInt($_SESSION['isdiag']);
   $hideAllHeaderNav = true;
 }
 
@@ -35,16 +35,10 @@ $placeinhead .= '</script>';
 $placeinhead .= '<link rel="stylesheet" type="text/css" href="'.$imasroot.'/assess2/vue/css/index.css?v='.$lastupdate.'" />';
 $placeinhead .= '<link rel="stylesheet" type="text/css" href="'.$imasroot.'/assess2/vue/css/chunk-common.css?v='.$lastupdate.'" />';
 $placeinhead .= '<link rel="stylesheet" type="text/css" href="'.$imasroot.'/assess2/print.css?v='.$lastupdate.'" media="print">';
-$placeinhead .= '<script src="'.$imasroot.'/javascript/drawing_min.js?v=100219" type="text/javascript"></script>';
-$placeinhead .= '<script src="'.$imasroot.'/javascript/AMhelpers2_min.js?v=110419" type="text/javascript"></script>';
-$placeinhead .= '<script src="'.$imasroot.'/javascript/eqntips_min.js" type="text/javascript"></script>';
-$placeinhead .= '<script src="'.$imasroot.'/javascript/mathjs_min.js" type="text/javascript"></script>';
-$placeinhead .= '<script src="'.$imasroot.'/mathquill/AMtoMQ_min.js?v=092319" type="text/javascript"></script>
-  <script src="'.$imasroot.'/mathquill/mathquill.min.js?v=092419" type="text/javascript"></script>
-  <script src="'.$imasroot.'/mathquill/mqeditor_min.js?v=091619" type="text/javascript"></script>
-  <script src="'.$imasroot.'/mathquill/mqedlayout_min.js?v=110619" type="text/javascript"></script>
-  <link rel="stylesheet" type="text/css" href="'.$imasroot.'/mathquill/mathquill-basic.css">
-  <link rel="stylesheet" type="text/css" href="'.$imasroot.'/mathquill/mqeditor.css">';
+$placeinhead .= '<script src="'.$imasroot.'/mathquill/mathquill.min.js?v=022720" type="text/javascript"></script>';
+$placeinhead .= '<script src="'.$imasroot.'/javascript/assess2_min.js?v=072520" type="text/javascript"></script>';
+$placeinhead .= '<link rel="stylesheet" type="text/css" href="'.$imasroot.'/mathquill/mathquill-basic.css">
+  <link rel="stylesheet" type="text/css" href="'.$imasroot.'/mathquill/mqeditor.css?v=071320">';
 if ($isltilimited || $inTreeReader) {
   $placeinhead .= '<script>var exiturl = "";</script>';
 } else if ($isdiag) {
@@ -56,7 +50,7 @@ $nologo = true;
 $useeditor = 1;
 require('../header.php');
 
-if ((!$isltilimited || $sessiondata['ltirole']!='learner') && !$inTreeReader && !$isdiag) {
+if ((!$isltilimited || $_SESSION['ltirole']!='learner') && !$inTreeReader && !$isdiag) {
   echo "<div class=breadcrumb>";
   if ($isltilimited) {
     echo "$breadcrumbbase ", _('Assessment'), "</div>";

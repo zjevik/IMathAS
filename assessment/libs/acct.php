@@ -21,6 +21,7 @@ array_push($allowedmacros,"makejournal","scorejournal","makeaccttable","makeacct
 //$statement[#]['tottitleline'] = -1 for on last line of elements, not set or 0 for own line.  Only works if indent>0
 //$statement[#]['totneg'] = set to make total negative
 //$statement[#]['totsigns'] = array of 1,-1,etc to indicate signs for totaling
+//$statement[#]['totindent'] = number of indent for total entry.  0 if not set
 //$statement[#]['totaltotal'] = array("title", statement #, statement #)  Totals across multiple statement groups.  Neg to subtract
 //$statement[#]['totaltotalops'] = array of options for totaltotal.  If not set, totaltotal title is fixed
 //$statement[#]['totalindent'] = number of indent for totaltotal entry.  0 if not set
@@ -100,10 +101,15 @@ function makestatement($s, $sn, $ops=array(), &$anstypes, &$questions, &$answer,
 	$grouptots = array();  $addspacer = false;
 	foreach ($s as $ix=>$sg) {
 		if (isset($sg['indent']) && $sg['indent']>0) {
-			$hdrindent = $sg['indent'] - 1;
 			$ind = $sg['indent'];
+			$hdrindent = $sg['indent'] - 1;
+			if (isset($sg['totindent'])) {
+				$totindent = $sg['totindent'];
+			} else {
+				$totindent = $sg['indent'] - 1;
+			}
 		} else {
-			$hdrindent = 0;  $ind =0;
+			$hdrindent = 0; $totindent = 0; $ind =0;
 		}
 		if ($addspacer && !isset($sg['nospacer'])) {
 			$out .= '<tr><td colspan="'.($maxind+2).'">&nbsp;</td></tr>';
@@ -202,15 +208,15 @@ function makestatement($s, $sn, $ops=array(), &$anstypes, &$questions, &$answer,
 						}
 						natsort($sg['tottitleops']);
 						$anstypes[$sn] = 'string'; $displayformat[$sn] = $tdisptype; $questions[$sn] = $sg['tottitleops'];  $answer[$sn] = $sg['tottitle']; $answerboxsize[$sn] = $maxsizedescr;
-						$out .= '<tr><td style="padding-left:'.($hdrindent+.5).'em;">[AB'.$sn.']</td>';
-						$sa .= '<tr><td style="padding-left:'.($hdrindent+.5).'em;"><b>'.$sg['tottitle'].'</b></td>';
+						$out .= '<tr><td style="padding-left:'.($totindent+.5).'em;">[AB'.$sn.']</td>';
+						$sa .= '<tr><td style="padding-left:'.($totindent+.5).'em;"><b>'.$sg['tottitle'].'</b></td>';
 						$sn++;
 					} else {
-						$out .= '<tr><td style="padding-left:'.($hdrindent+.5).'em;"><b>'.$sg['tottitle'].'</b></td>';
-						$sa .= '<tr><td style="padding-left:'.($hdrindent+.5).'em;"><b>'.$sg['tottitle'].'</b></td>';
+						$out .= '<tr><td style="padding-left:'.($totindent+.5).'em;"><b>'.$sg['tottitle'].'</b></td>';
+						$sa .= '<tr><td style="padding-left:'.($totindent+.5).'em;"><b>'.$sg['tottitle'].'</b></td>';
 					}
-					$out .= $pre[$hdrindent].'<td>[AB'.$sn.']</td>'.$post[$hdrindent].'</tr>';
-					$sa .= $pre[$hdrindent].'<td class="r">'.($hasdecimals?number_format($tot,2,'.',','):number_format($tot)).'</td>'.$post[$hdrindent].$blankexp.'</tr>';
+					$out .= $pre[$totindent].'<td>[AB'.$sn.']</td>'.$post[$totindent].'</tr>';
+					$sa .= $pre[$totindent].'<td class="r">'.($hasdecimals?number_format($tot,2,'.',','):number_format($tot)).'</td>'.$post[$hdrindent].$blankexp.'</tr>';
 
 				}
 				$anstypes[$sn] = 'number'; $displayformat[$sn] = 'alignright'; $answerformat[$sn] = 'parenneg'; $answer[$sn] = $tot; $answerboxsize[$sn] = $maxsizeentry;
@@ -747,6 +753,7 @@ function makeaccttable2($headers, $coltypes, $fixedrows, $cols, $sn, &$anstypes,
 			}
 			if ($coltypes[$j]==false) {//fixed
 				if ($cols[$j][$i]{0}==' ') { $cols[$j][$i] = '&nbsp;'.$cols[$j][$i];}
+				if ($cols[$j][$i] == '') { $cols[$j][$i] = '&nbsp;'; }
 				$out .= "<td$dec>".$cols[$j][$i].'</td>';
 				$sa .= "<td$dec>".$cols[$j][$i].'</td>';
 
@@ -759,6 +766,8 @@ function makeaccttable2($headers, $coltypes, $fixedrows, $cols, $sn, &$anstypes,
 					$cols[$j][$i] = $thistot;
 				}
 				if ($cols[$j][$i]==='nobox') {$out .= "<td$dec></td>"; $sa.= "<td$dec></td>"; continue;}
+
+				if (substr($cols[$j][$i],0,6)=='fixed:') {$f = substr($cols[$j][$i],6); $out .= "<td$dec $class>$f</td>"; $sa.= "<td$dec $class>$f</td>"; continue;}
 
 				$out .= '<td'.$dec.' class="r">'.(($cols[$j][$i]{0}=='$'||$coltypes[$j]===2)?'$':'').'[AB'.$sn.']</td>';
 				$sa .= '<td'.$dec.' class="r">'.(($cols[$j][$i]{0}=='$'||$coltypes[$j]===2)?'$':'');
@@ -809,6 +818,8 @@ function makeaccttable2($headers, $coltypes, $fixedrows, $cols, $sn, &$anstypes,
 //opts: optionsal array of options:
 //   $opts['totrow']: row to treat as totals row (decorates above and below with lines) - optional
 //   $opts['class']: class to use for table
+//   $opts['underline']: array of row=>underline style: 1 single, 2 double
+//      can also do row=>[style, column] or row=>[style, [column, column]]
 //   $opts['questions'][n] = array of pull-down options for column n
 function makeaccttable3($headers, $coltypes, $fixedrows, $cols, $sn, &$anstypes, &$answer, &$showanswer, &$displayformat, &$questions, &$answerformat, &$answerboxsize, $opts=array()) {
 	if ($anstypes === null) { $anstypes = array();}
@@ -818,14 +829,18 @@ function makeaccttable3($headers, $coltypes, $fixedrows, $cols, $sn, &$anstypes,
 	if (isset($opts['totrow'])) { $totrow = $opts['totrow'];} else {$totrow = -1;}
 	if (isset($opts['class'])) { $tblclass = $opts['class'];} else {$tblclass = 'gridded';}
 
-	$maxsize = array();  $hasdecimals = false;
+	$maxsize = array();  $hasdecimals = false;  $rowcnt = 0;
+	// handle sparse arrays
+	for ($i=0;$i<count($cols);$i++) {
+		$rowcnt = max($rowcnt, max(array_keys($cols[$i]))+1);
+	}
 	for ($j=0;$j<count($coltypes);$j++) {
 		if ($coltypes[$j]==false || $coltypes[$j]==-1) {continue;} //fixed column
 		$maxsize[$j] = 0;
-		for ($i=0;$i<count($cols[$j]);$i++) {
-			$sl = strlen($cols[$j][$i]);
+		foreach ($cols[$j] as $v) {
+			$sl = strlen($v);
 			if ($sl>$maxsize[$j]) { $maxsize[$j] = $sl;}
-			if (!$hasdecimals && strpos($cols[$j][$i],'.')!==false) { $hasdecimals = true;}
+			if (!$hasdecimals && strpos($v, '.')!==false) { $hasdecimals = true;}
 		}
 		$maxsize[$j] += floor(($maxsize[$j]-0.5)/3);  //add size to account for commas
 	}
@@ -864,28 +879,44 @@ function makeaccttable3($headers, $coltypes, $fixedrows, $cols, $sn, &$anstypes,
 		}
 		$out .= '</tr>';  $sa .= '</tr>';
 	}
-	for ($i=0;$i<count($cols[0]);$i++) {
+	for ($i=0;$i<$rowcnt;$i++) {
 		$out .= '<tr>';  $sa .= '<tr>';
 		for ($j=0;$j<count($coltypes);$j++) {
 			if ($i+1==$totrow) {
 				$dec = ' style="border-bottom: 3px double #000;"';
 			} else if ($i==$totrow) {
 				$dec = ' style="border-bottom: 3px double #000;"';
+			} else if (!empty($opts['underline'][$i]) &&
+				(!is_array($opts['underline'][$i]) ||
+				(is_array($opts['underline'][$i][1]) && in_array($j, $opts['underline'][$i][1])) ||
+				(!is_array($opts['underline'][$i][1]) && $j == $opts['underline'][$i][1]))
+			) {
+				$ustyle = is_array($opts['underline'][$i]) ? $opts['underline'][$i][0] : $opts['underline'][$i];
+				if ($ustyle == 2) {
+					$dec = ' style="border-bottom: 3px double #000;"';
+				} else {
+					$dec = ' style="border-bottom: 1px solid #000;"';
+				}
 			} else {
 				$dec = '';
 			}
 			if ($coltypes[$j]==false) {//fixed
 				if ($cols[$j][$i]{0}==' ') { $cols[$j][$i] = '&nbsp;'.$cols[$j][$i];}
+				if ($cols[$j][$i] == '') { $cols[$j][$i] = '&nbsp;'; }
 				$out .= "<td$dec>".$cols[$j][$i].'</td>';
 				$sa .= "<td$dec>".$cols[$j][$i].'</td>';
 
 			} else {
-				if ($i==$totrow && !isset($cols[$j][$i])) {
-					$thistot = 0;
-					for ($k=0;$k<$totrow;$k++) {
-						$thistot += $cols[$j][$k];
+				if (!isset($cols[$j][$i])) {
+					if ($i==$totrow) {
+						$thistot = 0;
+						for ($k=0;$k<$totrow;$k++) {
+							$thistot += $cols[$j][$k];
+						}
+						$cols[$j][$i] = $thistot;
+					} else {
+						$cols[$j][$i] = '';
 					}
-					$cols[$j][$i] = $thistot;
 				}
 
 				if ($coltypes[$j]<0) {
@@ -1633,7 +1664,7 @@ function maketrialbalance($data, $sn, $numrows, $ops, $bigtitle, &$anstypes, &$a
 			if ((($t=='assets' || $t=='expenses') && $dt[$i+1]>=0) || (!($t=='assets' || $t=='expenses') && $dt[$i+1]<0)) {
 				$out .= '<td>[AB'.$sn.']</td>';
 				$sa .= '<td class="r">'.($hasdecimals?number_format(abs($dt[$i+1]),2,'.',','):number_format(abs($dt[$i+1]))).'</td>';
-				$anstypes[$sn] = 'number'; $displayformat[$sn] = 'alignright'; $answer[$sn] = $dt[$i+1]; $answerboxsize[$sn] = 8;
+				$anstypes[$sn] = 'number'; $displayformat[$sn] = 'alignright'; $answer[$sn] = abs($dt[$i+1]); $answerboxsize[$sn] = 8;
 				$sn++;
 				$out .= '<td class="r">[AB'.$sn.']</td>';
 				$sa .= '<td class="r"></td>';
@@ -1647,7 +1678,7 @@ function maketrialbalance($data, $sn, $numrows, $ops, $bigtitle, &$anstypes, &$a
 				$sn++;
 				$out .= '<td>[AB'.$sn.']</td>';
 				$sa .= '<td class="r">'.($hasdecimals?number_format(abs($dt[$i+1]),2,'.',','):number_format(abs($dt[$i+1]))).'</td>';
-				$anstypes[$sn] = 'number'; $displayformat[$sn] = 'alignright'; $answer[$sn] = $dt[$i+1]; $answerboxsize[$sn] = 8;
+				$anstypes[$sn] = 'number'; $displayformat[$sn] = 'alignright'; $answer[$sn] = abs($dt[$i+1]); $answerboxsize[$sn] = 8;
 				$sn++;
 				$totcred += abs($dt[$i+1]);
 			}

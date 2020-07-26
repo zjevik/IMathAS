@@ -10,8 +10,17 @@ IMathAS powers MyOpenMath.com, WAMAP.org, Lumen OHM, XYZhomework, and others.
 
 ## Installation
 
-IMathAS is designed for simple installation with minimal requirements.  The system requires PHP 5 (7 recommended) with GD and Freetype, and MySQL 5.
+### Requirements
+IMathAS is designed for simple installation with minimal requirements.  The system
+requires PHP 7.1+, and MySQL 5.6+.  PHP has the following recommended or required extensions:
+- mbstring (required)
+- pdo_mysql (required)
+- gettext (required)
+- gd with freetype (recommended) for image creation
+- curl (recommended) necessary for LTI grade passback
+- openssl (recommended) necessary for LTI 1.3 services
 
+### Installation Steps
 1.  Download IMathAS, extract it, and copy the files to your webserver.
 2.  Alternatively, if you have shell access to your server, enter the directory you want IMathAS in, and checkout the code from Github. Using Git greatly simplifies upgrading.
 3.  Create a database for IMathAS
@@ -61,7 +70,7 @@ These are all added to the `config.php` by the install script.
 
 Many system defaults can be adjusted using config changes.
 
-- Assessment settings.   Most assessment option defaults can be defined.  For example, `$CFG['AMS']['displaymethod']` allows you to set the default displaymethod for assessments.  Review the code in `/course/addassessment.php` for all options.
+- Assessment settings.   Most assessment option defaults can be defined.  For example, `$CFG['AMS']['displaymethod']` allows you to set the default displaymethod for assessments.  Review the code in `/course/addassessment.php` for all options. Setting $CFG['AMS']['caltag'] = 'use_name' causes assessment names to appear in the calendar by default.
 - Gradebook settings.  Most defaults can be defined.  For example, `$CFG['GBS']['defgbmode']` allows you to define the default gradebook mode.  See `/course/gbsettings.php` for all options.
 - Forum settings.  A few defaults can be defined.  See `/course/addforum.php` for all options.
 - Course settings.  Most default can be defined, and most can be forced to a value.  For example, `$CFG['CPS']['theme'] = array("modern.css",1);` sets the default theme but allows the user to change it.  Using `0` instead of `1` in the second position would set the default and not allow the user to change it.  See `/admin/forms.php` for all options.
@@ -87,6 +96,8 @@ Many system defaults can be adjusted using config changes.
 - `$CFG['UP']`:  An associative array overriding the default User Preference values.  See the `$prefdefaults` definition in `/includes/userprefs.php` for the appropriate format.
 - `$CFG['GEN']['extrefsize']`: Set to an array of (width,height) to set the popup size for Text and Written Solution question help buttons
 - `$CFG['GEN']['vidextrefsize']`: Set to an array of (width,height) to set the popup size for Video question help buttons
+- `$CFG['GEN']['ratelimit']`: Set to a number of seconds (like 0.2) to limit the rate at
+ which pages can be accessed/refreshed.
 
 ### Additional Validation
 These provide additional validation options beyond `$loginformat`.
@@ -97,7 +108,7 @@ These provide additional validation options beyond `$loginformat`.
 - `$CFG['acct']['importLoginformat']`:  If set, this regular expression replaces `$loginformat` when using the  "import students from file" option.
 - `$CFG['acct']['SIDformaterror']`: A message to display if the username/SID has invalid format.
 - `$CFG['acct']['passwordFormaterror']`: A message to display if the password has invalid format.
-- `$CFG['acct']['emailFormaterror']`: A message to display if the email has invalid format.
+- `$CFG['acct']['emailFormaterror']`: A message to display if the email doesn't meet the custom 'emailFormat' pattern.
 
 ### Access Limits
 - `$CFG['GEN']['addteachersrights']`: Set to the minimum rights level needed to Add/Remove Teachers in a course.  Defaults to 40 (Limited Course Creator rights).

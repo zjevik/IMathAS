@@ -42,14 +42,19 @@ $now = time();
 
 // load settings including question info
 $assess_info = new AssessInfo($DBH, $aid, $cid, 'all');
-$assess_info->loadException($uid, $isstudent, $studentinfo['latepasses'] , $latepasshrs, $courseenddate);
+$assess_info->loadException($uid, $isstudent);
 if ($isstudent) {
   $assess_info->applyTimelimitMultiplier($studentinfo['timelimitmult']);
 }
 
+$preview_all = ($canViewAll && !empty($_POST['preview_all']));
+
 // reject if not available
 if ($assess_info->getSetting('available') === 'practice' && !empty($_POST['practice'])) {
   $in_practice = true;
+} else if ($assess_info->getSetting('available') === 'yes' && !empty($_POST['practice'])) {
+  echo '{"error": "not_practice"}';
+  exit;
 } else if ($assess_info->getSetting('available') === 'yes' || $canViewAll) {
   $in_practice = false;
   if ($canViewAll) {
@@ -62,7 +67,9 @@ if ($assess_info->getSetting('available') === 'practice' && !empty($_POST['pract
 
 // reject if no lti_sourcedid and we expect it
 if (!$in_practice && !empty($_POST['has_ltisourcedid']) &&
-  empty($sessiondata['lti_lis_result_sourcedid'.$aid])
+  (empty($_SESSION['lti_lis_result_sourcedid'.$aid]) ||
+   empty($_SESSION['lti_outcomeurl'])
+  )
 ) {
   echo '{"error": "need_relaunch"}';
   exit;
@@ -74,7 +81,7 @@ $assess_record->loadRecord($uid);
 
 // check password, if needed
 if (!$in_practice && !$canViewAll &&
-  (!isset($sessiondata['assess2-'.$aid]) || $sessiondata['assess2-'.$aid] != $in_practice) &&
+  (!isset($_SESSION['assess2-'.$aid]) || $_SESSION['assess2-'.$aid] != $in_practice) &&
   !$assess_info->checkPassword($_POST['password'])
 ) {
   echo '{"error": "invalid_password"}';
@@ -95,65 +102,66 @@ if (!$in_practice &&
 }
 
 // add any new group members, if allowed
-if (!$canViewAll &&
-  $assess_info->getSetting('isgroup') == 2 &&
-  ($_POST['new_group_members'] != '' || !$assess_record->hasRecord())
-) {
+if (!$canViewAll && $assess_info->getSetting('isgroup') == 2) {
   $groupsetid = $assess_info->getSetting('groupsetid');
   // get current group and members
   list($stugroupid, $current_members) = AssessUtils::getGroupMembers($uid, $groupsetid);
-  $current_members = array_keys($current_members); // we just want the user IDs
-  if (trim($_POST['new_group_members']) == '') {
-    $potential_group_members = array();
-  } else {
-    $potential_group_members = explode(',', $_POST['new_group_members']);
-  }
-  $available_new_members = AssessUtils::checkPotentialGroupMembers($potential_group_members, $groupsetid);
-
-  if ($stugroupid == 0) {
-    // need to create a new stugroup for user and group
-    $stm = $DBH->prepare("INSERT INTO imas_stugroups (name,groupsetid) VALUES ('Unnamed group',?)");
-		$stm->execute(array($groupsetid));
-    $stugroupid = $DBH->lastInsertId();
-
-    $available_new_members[] = $uid;
-  }
-
-  // see if we are starting a new group or adding to existing one.
-  // need to check that the user wasn't added to another group since initial launch
-  // in which case we won't add the group members
-  if (count($current_members) == 0 || $stugroupid == $_POST['cur_group']) {
-    // Add new members to the group
-    $qarr = array();
-    $vals = array();
-    foreach ($available_new_members as $gm_uid) {
-      $vals[] = '(?,?)';
-      array_push($qarr, $gm_uid, $stugroupid);
+  if ($_POST['new_group_members'] != '' || !$assess_record->hasRecord() || $stugroupid == 0) {
+    $current_members = array_keys($current_members); // we just want the user IDs
+    if (trim($_POST['new_group_members']) == '') {
+        $potential_group_members = array();
+    } else {
+        $potential_group_members = explode(',', $_POST['new_group_members']);
     }
-    $query = 'INSERT INTO imas_stugroupmembers (userid,stugroupid) VALUES ';
-    $query .= implode(',', $vals);
-    $stm = $DBH->prepare($query);
+    $available_new_members = AssessUtils::checkPotentialGroupMembers($potential_group_members, $groupsetid);
 
-    $stm->execute($qarr);
-  }
-  $current_members = array_merge($current_members, $available_new_members);
+    if ($stugroupid == 0) {
+        // need to create a new stugroup for user and group
+        $stm = $DBH->prepare("INSERT INTO imas_stugroups (name,groupsetid) VALUES ('Unnamed group',?)");
+            $stm->execute(array($groupsetid));
+        $stugroupid = $DBH->lastInsertId();
 
-  // if we already have an assess record, need to copy it to new group members
-  if ($assess_record->hasRecord()) {
-    // get current record
-    $fieldstocopy = 'assessmentid,agroupid,timeontask,starttime,lastchange,score,status,scoreddata,practicedata,ver';
-    $query = "SELECT $fieldstocopy FROM ";
-    $query .= "imas_assessment_records WHERE userid=:userid AND assessmentid=:assessmentid";
-    $stm = $DBH->prepare($query);
-    $stm->execute(array(':userid'=>$userid, ':assessmentid'=>$aid));
-    $rowgrpdata = $stm->fetch(PDO::FETCH_NUM);
-    // now copy it to others
-    $ph = Sanitize::generateQueryPlaceholders($rowgrpdata);
-    $query = "REPLACE INTO imas_assessment_records (userid,$fieldstocopy) ";
-    $query .= "VALUES (?,$ph)";
-    $stm = $DBH->prepare($query);
-    foreach ($available_new_members as $gm_uid) {
-      $stm->execute(array_merge(array($gm_uid), $rowgrpdata));
+        $available_new_members[] = $uid;
+    }
+
+    // see if we are starting a new group or adding to existing one.
+    // need to check that the user wasn't added to another group since initial launch
+    // in which case we won't add the group members
+    if ((count($current_members) == 0 || $stugroupid == $_POST['cur_group']) &&
+        count($available_new_members) > 0
+    ) {
+        // Add new members to the group
+        $qarr = array();
+        $vals = array();
+        foreach ($available_new_members as $gm_uid) {
+        $vals[] = '(?,?)';
+        array_push($qarr, $gm_uid, $stugroupid);
+        }
+        $query = 'INSERT INTO imas_stugroupmembers (userid,stugroupid) VALUES ';
+        $query .= implode(',', $vals);
+        $stm = $DBH->prepare($query);
+
+        $stm->execute($qarr);
+    }
+    $current_members = array_merge($current_members, $available_new_members);
+
+    // if we already have an assess record, need to copy it to new group members
+    if ($assess_record->hasRecord()) {
+        // get current record
+        $fieldstocopy = 'assessmentid,agroupid,timeontask,starttime,lastchange,score,status,scoreddata,practicedata,ver';
+        $query = "SELECT $fieldstocopy FROM ";
+        $query .= "imas_assessment_records WHERE userid=:userid AND assessmentid=:assessmentid";
+        $stm = $DBH->prepare($query);
+        $stm->execute(array(':userid'=>$userid, ':assessmentid'=>$aid));
+        $rowgrpdata = $stm->fetch(PDO::FETCH_NUM);
+        // now copy it to others
+        $ph = Sanitize::generateQueryPlaceholders($rowgrpdata);
+        $query = "REPLACE INTO imas_assessment_records (userid,$fieldstocopy) ";
+        $query .= "VALUES (?,$ph)";
+        $stm = $DBH->prepare($query);
+        foreach ($available_new_members as $gm_uid) {
+        $stm->execute(array_merge(array($gm_uid), $rowgrpdata));
+        }
     }
   }
 }
@@ -216,13 +224,15 @@ if ($isRealStudent) {
 }
 
 // update lti_sourcedid if needed
-if (!empty($sessiondata['lti_lis_result_sourcedid'.$aid])) {
-  $altltisourcedid = $sessiondata['lti_lis_result_sourcedid'.$aid].':|:'.$sessiondata['lti_outcomeurl'].':|:'.$sessiondata['lti_origkey'].':|:'.$sessiondata['lti_keylookup'];
+if (!empty($_SESSION['lti_lis_result_sourcedid'.$aid]) &&
+  !empty($_SESSION['lti_outcomeurl'])
+) {
+  $altltisourcedid = $_SESSION['lti_lis_result_sourcedid'.$aid].':|:'.$_SESSION['lti_outcomeurl'].':|:'.$_SESSION['lti_origkey'].':|:'.$_SESSION['lti_keylookup'];
   $assess_record->updateLTIsourcedId($altltisourcedid);
 }
 /*
-else if (isset($sessiondata['lti_lis_result_sourcedid'])) {
-  $altltisourcedid = $sessiondata['lti_lis_result_sourcedid'].':|:'.$sessiondata['lti_outcomeurl'].':|:'.$sessiondata['lti_origkey'].':|:'.$sessiondata['lti_keylookup'];
+else if (isset($_SESSION['lti_lis_result_sourcedid'])) {
+  $altltisourcedid = $_SESSION['lti_lis_result_sourcedid'].':|:'.$_SESSION['lti_outcomeurl'].':|:'.$_SESSION['lti_origkey'].':|:'.$_SESSION['lti_keylookup'];
   $assess_record->updateLTIsourcedId($altltisourcedid);
 }
 */
@@ -249,16 +259,24 @@ $assess_info->processIntro();
 $include_from_assess_info = array(
   'available', 'startdate', 'enddate', 'original_enddate', 'submitby',
   'extended_with', 'timelimit', 'timelimit_type', 'allowed_attempts',
-  'latepasses_avail', 'latepass_extendto', 'showscores', 'intro',
-  'interquestion_text', 'resources', 'category_urls', 'help_features',
-  'points_possible', 'showcat'
+  'showscores', 'intro', 'interquestion_text', 'resources', 'category_urls',
+  'help_features', 'points_possible', 'showcat', 'enddate_in', 'displaymethod'
 );
 if ($in_practice) {
-  array_push($include_from_assess_info, 'displaymethod', 'showscores',
-    'allowed_attempts'
-  );
+  array_push($include_from_assess_info, 'showscores', 'allowed_attempts');
 }
+
 $assessInfoOut = array_merge($assessInfoOut, $assess_info->extractSettings($include_from_assess_info));
+
+// handle preview all
+if ($preview_all) {
+  $assessInfoOut['displaymethod'] = 'full'; // show all q
+  $assess_info->overrideSetting('displaymethod','full');
+  $assess_record->setTeacherInGb(true); // enables answers showing
+  $assessInfoOut['preview_all'] = true;
+} else {
+  $assessInfoOut['preview_all'] = false;
+}
 
 // filter interquestion text html
 foreach ($assessInfoOut['interquestion_text'] as $k=>$v) {
@@ -273,6 +291,8 @@ $assessInfoOut['show_results'] = !$assess_info->getSetting('istutorial');
 $assessInfoOut['has_active_attempt'] = $assess_record->hasActiveAttempt();
 //get time limit expiration of current attempt, if appropriate
 if ($assessInfoOut['has_active_attempt'] && $assessInfoOut['timelimit'] > 0) {
+  // These values are adjusted for timelimit multiplier, but are not limited
+  // by the due date
   $assessInfoOut['timelimit_expiresin'] = $assess_record->getTimeLimitExpires() - $now;
   $assessInfoOut['timelimit_gracein'] = max($assess_record->getTimeLimitGrace() - $now, 0);
 }
@@ -309,11 +329,11 @@ if ($assess_info->getSetting('displaymethod') === 'livepoll') {
 }
 
 // get settings for LTI if needed
-if (isset($sessiondata['ltiitemtype']) && $sessiondata['ltiitemtype']==0) {
+if (isset($_SESSION['ltiitemtype']) && $_SESSION['ltiitemtype']==0) {
   if ($coursemsgset < 4 && $assessInfoOut['help_features']['message']==true) {
     $assessInfoOut['lti_showmsg'] = 1;
     // get msg count
-    $stm = $DBH->prepare("SELECT COUNT(id) FROM imas_msgs WHERE msgto=:msgto AND courseid=:courseid AND (isread=0 OR isread=4)");
+    $stm = $DBH->prepare("SELECT COUNT(id) FROM imas_msgs WHERE msgto=:msgto AND courseid=:courseid AND viewed=0 AND deleted<2");
 		$stm->execute(array(':msgto'=>$uid, ':courseid'=>$cid));
 		$assessInfoOut['lti_msgcnt'] = intval($stm->fetchColumn(0));
   }
@@ -321,7 +341,7 @@ if (isset($sessiondata['ltiitemtype']) && $sessiondata['ltiitemtype']==0) {
 
 // grab question settings data
 $showscores = $assess_info->showScoresDuring();
-$generate_html = ($assess_info->getSetting('displaymethod') == 'full');
+$generate_html = ($assess_info->getSetting('displaymethod') == 'full' || $_POST['in_print'] == 1);
 $assessInfoOut['questions'] = $assess_record->getAllQuestionObjects($showscores, $generate_html, $generate_html);
 
 // if practice, add that
@@ -332,11 +352,10 @@ $assess_record->saveRecordIfNeeded();
 
 // store assessment start in session data, so we know if they've gotten past
 // password at some point
-$sessiondata['assess2-'.$aid] = $in_practice;
-writesessiondata();
+$_SESSION['assess2-'.$aid] = $in_practice;
 
 //prep date display
 prepDateDisp($assessInfoOut);
 
 //output JSON object
-echo json_encode($assessInfoOut);
+echo json_encode($assessInfoOut, JSON_INVALID_UTF8_IGNORE);

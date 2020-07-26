@@ -21,19 +21,17 @@ if ($isteacher || $istutor) {
 
 	if (isset($_GET['timefilter'])) {
 		$timefilter = $_GET['timefilter'];
-		$sessiondata[$cid.'timefilter'] = $timefilter;
-		writesessiondata();
-	} else if (isset($sessiondata[$cid.'timefilter'])) {
-		$timefilter = $sessiondata[$cid.'timefilter'];
+		$_SESSION[$cid.'timefilter'] = $timefilter;
+	} else if (isset($_SESSION[$cid.'timefilter'])) {
+		$timefilter = $_SESSION[$cid.'timefilter'];
 	} else {
 		$timefilter = 2;
 	}
 	if (isset($_GET['lnfilter'])) {
 		$lnfilter = trim($_GET['lnfilter']);
-		$sessiondata[$cid.'lnfilter'] = $lnfilter;
-		writesessiondata();
-	} else if (isset($sessiondata[$cid.'lnfilter'])) {
-		$lnfilter = $sessiondata[$cid.'lnfilter'];
+		$_SESSION[$cid.'lnfilter'] = $lnfilter;
+	} else if (isset($_SESSION[$cid.'lnfilter'])) {
+		$lnfilter = $_SESSION[$cid.'lnfilter'];
 	} else {
 		$lnfilter = '';
 	}
@@ -42,10 +40,9 @@ if ($isteacher || $istutor) {
 	} else {
 		if (isset($_GET['secfilter'])) {
 			$secfilter = $_GET['secfilter'];
-			$sessiondata[$cid.'secfilter'] = $secfilter;
-			writesessiondata();
-		} else if (isset($sessiondata[$cid.'secfilter'])) {
-			$secfilter = $sessiondata[$cid.'secfilter'];
+			$_SESSION[$cid.'secfilter'] = $secfilter;
+		} else if (isset($_SESSION[$cid.'secfilter'])) {
+			$secfilter = $_SESSION[$cid.'secfilter'];
 		} else {
 			$secfilter = -1;
 		}
@@ -119,6 +116,12 @@ $placeinhead .= "} ";
 $placeinhead .= "</script>\n";
 $placeinhead .= "<style type=\"text/css\"> table.gb { margin: 0px; } .endmsg {display:none;}</style>";
 
+if (!empty($CFG['assess2-use-vue-dev'])) {
+	$assessGbUrl = sprintf("%s/gbviewassess.html", $CFG['assess2-use-vue-dev-address']);
+} else {
+	$assessGbUrl = "../assess2/gbviewassess.php";
+}
+
 require("../header.php");
 echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=".Sanitize::courseId($_GET['cid'])."\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
 echo "&gt; Diagnostic Gradebook</div>";
@@ -164,7 +167,8 @@ require("../footer.php");
 
 
 function gbinstrdisp() {
-	global $DBH,$isteacher,$istutor,$cid,$stu,$isdiag,$catfilter,$secfilter,$imasroot,$tutorsection,$includeendmsg;
+	global $DBH,$isteacher,$istutor,$cid,$stu,$isdiag,$catfilter,$secfilter,$imasroot,
+		$tutorsection,$includeendmsg,$assessGbUrl;
 	$hidenc = 1;
 	$includeendmsg = true;
 	$hasendmsg = false;
@@ -289,6 +293,8 @@ function gbinstrdisp() {
 				if (isset($gbt[$i][1][$j][0])) {
 					if ($gbt[$i][1][$j][4]=='average') {
 						echo "<a href=\"gb-itemanalysis.php?stu=$stu&cid=$cid&asid={$gbt[$i][1][$j][4]}&aid={$gbt[0][1][$j][7]}\">";
+					} else if ($gbt[0][1][$j][15] > 1) { // assess2
+						echo "<a href=\"$assessGbUrl?stu=$stu&amp;cid=$cid&amp;aid={$gbt[0][1][$j][7]}&amp;uid={$gbt[$i][4][0]}&from=gbtesting\">";
 					} else {
 						echo "<a href=\"gb-viewasid.php?stu=$stu&cid=$cid&asid={$gbt[$i][1][$j][4]}&uid={$gbt[$i][4][0]}&from=gbtesting\">";
 					}
@@ -314,8 +320,10 @@ function gbinstrdisp() {
 				} else { //no score
 					if ($gbt[$i][0][0]=='Averages') {
 						echo '-';
+					} else if ($gbt[0][1][$j][15] > 1) { // assess2
+						echo "<a href=\"$assessGbUrl?stu=$stu&amp;cid=$cid&amp;aid={$gbt[0][1][$j][7]}&amp;uid={$gbt[$i][4][0]}&from=gbtesting\">-</a>";
 					} else {
-						echo "<a href=\"gb-viewasid.php?stu=$stu&cid=$cid&asid=new&aid={$gbt[0][1][$j][7]}&uid={$gbt[$i][4][0]}\">-</a>";
+						echo "<a href=\"gb-viewasid.php?stu=$stu&cid=$cid&asid=new&aid={$gbt[0][1][$j][7]}&uid={$gbt[$i][4][0]}&from=gbtesting\">-</a>";
 					}
 				}
 			} else if ($gbt[0][1][$j][6]==1) { //offline
@@ -323,7 +331,7 @@ function gbinstrdisp() {
 					if ($gbt[$i][0][0]=='Averages') {
 						echo "<a href=\"addgrades.php?stu=$stu&cid=$cid&grades=all&gbitem={$gbt[0][1][$j][7]}\">";
 					} else {
-						echo "<a href=\"addgrades.php?stu=$stu&cid=$cid&grades={$gbt[$i][4][0]}&gbitem={$gbt[0][1][$j][7]}\">";
+						echo "<a href=\"addgrades.php?stu=$stu&cid=$cid&grades={$gbt[$i][4][0]}&gbitem={$gbt[0][1][$j][7]}&from=gbtesting\">";
 					}
 				}
 				if (isset($gbt[$i][1][$j][0])) {

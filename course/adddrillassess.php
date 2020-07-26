@@ -221,49 +221,47 @@ if (isset($_GET['record'])) {
 		$safesearch = str_replace(' and ', ' ',$safesearch);
 		$search = $safesearch;
 		$search = str_replace('"','&quot;',$search);
-		$sessiondata['lastsearch'.$cid] = $safesearch; //str_replace(" ","+",$safesearch);
+		$_SESSION['lastsearch'.$cid] = $safesearch; //str_replace(" ","+",$safesearch);
 		if (isset($_POST['searchall'])) {
 			$searchall = 1;
 		} else {
 			$searchall = 0;
 		}
-		$sessiondata['searchall'.$cid] = $searchall;
+		$_SESSION['searchall'.$cid] = $searchall;
 		if (isset($_POST['searchmine'])) {
 			$searchmine = 1;
 		} else {
 			$searchmine = 0;
 		}
-		$sessiondata['searchmine'.$cid] = $searchmine;
+		$_SESSION['searchmine'.$cid] = $searchmine;
 		if (isset($_POST['newonly'])) {
 			$newonly = 1;
 		} else {
 			$newonly = 0;
 		}
-		$sessiondata['searchnewonly'.$cid] = $newonly;
-		writesessiondata();
+		$_SESSION['searchnewonly'.$cid] = $newonly;
 	}
 	if (isset($_POST['libs'])) {
 		if ($_POST['libs']=='') {
 			$_POST['libs'] = $userdeflib;
 		}
 		$searchlibs = Sanitize::encodeStringForDisplay($_POST['libs']);
-		//$sessiondata['lastsearchlibs'] = implode(",",$searchlibs);
-		$sessiondata['lastsearchlibs'.$aid] = $searchlibs;
-		writesessiondata();
+		//$_SESSION['lastsearchlibs'] = implode(",",$searchlibs);
+		$_SESSION['lastsearchlibs'.$aid] = $searchlibs;
 	} else if (isset($_GET['listlib'])) {
 		$searchlibs = $_GET['listlib'];
-		$sessiondata['lastsearchlibs'.$aid] = $searchlibs;
+		$_SESSION['lastsearchlibs'.$aid] = $searchlibs;
 		$searchall = 0;
-		$sessiondata['searchall'.$aid] = $searchall;
-		$sessiondata['lastsearch'.$aid] = '';
+		$_SESSION['searchall'.$aid] = $searchall;
+		$_SESSION['lastsearch'.$aid] = '';
 		$searchlikes = '';
 		$search = '';
 		$safesearch = '';
-		writesessiondata();
 	}
 	$DBH->commit();
 	if (isset($_POST['save']) && $_POST['save']=='Save') {
-		header(sprintf('Location: %s/course/course.php?cid=%s&r=%s', $GLOBALS['basesiteurl'], $cid, Sanitize::randomQueryStringParam()));
+		$btf = isset($_GET['btf']) ? '&folder=' . Sanitize::encodeUrlParam($_GET['btf']) : '';
+		header(sprintf('Location: %s/course/course.php?cid=%s&r=%s', $GLOBALS['basesiteurl'], $cid.$btf, Sanitize::randomQueryStringParam()));
 	} else {
 		header(sprintf('Location: %s/course/adddrillassess.php?cid=%s&daid=%d&r=%s', $GLOBALS['basesiteurl'], $cid, $daid, Sanitize::randomQueryStringParam()));
 	}
@@ -280,8 +278,9 @@ if ($stm->rowCount()>0) {
 }
 
 $useeditor = "summary";
+$testqpage = ($courseUIver>1) ? 'testquestion2.php' : 'testquestion.php';
 $placeinhead = "<script type=\"text/javascript\">
-		var previewqaddr = '$imasroot/course/testquestion.php?cid=$cid';
+		var previewqaddr = '$imasroot/course/$testqpage?cid=$cid';
 		</script>";
 $placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/addquestions.js\"></script>";
 $placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/tablesorter.js"></script>';
@@ -292,13 +291,13 @@ require("../header.php");
 /*  Get data for question searching */
 //remember search
 
-if (isset($sessiondata['lastsearch'.$cid])) {
-	$safesearch = trim($sessiondata['lastsearch'.$cid]); //str_replace("+"," ",$sessiondata['lastsearch'.$cid]);
+if (isset($_SESSION['lastsearch'.$cid])) {
+	$safesearch = trim($_SESSION['lastsearch'.$cid]); //str_replace("+"," ",$_SESSION['lastsearch'.$cid]);
 	$search = $safesearch;
 	$search = str_replace('"','&quot;',$search);
-	$searchall = $sessiondata['searchall'.$cid];
-	$searchmine = $sessiondata['searchmine'.$cid];
-	$newonly = $sessiondata['searchnewonly'.$cid];
+	$searchall = $_SESSION['searchall'.$cid];
+	$searchmine = $_SESSION['searchmine'.$cid];
+	$newonly = $_SESSION['searchnewonly'.$cid];
 } else {
 	$search = '';
 	$searchall = 0;
@@ -327,9 +326,9 @@ if (trim($safesearch)=='') {
 	}
 }
 
-if (isset($sessiondata['lastsearchlibs'.$aid])) {
-	//$searchlibs = explode(",",$sessiondata['lastsearchlibs']);
-	$searchlibs = $sessiondata['lastsearchlibs'.$aid];
+if (isset($_SESSION['lastsearchlibs'.$aid])) {
+	//$searchlibs = explode(",",$_SESSION['lastsearchlibs']);
+	$searchlibs = $_SESSION['lastsearchlibs'.$aid];
 } else {
 	$searchlibs = $userdeflib;
 }
@@ -357,7 +356,7 @@ if (!$beentaken) {
 
 	if (isset($search)) {
 		$qarr = $searchlikevals;
-		$query = "SELECT DISTINCT imas_questionset.id,imas_questionset.description,imas_questionset.userights,imas_questionset.qtype,imas_questionset.extref,imas_library_items.libid,imas_questionset.ownerid,imas_questionset.avgtime,imas_library_items.junkflag, imas_library_items.id AS libitemid,imas_users.groupid ";
+		$query = "SELECT DISTINCT imas_questionset.id,imas_questionset.description,imas_questionset.userights,imas_questionset.qtype,imas_questionset.extref,imas_library_items.libid,imas_questionset.ownerid,imas_questionset.meantime,imas_library_items.junkflag, imas_library_items.id AS libitemid,imas_users.groupid ";
 		$query .= "FROM imas_questionset JOIN imas_library_items ON imas_library_items.qsetid=imas_questionset.id AND imas_library_items.deleted=0 ";
 		$query .= "JOIN imas_users ON imas_questionset.ownerid=imas_users.id WHERE imas_questionset.deleted=0 AND $searchlikes ";
 		$query .= " (imas_questionset.ownerid=? OR imas_questionset.userights>0)";

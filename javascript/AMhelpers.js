@@ -964,6 +964,8 @@ function AMnumfuncPrepVar(qn,str) {
 			return '@v'+i+'@';
 		}
 	 }});
+	// fix display of /n!
+	dispstr = dispstr.replace(/(@v(\d+)@|\d+(\.\d+)?)!/g, '{:$&:}');
   dispstr = dispstr.replace(/@v(\d+)@/g, function(match,contents) {
   	  return vars[contents];
        });
@@ -1523,11 +1525,19 @@ function toggleinlinebtn(n,p){ //n: target, p: click el
 
 }
 //triggered by blur, this saves the one question without scoring
+var backgsavetimer = null;
 function assessbackgsave() {
-	var m = $(this).attr("name").match(/^(qs|qn|tc)(\d+)/);
+	var el = this;
+	window.clearTimeout(backgsavetimer);
+	backgsavetimer = window.setTimeout(function() {
+			doassessbackgsave(el);
+	}, 500);
+}
+function doassessbackgsave(el) {
+	var m = $(el).attr("name").match(/^(qs|qn|tc)(\d+)/);
 	if (m !== null && !!window.FormData) {
 		var qn = m[2]*1;
-		if (qn>1000) {
+		if (qn>=1000) {
 			qn = Math.floor(qn/1000 + .001)-1;
 		}
 		if (typeof tinyMCE != "undefined") {tinyMCE.triggerSave();}
@@ -2218,7 +2228,7 @@ $(window).on("ImathasEmbedReload", initqsclickchange);
 initstack.push(initqsclickchange);
 
 function initShowAnswer() {
-	$("input.sabtn + span.hidden").attr("aria-hidden",true).attr("aria-expanded",false);
+	$("input.sabtn + span.hidden").attr("aria-hidden",true);
 	$("input.sabtn").each(function() {
 		var idnext = $(this).siblings("span:first-of-type").attr("id");
 		$(this).attr("aria-expanded",false).attr("aria-controls",idnext)
@@ -2236,7 +2246,7 @@ function initShowAnswer() {
 				}
 		});
 	});
-	$("input.dsbtn + div.hidden").attr("aria-hidden",true).attr("aria-expanded",false);
+	$("input.dsbtn + div.hidden").attr("aria-hidden",true);
 	$("input.dsbtn").each(function() {
 		var idnext = $(this).siblings("div:first-of-type").attr("id");
 		$(this).attr("aria-expanded",false).attr("aria-controls",idnext)

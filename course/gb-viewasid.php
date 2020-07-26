@@ -3,6 +3,12 @@
 //(c) 2007 David Lippman
 	require("../init.php");
 	require_once("../includes/filehandler.php");
+  require_once("../includes/TeacherAuditLog.php");
+
+//Look to see if a hook file is defined, and include if it is
+if (isset($CFG['hooks']['course/gb-viewasid'])) {
+	require($CFG['hooks']['course/gb-viewasid']);
+}
 
 
 	$isteacher = isset($teacherid);
@@ -23,8 +29,8 @@
 	}
 
 	if ($isteacher || $istutor) {
-		if (isset($sessiondata[$cid.'gbmode'])) {
-			$gbmode =  $sessiondata[$cid.'gbmode'];
+		if (isset($_SESSION[$cid.'gbmode'])) {
+			$gbmode =  $_SESSION[$cid.'gbmode'];
 		} else {
 			$stm = $DBH->prepare("SELECT defgbmode FROM imas_gbscheme WHERE courseid=:courseid");
 			$stm->execute(array(':courseid'=>$cid));
@@ -134,16 +140,30 @@
 	//PROCESS ANY TODOS
 	if (isset($_REQUEST['clearattempt']) && $isteacher) {
 		if (isset($_POST['clearattempt']) && $_POST['clearattempt']=='confirmed') {
-			$query = "SELECT ias.assessmentid,ias.lti_sourcedid FROM imas_assessment_sessions AS ias ";
+			$query = "SELECT ias.assessmentid,ias.lti_sourcedid,ias.userid,ias.bestscores FROM imas_assessment_sessions AS ias ";
 			$query .= "JOIN imas_assessments AS ia ON ias.assessmentid=ia.id WHERE ias.id=:id AND ia.courseid=:courseid";
 			$stm = $DBH->prepare($query);
 			$stm->execute(array(':id'=>$asid, ':courseid'=>$cid));
 			if ($stm->rowCount()>0) {
-				list($aid, $ltisourcedid) = $stm->fetch(PDO::FETCH_NUM);
+				list($aid, $ltisourcedid, $uid, $bestscores) = $stm->fetch(PDO::FETCH_NUM);
 				if (strlen($ltisourcedid)>1) {
 					require_once("../includes/ltioutcomes.php");
-					updateLTIgrade('delete',$ltisourcedid,$aid);
+					updateLTIgrade('delete',$ltisourcedid,$aid,$uid);
 				}
+
+				$sp = explode(';', $bestscores);
+        $as = str_replace(array('-1','-2','~'), array('0','0',','), $sp[0]);
+        $total = array_sum(explode(',', $as));
+				TeacherAuditLog::addTracking(
+          $cid,
+          "Clear Attempts",
+          $aid,
+          array(
+						'studentid'=>$uid,
+						'grade'=>$total,
+						'bestscores'=>$bestscores  // TODO: log group assess delete data
+					)
+        );
 
 				$qp = getasidquery($asid);
 				deleteasidfilesbyquery2($qp[0],$qp[1],$qp[2],1);
@@ -222,15 +242,16 @@
 			if ($stm->rowCount()>0) {
 				//$whereqry = getasidquery($_GET['asid']);
 				$qp = getasidquery($asid);
+				$aid = $qp[2];
 				//deleteasidfilesbyquery(array($qp[0]=>$qp[1]),1);
 				deleteasidfilesbyquery2($qp[0],$qp[1],$qp[2],1);
-				$stm = $DBH->prepare("SELECT seeds,lti_sourcedid FROM imas_assessment_sessions WHERE {$qp[0]}=:qval AND assessmentid=:assessmentid");
+				$stm = $DBH->prepare("SELECT seeds,lti_sourcedid,userid,bestscores FROM imas_assessment_sessions WHERE {$qp[0]}=:qval AND assessmentid=:assessmentid");
 				$stm->execute(array(':assessmentid'=>$qp[2], ':qval'=>$qp[1]));
-				list($seeds, $ltisourcedid) = $stm->fetch(PDO::FETCH_NUM);
+				list($seeds, $ltisourcedid, $uid, $bestscores) = $stm->fetch(PDO::FETCH_NUM);
 				$seeds = explode(',', $seeds);
 				if (strlen($ltisourcedid)>1) {
 					require_once("../includes/ltioutcomes.php");
-					updateLTIgrade('update',$ltisourcedid,$aid,0);
+					updateLTIgrade('update',$ltisourcedid,$aid,$uid,0);
 				}
 
 
@@ -250,6 +271,22 @@
 				$stm = $DBH->prepare($query);
 				$stm->execute(array(':assessmentid'=>$qp[2], ':qval'=>$qp[1], ':attempts'=>$attemptslist, ':lastanswers'=>$lalist, ':scores'=>"$scorelist;$scorelist",
 					':bestattempts'=>$bestattemptslist, ':bestseeds'=>$bestseedslist, ':bestlastanswers'=>$bestlalist, ':bestscores'=>"$bestscorelist;$bestscorelist;$bestscorelist"));
+
+				if ($stm->rowCount() > 0) {
+					$sp = explode(';', $bestscores);
+	        $as = str_replace(array('-1','-2','~'), array('0','0',','), $sp[0]);
+	        $total = array_sum(explode(',', $as));
+					TeacherAuditLog::addTracking(
+	          $cid,
+	          "Clear Scores",
+	          $aid,
+	          array(
+							'studentid'=>$uid,
+							'grade'=>$total,
+							'bestscores'=>$bestscores  // TODO: log group assess delete data
+						)
+	        );
+				}
 			}
 			header('Location: ' . $GLOBALS['basesiteurl'] ."/course/gb-viewasid.php?stu=$stu&asid=$asid&from=$from&cid=$cid&uid=$get_uid");
 		} else {
@@ -276,91 +313,94 @@
 		if (isset($_POST['clearq'])) { //postback
 			$qp = getasidquery($asid);
 			//$whereqry = getasidquery($_GET['asid']);
-			$query = "SELECT attempts,lastanswers,reattempting,scores,seeds,bestscores,bestattempts,bestlastanswers,bestseeds,lti_sourcedid ";
+			$query = "SELECT id,attempts,lastanswers,reattempting,scores,seeds,bestscores,bestattempts,bestlastanswers,bestseeds,lti_sourcedid,userid ";
 			$query .= "FROM imas_assessment_sessions WHERE {$qp[0]}=:qval AND assessmentid=:assessmentid ORDER BY id";
 			$stm = $DBH->prepare($query);
 			$stm->execute(array(':assessmentid'=>$qp[2], ':qval'=>$qp[1]));
-			$line = $stm->fetch(PDO::FETCH_ASSOC);
+			$err = '';
+			while ($line = $stm->fetch(PDO::FETCH_ASSOC)) {
+        if (strpos($line['scores'],';')===false) {
+          $noraw = true;
+          $scores = explode(",",$line['scores']);
+          $bestscores = explode(",",$line['bestscores']);
+        } else {
+          $sp = explode(';',$line['scores']);
+          $scores = explode(',', $sp[0]);
+          $rawscores = explode(',', $sp[1]);
+          $sp = explode(';',$line['bestscores']);
+          $bestscores = explode(',', $sp[0]);
+          $bestrawscores = explode(',', $sp[1]);
+          $firstrawscores = explode(',', $sp[2]);
+          $noraw = false;
+        }
 
-			if (strpos($line['scores'],';')===false) {
-				$noraw = true;
-				$scores = explode(",",$line['scores']);
-				$bestscores = explode(",",$line['bestscores']);
-			} else {
-				$sp = explode(';',$line['scores']);
-				$scores = explode(',', $sp[0]);
-				$rawscores = explode(',', $sp[1]);
-				$sp = explode(';',$line['bestscores']);
-				$bestscores = explode(',', $sp[0]);
-				$bestrawscores = explode(',', $sp[1]);
-				$firstrawscores = explode(',', $sp[2]);
-				$noraw = false;
-			}
+        $attempts = explode(",",$line['attempts']);
+        $seeds = explode(",",$line['seeds']);
+        $lastanswers = explode("~",$line['lastanswers']);
+        $reattempting = explode(',',$line['reattempting']);
+        $bestattempts = explode(",",$line['bestattempts']);
+        $bestlastanswers = explode("~",$line['bestlastanswers']);
+        $bestseeds = explode(",",$line['bestseeds']);
 
-			$attempts = explode(",",$line['attempts']);
-			$seeds = explode(",",$line['seeds']);
-			$lastanswers = explode("~",$line['lastanswers']);
-			$reattempting = explode(',',$line['reattempting']);
-			$bestattempts = explode(",",$line['bestattempts']);
-			$bestlastanswers = explode("~",$line['bestlastanswers']);
-			$bestseeds = explode(",",$line['bestseeds']);
+        $clearid = $_POST['clearq'];
+        if ($clearid!=='' && is_numeric($clearid) && isset($scores[$clearid])) {
+          deleteasidfilesfromstring2($lastanswers[$clearid].$bestlastanswers[$clearid],$qp[0],$qp[1],$qp[2]);
+          $scores[$clearid] = -1;
+          $attempts[$clearid] = 0;
+          $lastanswers[$clearid] = '';
+          $bestscores[$clearid] = -1;
+          $bestattempts[$clearid] = 0;
+          $bestlastanswers[$clearid] = '';
+          if (!$noraw) {
+            $rawscores[$clearid] = -1;
+            $bestrawscores[$clearid] = -1;
+            $firstscores[$clearid] = -1;
+          }
+          if (isset($_POST['regen'])) {
+            $seeds[$clearid] = rand(1,9999);
+            $bestseeds[$clearid] = $seeds[$clearid];
+          }
 
-			$clearid = $_POST['clearq'];
-			if ($clearid!=='' && is_numeric($clearid) && isset($scores[$clearid])) {
-				deleteasidfilesfromstring2($lastanswers[$clearid].$bestlastanswers[$clearid],$qp[0],$qp[1],$qp[2]);
-				$scores[$clearid] = -1;
-				$attempts[$clearid] = 0;
-				$lastanswers[$clearid] = '';
-				$bestscores[$clearid] = -1;
-				$bestattempts[$clearid] = 0;
-				$bestlastanswers[$clearid] = '';
-				if (!$noraw) {
-					$rawscores[$clearid] = -1;
-					$bestrawscores[$clearid] = -1;
-					$firstscores[$clearid] = -1;
-				}
-				if (isset($_POST['regen'])) {
-					$seeds[$clearid] = rand(1,9999);
-					$bestseeds[$clearid] = $seeds[$clearid];
-				}
+          $loc = array_search($clearid,$reattempting);
+          if ($loc!==false) {
+            array_splice($reattempting,$loc,1);
+          }
 
-				$loc = array_search($clearid,$reattempting);
-				if ($loc!==false) {
-					array_splice($reattempting,$loc,1);
-				}
+          if (!$noraw) {
+            $scorelist = implode(",",$scores).';'.implode(",",$rawscores);
+            $bestscorelist = implode(',',$bestscores).';'.implode(",",$bestrawscores).';'.implode(",",$firstscores);
+          } else {
+            $scorelist = implode(",",$scores);
+            $bestscorelist = implode(',',$bestscores);
+          }
+          $attemptslist = implode(",",$attempts);
+          $seedlist = implode(",",$seeds);
+          $bestseedlist = implode(",",$bestseeds);
+          $lalist = implode("~",$lastanswers);
 
-				if (!$noraw) {
-					$scorelist = implode(",",$scores).';'.implode(",",$rawscores);
-					$bestscorelist = implode(',',$bestscores).';'.implode(",",$bestrawscores).';'.implode(",",$firstscores);
-				} else {
-					$scorelist = implode(",",$scores);
-					$bestscorelist = implode(',',$bestscores);
-				}
-				$attemptslist = implode(",",$attempts);
-				$seedlist = implode(",",$seeds);
-				$bestseedlist = implode(",",$bestseeds);
-				$lalist = implode("~",$lastanswers);
-
-				$bestattemptslist = implode(',',$bestattempts);
-				$bestlalist = implode('~',$bestlastanswers);
-				$reattemptinglist = implode(',',$reattempting);
-				$query = "UPDATE imas_assessment_sessions SET scores=:scores,attempts=:attempts,lastanswers=:lastanswers,seeds=:seeds,";
-				$query .= "bestscores=:bestscores,bestattempts=:bestattempts,bestlastanswers=:bestlastanswers,bestseeds=:bestseeds,reattempting=:reattempting ";
-				$query .= "WHERE {$qp[0]}=:qval AND assessmentid=:assessmentid ";
-				$stm = $DBH->prepare($query);
-				$stm->execute(array(':assessmentid'=>$qp[2], ':qval'=>$qp[1], ':scores'=>$scorelist, ':attempts'=>$attemptslist, ':lastanswers'=>$lalist, ':seeds'=>$seedlist,
-					':bestscores'=>$bestscorelist, ':bestattempts'=>$bestattemptslist, ':bestlastanswers'=>$bestlalist, ':bestseeds'=>$bestseedlist, ':reattempting'=>$reattemptinglist));
-				if (strlen($line['lti_sourcedid'])>1) {
-					require_once("../includes/ltioutcomes.php");
-					calcandupdateLTIgrade($line['lti_sourcedid'],$aid,$bestscores,true);
-				}
-
-				header('Location: ' . $GLOBALS['basesiteurl'] ."/course/gb-viewasid.php?stu=$stu&asid=$asid&from=$from&cid=$cid&uid=$get_uid");
-			} else {
-				echo "$clearid";
-				print_r($scores);
-				echo "<p>Error.  Try again.</p>";
-			}
+          $bestattemptslist = implode(',',$bestattempts);
+          $bestlalist = implode('~',$bestlastanswers);
+          $reattemptinglist = implode(',',$reattempting);
+          $query = "UPDATE imas_assessment_sessions SET scores=:scores,attempts=:attempts,lastanswers=:lastanswers,seeds=:seeds,";
+          $query .= "bestscores=:bestscores,bestattempts=:bestattempts,bestlastanswers=:bestlastanswers,bestseeds=:bestseeds,reattempting=:reattempting ";
+          $query .= "WHERE id=:id";
+          $stm2 = $DBH->prepare($query);
+          $stm2->execute(array(':id'=>$line['id'], ':scores'=>$scorelist, ':attempts'=>$attemptslist, ':lastanswers'=>$lalist, ':seeds'=>$seedlist,
+            ':bestscores'=>$bestscorelist, ':bestattempts'=>$bestattemptslist, ':bestlastanswers'=>$bestlalist, ':bestseeds'=>$bestseedlist, ':reattempting'=>$reattemptinglist));
+          if (strlen($line['lti_sourcedid'])>1) {
+            require_once("../includes/ltioutcomes.php");
+            calcandupdateLTIgrade($line['lti_sourcedid'],$aid,$line['userid'],$bestscores,true);
+          }
+        } else {
+          echo "$clearid";
+          print_r($scores);
+          $err = "<p>Error.  Try again.</p>";
+        }
+      }
+      if ($err == '') {
+        header('Location: ' . $GLOBALS['basesiteurl'] ."/course/gb-viewasid.php?stu=$stu&asid=$asid&from=$from&cid=$cid&uid=$get_uid");
+        exit;
+      }
 			//unset($_GET['asid']);
 			unset($_GET['clearq']);
 
@@ -390,7 +430,7 @@
 		}
 	}
 	if (isset($_GET['forcegraphimg'])) {
-		$sessiondata['graphdisp'] = 2;
+		$_SESSION['graphdisp'] = 2;
 	}
 
 	//OUTPUTS
@@ -450,7 +490,7 @@
 					$feedback['Z'] = Sanitize::incomingHtml($_POST['feedback']);
 				}
 				if (count($feedback)>0) {
-					$feedbackout = json_encode($feedback);
+					$feedbackout = json_encode($feedback, JSON_INVALID_UTF8_IGNORE);
 				} else {
 					$feedbackout = '';
 				}
@@ -467,14 +507,14 @@
 					$stm = $DBH->prepare($query);
 					$stm->execute(array(':bestscores'=>$scorelist, ':feedback'=>$feedbackout, ':id'=>$asid));
 				}
-				$stm = $DBH->prepare("SELECT assessmentid,lti_sourcedid FROM imas_assessment_sessions WHERE id=:id");
+				$stm = $DBH->prepare("SELECT assessmentid,lti_sourcedid,userid FROM imas_assessment_sessions WHERE id=:id");
 				$stm->execute(array(':id'=>$asid));
 				$row = $stm->fetch(PDO::FETCH_NUM);
 				$aid = $row[0];
 				if (strlen($row[1])>1) {
 					//update LTI score
 					require_once("../includes/ltioutcomes.php");
-					calcandupdateLTIgrade($row[1],$row[0],$scores,true);
+					calcandupdateLTIgrade($row[1],$row[0],$row[2],$scores,true);
 				}
 			} else {
 				echo "No authority to change scores.";
@@ -499,13 +539,13 @@
 			exit;
 		}
 		$useeditor='review';
-		$sessiondata['coursetheme'] = $coursetheme;
-		$sessiondata['isteacher'] = $isteacher;
+		$_SESSION['coursetheme'] = $coursetheme;
+		$_SESSION['isteacher'] = $isteacher;
 		if ($isteacher || $istutor) {
 			$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/rubric.js?v=031417"></script>';
 			require("../includes/rubric.php");
 			$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/gb-scoretools.js?v=042519"></script>';
-			if ($sessiondata['useed']!=0) {
+			if ($_SESSION['useed']!=0) {
 				$placeinhead .= '<script type="text/javascript"> initeditor("divs","fbbox",null,true);</script>';
 			}
 		}
@@ -539,6 +579,9 @@
 		}
 		$line=$stm->fetch(PDO::FETCH_ASSOC);
 		$GLOBALS['assessver'] = $line['ver'];
+		if (function_exists('onAssessVer')) {
+			onAssessVer($line);
+		}
 
 		if (!$isteacher && !$istutor) {
 			$query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime) VALUES ";
@@ -548,7 +591,7 @@
 		}
 
 		echo "<div class=breadcrumb>$breadcrumbbase ";
-		if (!isset($sessiondata['ltiitemtype']) || $sessiondata['ltiitemtype']!=0) {
+		if (!isset($_SESSION['ltiitemtype']) || $_SESSION['ltiitemtype']!=0) {
 			echo "<a href=\"course.php?cid=".Sanitize::courseId($_GET['cid'])."\">".Sanitize::encodeStringForDisplay($coursename)."</a> &gt; ";
 
 			if ($stu>0) {
@@ -735,7 +778,7 @@
 		if ($myrights == 100 && $line['lti_sourcedid']!='') {
 			echo '<p class=small>LTI sourced_id: '.Sanitize::encodeStringForDisplay($line['lti_sourcedid']).'</p>';
 		}
-		echo "<form id=\"mainform\" method=post action=\"gb-viewasid.php?stu=$stu&cid=$cid&from=$from&asid={$asid}&update=true\">\n";
+		echo "<form id=\"mainform\" method=post action=\"gb-viewasid.php?stu=$stu&cid=$cid&from=$from&asid={$asid}&links=$links&update=true\">\n";
 
 		if ($isteacher) {
 			echo "<div class=\"cpmid\"><a href=\"gb-viewasid.php?stu=$stu&cid=$cid&asid={$asid}&from=$from&uid=$get_uid&clearattempt=true\" onmouseover=\"tipshow(this,'Clear everything, resetting things like the student never started.  Student will get new versions of questions.')\" onmouseout=\"tipout()\">Clear Attempt</a> | ";
@@ -857,11 +900,13 @@
 			$qsdata[$r['qid']] = $r;
 		}
 
-		echo '<p><button type="button" id="hctoggle" onclick="hidecorrect()">'._('Hide Correct Questions').'</button>';
-		echo ' <button type="button" id="hptoggle" onclick="hideperfect()">'._('Hide Perfect Questions').'</button>';
-		echo ' <button type="button" id="hnatoggle" onclick="hideNA()">'._('Hide Unanswered Questions').'</button>';
-		echo ' <button type="button" id="showanstoggle" onclick="showallans()">'._('Show All Answers').'</button>';
-		echo ' <button type="button" id="prevtoggle" onclick="previewall()">'._('Preview All').'</button></p>';
+		if ($canedit) {
+			echo '<p><button type="button" id="hctoggle" onclick="hidecorrect()">'._('Hide Correct Questions').'</button>';
+			echo ' <button type="button" id="hptoggle" onclick="hideperfect()">'._('Hide Perfect Questions').'</button>';
+			echo ' <button type="button" id="hnatoggle" onclick="hideNA()">'._('Hide Unanswered Questions').'</button>';
+			echo ' <button type="button" id="showanstoggle" onclick="showallans()">'._('Show All Answers').'</button>';
+			echo ' <button type="button" id="prevtoggle" onclick="previewall()">'._('Preview All').'</button></p>';
+		}
 		$total = 0;
 		$GLOBALS['capturedrawinit'] = true;
 
@@ -954,10 +999,10 @@
 					echo '<span id="fb-'.$i.'-wrap">';
 				}
 				echo '<br/>'._('Feedback').':<br/>';
-				if ($sessiondata['useed']==0) {
+				if ($_SESSION['useed']==0) {
 					echo '<textarea id="fb-'.$i.'" name="fb-'.$i.'" class="fbbox" cols=60 rows=2>'.Sanitize::encodeStringForDisplay($feedback["Q$i"], true).'</textarea>';
 				} else {
-					echo '<div id="fb-'.$i.'" class="fbbox" cols=60 rows=2>'.Sanitize::outgoingHtml($feedback["Q$i"]).'</div>';
+					echo '<div id="fb-'.$i.'" class="fbbox skipmathrender" cols=60 rows=2>'.Sanitize::outgoingHtml($feedback["Q$i"]).'</div>';
 				}
 				echo '</span>';
 
@@ -1026,7 +1071,7 @@
 										if ($qn==$i && !isset($GLOBALS['drawinitdata'][$qn])) { //handle single-part multipart
 											$GLOBALS['drawinitdata'][$qn] = $GLOBALS['drawinitdata'][($i+1)*1000];
 										}
-										$laparr[$lk] = '<span onmouseover="showgraphtip(this,\''.Sanitize::encodeStringForJavascript($v).'\',\''.Sanitize::encodeStringForJavascript($GLOBALS['drawinitdata'][$qn]).'\')" onmouseout="tipout()">[view]</span>';
+										$laparr[$lk] = '<span onmouseover="showgraphtip(this,\''.Sanitize::encodeStringForJavascript($v).'\','.str_replace('"','&quot;', json_encode($GLOBALS['drawinitdata'][$qn])).')" onmouseout="tipout()">[view]</span>';
 									} else {
 										$laparr[$lk] = Sanitize::encodeStringForDisplay(str_replace(array('%nbsp;','%%'),array('&nbsp;','&'),$v));
 									}
@@ -1088,14 +1133,14 @@
 		echo "<p></p><div class=review>Total: $total/$totalpossible</div>\n";
 		if ($canedit && !isset($_GET['lastver']) && !isset($_GET['reviewver'])) {
 			echo "<p>General feedback:<br/>";
-			if ($sessiondata['useed']==0) {
+			if ($_SESSION['useed']==0) {
 				echo "<textarea cols=60 rows=4 id=\"feedback\" name=\"feedback\" class=\"fbbox\">";
 				if (!empty($feedback["Z"])) {
 					echo Sanitize::encodeStringForDisplay($feedback["Z"]);
 				}
 				echo "</textarea></p>";
 			} else {
-				echo "<div cols=60 rows=4 id=\"feedback\" class=\"fbbox\">";
+				echo "<div cols=60 rows=4 id=\"feedback\" class=\"fbbox skipmathrender\">";
 				if (!empty($feedback["Z"])) {
 					echo Sanitize::outgoingHtml($feedback["Z"]);
 				}
@@ -1105,7 +1150,7 @@
 				echo "<p>Update grade for all group members? <input type=checkbox name=\"updategroup\" checked=\"checked\" /></p>";
 			}
 			echo "<p><input type=submit value=\"Record Changed Grades\"> ";
-			if (!isset($sessiondata['ltiitemtype']) || $sessiondata['ltiitemtype']!=0) {
+			if (!isset($_SESSION['ltiitemtype']) || $_SESSION['ltiitemtype']!=0) {
 				echo "<a href=\"$backurl\">Return to GradeBook without saving</a></p>\n";
 			}
 			/*
@@ -1127,7 +1172,7 @@
 				echo Sanitize::outgoingHtml($feedback["Z"]);
 			}
 			echo "</div></p>";
-			if (!isset($sessiondata['ltiitemtype']) || $sessiondata['ltiitemtype']!=0) {
+			if (!isset($_SESSION['ltiitemtype']) || $_SESSION['ltiitemtype']!=0) {
 				echo "<p><a href=\"gradebook.php?stu=$stu&cid=$cid\">Return to GradeBook</a></p>\n";
 			}
 		}
@@ -1190,6 +1235,9 @@
 		$stm->execute(array(':id'=>$asid));
 		$line=$stm->fetch(PDO::FETCH_ASSOC);
 		$GLOBALS['assessver'] = $line['ver'];
+		if (function_exists('onAssessVer')) {
+			onAssessVer($line);
+		}
 
 		if (!$isteacher && !$istutor) {
 			$query = "INSERT INTO imas_content_track (userid,courseid,type,typeid,viewtime) VALUES ";
@@ -1516,6 +1564,7 @@ function scorestocolors($sc,$pts,$answ,$noraw) {
 function prepchoicedisp($v,$choicesdata) {
 	if ($v=='') {return '';}
 	foreach ($choicesdata[1] as $k=>$c) {
+		if (is_array($c)) { continue; } // invalid
 		$sh = strip_tags($c);
 		if (trim($sh)=='' || strpos($c,'<table')!==false) {
 			$sh = "[view]";

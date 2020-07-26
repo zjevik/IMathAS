@@ -4,15 +4,15 @@
 
 //boost operation time
 @set_time_limit(300);
-ini_set("max_input_time", "300");
+
 ini_set("max_execution_time", "300");
-ini_set("memory_limit", "104857600");
+
 
 require("../init_without_validate.php");
 require("../includes/unenroll.php");
 require("../includes/AWSSNSutil.php");
 
-if (php_sapi_name() == "cli") { 
+if (php_sapi_name() == "cli") {
 	//running command line - no need for auth code
 } else if (!isset($CFG['cleanup']['authcode'])) {
 	echo 'You need to set $CFG[\'cleanup\'][\'authcode\'] in config.php';
@@ -21,6 +21,9 @@ if (php_sapi_name() == "cli") {
 	echo 'No authcode or invalid authcode provided';
 	exit;
 }
+
+$userid = 0;
+
 $starttime = time();
 $batchsize = 50;
 if (isset($_GET['batchsize']) && is_numeric($_GET['batchsize'])) {

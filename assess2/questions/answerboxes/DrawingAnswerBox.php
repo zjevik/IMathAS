@@ -74,6 +74,7 @@ class DrawingAnswerBox implements AnswerBox
         }
 
         if (isset($options['answerformat'])) {if (is_array($options['answerformat'])) {$answerformat = $options['answerformat'][$partnum];} else {$answerformat = $options['answerformat'];}}
+        if (isset($options['readerlabel'])) {if (is_array($options['readerlabel'])) {$readerlabel = $options['readerlabel'][$partnum];} else {$readerlabel = $options['readerlabel'];}}
 
         if (!is_array($answers)) {
     			settype($answers,"array");
@@ -81,7 +82,11 @@ class DrawingAnswerBox implements AnswerBox
     		$answers = array_map('clean', $answers);
     		if (!isset($snaptogrid)) {
     			$snaptogrid = 0;
-    		}
+    		} else {
+          $snapparts = explode(':', $snaptogrid);
+          $snapparts = array_map('evalbasic', $snapparts);
+          $snaptogrid = implode(':', $snapparts);
+        }
         if ($multi) { $qn = ($qn+1)*1000+$partnum; }
     		$imgborder = 5;
 
@@ -115,7 +120,7 @@ class DrawingAnswerBox implements AnswerBox
     					if (strpos($grid[$i],':')!==false) {
     						$pts = explode(':',$grid[$i]);
     						foreach ($pts as $k=>$v) {
-    							if ($v{0}==="h") {
+    							if ($v[0]==="h") {
     								$pts[$k] = "h".evalbasic(substr($v,1));
     							} else {
     								$pts[$k] = evalbasic($v);
@@ -194,7 +199,7 @@ class DrawingAnswerBox implements AnswerBox
     			$sclinglbl = "$xlbl:$ylbl";
     			$sclinggrid = "$xgrid:$ygrid";
     		}
-    		if ($snaptogrid>0) {
+    		if ($snaptogrid !== 0) {
     			list($newwidth,$newheight) = getsnapwidthheight($settings[0],$settings[1],$settings[2],$settings[3],$settings[6],$settings[7],$snaptogrid);
     			if (abs($newwidth - $settings[6])/$settings[6]<.1) {
     				$settings[6] = $newwidth;
@@ -203,10 +208,10 @@ class DrawingAnswerBox implements AnswerBox
     				$settings[7] = $newheight;
     			}
     		}
-    		if ($GLOBALS['sessiondata']['userprefs']['drawentry']==1 && $GLOBALS['sessiondata']['graphdisp']==0) {
+    		if ($_SESSION['userprefs']['drawentry']==1 && $_SESSION['graphdisp']==0) {
     			//can't imagine why someone would pick this, but if they do, need to set graphdisp to 2 temporarily
     			$revertgraphdisp = true;
-    			$GLOBALS['sessiondata']['graphdisp']=2;
+    			$_SESSION['graphdisp']=2;
     		} else {
     			$revertgraphdisp = false;
     		}
@@ -219,10 +224,10 @@ class DrawingAnswerBox implements AnswerBox
     		} else {
     			$plot = showplot($backg,$origxmin,$settings[1],$origymin,$settings[3],$sclinglbl,$sclinggrid,$settings[6],$settings[7]);
     		}
-    		if (is_array($settings[4]) && count($settings[4]>2)) {
+    		if (is_array($settings[4]) && count($settings[4])>2) {
     			$plot = addlabel($plot,$settings[1],0,$settings[4][2],"black","aboveleft");
     		}
-    		if (is_array($settings[5]) && count($settings[5]>2)) {
+    		if (is_array($settings[5]) && count($settings[5])>2) {
     			$plot = addlabel($plot,0,$settings[3],$settings[5][2],"black","belowright");
     		}
     		if (isset($grid) && (strpos($xsclgridpts[0],'/')!==false || strpos($xsclgridpts[0],'pi')!==false)) {
@@ -240,8 +245,10 @@ class DrawingAnswerBox implements AnswerBox
     		if (isset($GLOBALS['hidedrawcontrols'])) {
     			$out .= $plot;
     		} else {
-    			if ($GLOBALS['sessiondata']['userprefs']['drawentry']==0) { //accessible entry
-    				$bg = 'a11ydraw:'.implode(',', $answerformat);
+    			if ($_SESSION['userprefs']['drawentry']==0) { //accessible entry
+                    $bg = 'a11ydraw:'.implode(',', $answerformat);
+                    $out .= '<p class="sr-only">'.$this->answerBoxParams->getQuestionIdentifierString() . 
+                        (!empty($readerlabel) ? ' '.Sanitize::encodeStringForDisplay($readerlabel) : '').'</p>';
     				$out .= '<p>'._('Graph to add drawings to:').'</p>';
     				$out .= '<p>'.$plot.'</p>';
     				$out .= '<p>'._('Elements to draw:').'</p>';
@@ -254,15 +261,15 @@ class DrawingAnswerBox implements AnswerBox
     					$dotline = 2;
     				}
     			} else {
-    				$bg = getgraphfilename($plot);
-    				/*
-    				someday: overlay canvas over SVG.  Sizing not working in mobile and don't feel like figuring it out yet
-    				$out .= '<div class="drawcanvas" style="position:relative;background-color:#fff;width:'.$settings[6].'px;height:'.$settings[7].'px;">';
-    				$out .= '<div class="canvasbg" style="position:absolute;top:0;left:0;">'.$plot.'</div><div class="drawcanvasholder" style="position:absolute;top:0;left:0;z-index:2">';
+    				//$bg = getgraphfilename($plot);
+            $bg = preg_replace('/.*script=\'(.*?[^\\\\])\'.*/', '$1', $plot);
+    				$plot = str_replace('<embed','<embed data-nomag=1',$plot); //hide mag
+    				//overlay canvas over SVG.
+    				$out .= '<div class="drawcanvas" style="position:relative;width:'.$settings[6].'px;height:'.$settings[7].'px">';
+    				$out .= '<div class="canvasbg" style="position:absolute;top:0px;left:0px;">'.$plot.'</div>';
+    				$out .= '<div class="drawcanvasholder" style="position:relative;top:0;left:0;z-index:2">';
     				$out .= "<canvas id=\"canvas$qn\" width=\"{$settings[6]}\" height=\"{$settings[7]}\"></canvas>";
     				$out .= '</div></div>';
-    				*/
-    				$out .= "<canvas class=\"drawcanvas\" id=\"canvas$qn\" width=\"{$settings[6]}\" height=\"{$settings[7]}\"></canvas>";
 
     				$out .= "<div><span id=\"drawtools$qn\" class=\"drawtools\">";
     				$out .= "<span data-drawaction=\"clearcanvas\" data-qn=\"$qn\">" . _('Clear All') . "</span> ";
@@ -469,29 +476,33 @@ class DrawingAnswerBox implements AnswerBox
     			$la = str_replace(',,' , ',' , $la);
     			$la = str_replace(';,' , ';' , $la);
 
-    			if (strpos($snaptogrid,':')!==false) { $snaptogrid = "'$snaptogrid'";}
-
     			$attributes = [
     				'type' => 'hidden',
     				'name' => "qn$qn",
     				'id' => "qn$qn",
     				'value' => $la,
-    				'autocomplete' => 'off'
+    				'autocomplete' => 'off',
+                    'aria-label' => $this->answerBoxParams->getQuestionIdentifierString() . 
+                        (!empty($readerlabel) ? ' '.Sanitize::encodeStringForDisplay($readerlabel) : '')
     			];
+
+          $settings = array_map('floatval', $settings);
     			$params['canvas'] = [$qn,$bg,$settings[0],$settings[1],$settings[2],$settings[3],5,$settings[6],$settings[7],$def,$dotline,$locky,$snaptogrid];
 
     			$out .= '<input ' .
-    							Sanitize::generateAttributeString($attributes) .
+                  Sanitize::generateAttributeString($attributes) .
     							'" />';
 
     			if (isset($GLOBALS['capturedrawinit'])) {
-    				$params['livepoll_drawinit'] = "'$bg',{$settings[0]},{$settings[1]},{$settings[2]},{$settings[3]},5,{$settings[6]},{$settings[7]},$def,$dotline,$locky,$snaptogrid";
+            $GLOBALS['drawinitdata'][$qn] = [$bg,$settings[0],$settings[1],$settings[2],$settings[3],5,$settings[6],$settings[7],$def,$dotline,$locky,$snaptogrid];
+    				//$params['livepoll_drawinit'] = "'$bg',{$settings[0]},{$settings[1]},{$settings[2]},{$settings[3]},5,{$settings[6]},{$settings[7]},$def,$dotline,$locky,$snaptogrid";
+    			  $params['livepoll_drawinit'] = $GLOBALS['drawinitdata'][$qn];
     			}
     		}
         if ($colorbox!='') { $out .= '</div>';}
 
     		if ($revertgraphdisp) {
-    			$GLOBALS['sessiondata']['graphdisp']=0;
+    			$_SESSION['graphdisp']=0;
     		}
     		$tip = _('Enter your answer by drawing on the graph.');
     		if (isset($answers)) {
@@ -566,6 +577,10 @@ class DrawingAnswerBox implements AnswerBox
     							$saarr[$k] = '['.substr(str_replace('y','t',$function[0]),2).',t],blue,'.($settings[2]-1).','.($settings[3]+1);
     						}
     					} else { //is function
+                			if (preg_match('/(sin[^\(]|cos[^\(]|sqrt[^\(]|log[^\(_]|log_\d+[^(]|ln[^\(]|root[^\(]|root\(.*?\)[^\(])/', $function[0])) {
+    							echo "Invalid notation on ".Sanitize::encodeStringForDisplay($function[0]).": missing function parens";
+    							continue;
+    						}
     						$saarr[$k] = $function[0].',blue';
     						if (count($function)>2) {
     							if ($function[1] == '-oo') { $function[1] = $settings[0]-.1*($settings[1]-$settings[0]);}

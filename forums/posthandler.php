@@ -4,11 +4,11 @@
 
 require_once(__DIR__ . "/../includes/sanitize.php");
 
-ini_set("max_input_time", "60");
+
 ini_set("max_execution_time", "60");
-ini_set("memory_limit", "104857600");
-ini_set("upload_max_filesize", "10485760");
-ini_set("post_max_size", "10485760");
+
+
+
 
 if (!isset($caller)) {
 	exit;
@@ -26,7 +26,7 @@ if ($caller=="posts") {
 	$returnname = "Forum Topics";
 }
 if (!empty($_GET['embed'])) {
-	$returnurl = "embeddone.php?embed=true";
+	$returnurl .= '&embed=true';
 }
 
 $now = time();
@@ -311,7 +311,9 @@ if (isset($_GET['modify'])) { //adding or modifying post
 		$files = implode('@@',$files);
 		$stm = $DBH->prepare("UPDATE imas_forum_posts SET files=:files WHERE id=:id");
 		$stm->execute(array(':files'=>$files, ':id'=>$_GET['modify']));
-
+		if (!empty($_GET['embed'])) {
+			$returnurl = "embeddone.php?embed=true";
+		}
 		header('Location: ' . $GLOBALS['basesiteurl'] . "/forums/$returnurl&r=" . Sanitize::randomQueryStringParam());
 		exit;
 	} else { //display mod
@@ -466,7 +468,7 @@ if (isset($_GET['modify'])) { //adding or modifying post
 						if (!$isgroupedq) {
 							$query = "SELECT ift.id FROM imas_forum_posts AS ifp JOIN imas_forum_threads AS ift ON ifp.threadid=ift.id AND ifp.parent=0 ";
 							$query .= "WHERE ifp.subject=:subject AND ift.forumid=:forumid";
-							$array = array(':forumid'=>$forumid, ':subject'=>$line['subject']);
+							$array = array(':forumid'=>$forumid, ':subject'=>trim(strip_tags(htmlentities(html_entity_decode($line['subject'])))));
 							if ($groupsetid >0 && !$isteacher) {
 								$query .= " AND ift.stugroupid=:groupid";
 								$array[':groupid'] =$groupid;
@@ -560,7 +562,7 @@ if (isset($_GET['modify'])) { //adding or modifying post
 			}
 			echo "<span class=form><label for=\"message\">Message:</label></span>";
 			echo "<span class=left><div class=editor><textarea id=message name=message style=\"width: 100%;\" rows=20 cols=70>";
-			echo Sanitize::encodeStringForDisplay($line['message']);
+			echo Sanitize::encodeStringForDisplay($line['message'], true);
 			echo "</textarea></div></span><br class=form>\n";
 			if (!$isteacher && $allowanon==1) {
 				echo "<span class=form>Post Anonymously:</span><span class=formright>";
@@ -679,7 +681,7 @@ if (isset($_GET['modify'])) { //adding or modifying post
 					$parent[$line['id']] = $line['parent'];
 					$date[$line['id']] = $line['postdate'];
 					$subject[$line['id']] = $line['subject'];
-					if ($sessiondata['graphdisp']==0) {
+					if ($_SESSION['graphdisp']==0) {
 						$line['message'] = preg_replace('/<embed[^>]*alt="([^"]*)"[^>]*>/',"[$1]", $line['message']);
 					}
 					$message[$line['id']] = $line['message'];

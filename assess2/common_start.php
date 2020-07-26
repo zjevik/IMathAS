@@ -22,11 +22,14 @@ if (!$isteacher && !$istutor && !$isstudent) {
 
 $canViewAll = $isteacher || $istutor;
 $isActualTeacher = $isteacher && !isset($instrPreviewId);
-$isRealStudent = (isset($studentid) && !isset($sessiondata['stuview']));
+$isRealStudent = (isset($studentid) && !isset($_SESSION['stuview']));
 
 if (!$isRealStudent) {
   $studentinfo = array('latepasses' => 0, 'timelimitmult' => 1);
 }
+
+// extend time for uploads
+
 
 /**
  * Check if the required parameters are set
@@ -62,7 +65,9 @@ if (!empty($_POST['practice']) && $_POST['practice'] === 'false') {
 
 if ($_SERVER['HTTP_HOST'] == 'localhost') {
   //to help with development, while vue runs on 8080
-  header('Access-Control-Allow-Origin: http://localhost:8080');
+  if (!empty($CFG['assess2-use-vue-dev'])) {
+    header('Access-Control-Allow-Origin: '. $CFG['assess2-use-vue-dev-address']);
+  }
   header("Access-Control-Allow-Credentials: true");
   header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
   header("Access-Control-Allow-Headers: Origin");
@@ -70,7 +75,7 @@ if ($_SERVER['HTTP_HOST'] == 'localhost') {
 
 $useeditor = 1;
 
-if (isset($CFG['GEN']['keeplastactionlog']) && isset($sessiondata['loginlog'.$testsettings['courseid']])) {
+if (isset($CFG['GEN']['keeplastactionlog']) && isset($_SESSION['loginlog'.$testsettings['courseid']])) {
   $stm = $DBH->prepare("UPDATE imas_login_log SET lastaction=:lastaction WHERE id=:id");
   $stm->execute(array(':lastaction'=>time(), ':id'=>$_GET['cid']));
 }

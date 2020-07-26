@@ -3,7 +3,7 @@
 //Included from listusers or gradebook - not called directly
 //(c) 2007 David Lippman
 
-ini_set("max_input_time", "600");
+
 ini_set("max_execution_time", "600");
 
 	if (!(isset($teacherid))) {
@@ -150,8 +150,8 @@ ini_set("max_execution_time", "600");
 				<input  type="radio" name="delwikirev" value="2" checked="checked" />Group wikis only
 			</p>
 			<?php if ($courseUIver == 1) { ?>
-			<p><input type=checkbox name="upgradeassessver" value="1" />
-				Upgrade course to use new assessment interface. This feature is still in Beta - use with caution.
+			<p><input type=checkbox name="upgradeassessver" value="1" checked />
+				Upgrade course to use new assessment interface.
 			</p>
 			<?php } ?>
 

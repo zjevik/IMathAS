@@ -32,6 +32,7 @@ class MatchingAnswerBox implements AnswerBox
         $la = $this->answerBoxParams->getStudentLastAnswers();
         $options = $this->answerBoxParams->getQuestionWriterVars();
         $colorbox = $this->answerBoxParams->getColorboxKeyword();
+        $assessmentId = $this->answerBoxParams->getAssessmentId();
 
         // FIXME: The following code needs to be updated
         //        - $qn is always the question number (never $qn+1)
@@ -51,12 +52,17 @@ class MatchingAnswerBox implements AnswerBox
         if (isset($options['matchlist'])) {if (is_array($options['matchlist'])) {$matchlist = $options['matchlist'][$partnum];} else {$matchlist = $options['matchlist'];}}
         if (isset($options['noshuffle'])) {if (is_array($options['noshuffle'])) {$noshuffle = $options['noshuffle'][$partnum];} else {$noshuffle = $options['noshuffle'];}}
         if (isset($options['displayformat'])) {if (is_array($options['displayformat'])) {$displayformat = $options['displayformat'][$partnum];} else {$displayformat = $options['displayformat'];}}
+        if (isset($options['readerlabel'])) {if (is_array($options['readerlabel'])) {$readerlabel = $options['readerlabel'][$partnum];} else {$readerlabel = $options['readerlabel'];}}
 
         if ($multi) { $qn = ($qn+1)*1000+$partnum; }
 
-        if (!is_array($questions) || !is_array($answers)) {
-            throw new RuntimeException(_('Eeek!  $questions or $answers is not defined or needs to be an array'));
-            return;
+        if (!is_array($questions)) {
+          echo _('Eeek!  $questions is not defined or needs to be an array');
+          $questions = array();
+        }
+        if (!is_array($answers)) {
+          echo _('Eeek!  $answers is not defined or needs to be an array');
+          $answers = array();
         }
         if (isset($matchlist)) { $matchlist = array_map('trim',explode(',',$matchlist));}
     		if ($noshuffle=="questions" || $noshuffle=='all') {
@@ -71,8 +77,11 @@ class MatchingAnswerBox implements AnswerBox
     			$randakeys = $RND->array_rand($answers,count($answers));
     			$RND->shuffle($randakeys);
     		}
-        $_SESSION['choicemap'][$qn] = array($randqkeys, $randakeys);
-    		if (isset($GLOBALS['capturechoices'])) {
+        $_SESSION['choicemap'][$assessmentId][$qn] = array($randqkeys, $randakeys);
+        if (isset($GLOBALS['capturechoices'])) {
+          $GLOBALS['choicesdata'][$qn] = array($randqkeys, $answers);
+        }
+    		if (isset($GLOBALS['capturechoiceslivepoll'])) {
           /* TODO
           $params['livepoll_choices'] = $questions;
           $params['livepoll_ans'] = $answer;
@@ -81,19 +90,31 @@ class MatchingAnswerBox implements AnswerBox
     		}
 
     		$ncol = 1;
+
     		if (substr($displayformat,1)=='columnselect') {
-    			$ncol = $displayformat{0};
+    			$ncol = $displayformat[0];
     			$itempercol = ceil(count($randqkeys)/$ncol);
     			$displayformat = 'select';
+    		} else if (substr($displayformat,1)=='columnstacked') {
+    			$ncol = $displayformat[0];
+    			$itempercol = ceil(count($randqkeys)/$ncol);
+          $itemperanscol = ceil(count($randakeys)/$ncol);
     		}
     		if (substr($displayformat,0,8)=="limwidth") {
     			$divstyle = 'style="max-width:'.substr($displayformat,8).'px;"';
     		} else {
     			$divstyle = '';
     		}
-    		if ($colorbox != '') {$out .= '<div class="'.$colorbox.'" id="qnwrap'.$qn.'" style="display:block">';}
+        $out = '<div id="qnwrap'.$qn.'" role="group" ';
+        if ($colorbox != '') {
+          $out .= 'class="'.$colorbox.'" ';
+        }
+        $out .= 'aria-label="'.$this->answerBoxParams->getQuestionIdentifierString().
+            (!empty($readerlabel) ? ' '.Sanitize::encodeStringForDisplay($readerlabel) : '') . '">';
     		$out .= "<div class=\"match\" $divstyle>\n";
-    		$out .= "<p class=\"centered\">$questiontitle</p>\n";
+        if (!empty($questiontitle)) {
+    		  $out .= "<p class=\"centered\">$questiontitle</p>\n";
+        }
     		$out .= "<ul class=\"nomark\">\n";
         if ($la=='') {
           $las = array();
@@ -119,7 +140,7 @@ class MatchingAnswerBox implements AnswerBox
     			} else {
     				$out .= '<li>';
     			}
-    			$out .= "<select name=\"qn$qn-$i\">";
+    			$out .= "<select name=\"qn$qn-$i\" id=\"qn$qn-$i\">";
     			$out .= '<option value="-" ';
     			if ($laval=='-' || strcmp($laval,'')==0) {
     				$out .= 'selected="1"';
@@ -143,24 +164,32 @@ class MatchingAnswerBox implements AnswerBox
     					$out .= ">$v</option>";
     				}
     			}
-    			$out .= "</select>&nbsp;{$questions[$randqkeys[$i]]}</li>\n";
+    			$out .= "</select>&nbsp;<label for=\"qn$qn-$i\">{$questions[$randqkeys[$i]]}</label></li>\n";
     		}
     		$out .= "</ul>\n";
     		$out .= "</div>";
 
     		if (!isset($displayformat) || $displayformat!="select") {
+          if (!empty($itemperanscol)) {
+            $out .= "<div class=spacer>&nbsp;</div>";
+          }
     			$out .= "<div class=\"match\" $divstyle>\n";
-    			$out .= "<p class=centered>$answertitle</p>\n";
+          if (!empty($answertitle)) {
+			      $out .= "<p class=centered>$answertitle</p>\n";
+          }
 
     			$out .= "<ol class=lalpha>\n";
     			for ($i=0;$i<count($randakeys);$i++) {
+            if ($ncol>1 && $i>0 && $i%$itemperanscol==0) {
+      				$out .= '</ol></div><div class="match"><ol class=lalpha start='.($i+1).'>';
+      			}
     				$out .= "<li>{$answers[$randakeys[$i]]}</li>\n";
     			}
     			$out .= "</ol>";
     			$out .= "</div>";
     		}
     		$out .= "<div class=spacer>&nbsp;</div>";
-    		if ($colorbox != '') {$out .= '</div>';}
+    		$out .= '</div>';
     		//$tip = "In each box provided, type the letter (a, b, c, etc.) of the matching answer in the right-hand column";
     		if ($displayformat=="select") {
     			$tip = _('In each pull-down, select the item that matches with the displayed item');

@@ -35,11 +35,11 @@
 
 <script>
 import Icons from '@/components/widgets/Icons.vue';
-import './a11y-dialog';
+import A11yDialog from './a11y-dialog';
 
 export default {
   name: 'ErrorDialog',
-  props: ['errormsg'],
+  props: ['errormsg', 'lastpos'],
   data: function () {
     return {
       dialog: null
@@ -50,7 +50,7 @@ export default {
   },
   computed: {
     isError () {
-      return (typeof this.errormsg == 'string');
+      return (typeof this.errormsg === 'string');
     },
     errorTitle () {
       return this.isError ? this.$t('error.error') : this.errormsg.title;
@@ -68,13 +68,17 @@ export default {
     }
   },
   mounted () {
+    const lastHeight = this.lastpos || null;
     window.$(document).on('keyup.dialog', (event) => {
       if (event.key === 'Escape') {
         this.clearError();
       }
     });
-    this.dialog = new window.A11yDialog(this.$refs.wrap);
+    this.dialog = new A11yDialog(this.$refs.wrap);
     this.dialog.show();
+    if (window.innerHeight > 2000 && lastHeight !== null) {
+      this.$refs.dialog.style.top = Math.max(20, lastHeight - this.$refs.dialog.offsetHeight) + 'px';
+    }
   },
   beforeDestroy () {
     window.$(document).off('keyup.dialog');

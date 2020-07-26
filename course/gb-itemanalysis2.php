@@ -11,8 +11,8 @@
 		echo "This page not available to students";
 		exit;
 	}
-	if (isset($sessiondata[$cid.'gbmode'])) {
-		$gbmode =  $sessiondata[$cid.'gbmode'];
+	if (isset($_SESSION[$cid.'gbmode'])) {
+		$gbmode =  $_SESSION[$cid.'gbmode'];
 	} else {
 		$stm = $DBH->prepare("SELECT defgbmode FROM imas_gbscheme WHERE courseid=:courseid");
 		$stm->execute(array(':courseid'=>$cid));
@@ -35,10 +35,9 @@
 	} else {
 		if (isset($_GET['secfilter'])) {
 			$secfilter = $_GET['secfilter'];
-			$sessiondata[$cid.'secfilter'] = $secfilter;
-			writesessiondata();
-		} else if (isset($sessiondata[$cid.'secfilter'])) {
-			$secfilter = $sessiondata[$cid.'secfilter'];
+			$_SESSION[$cid.'secfilter'] = $secfilter;
+		} else if (isset($_SESSION[$cid.'secfilter'])) {
+			$secfilter = $_SESSION[$cid.'secfilter'];
 		} else {
 			$secfilter = -1;
 		}
@@ -53,6 +52,7 @@
 	$stm = $DBH->prepare("SELECT defpoints,name,itemorder,defoutcome,showhints,courseid,tutoredit,submitby FROM imas_assessments WHERE id=:id");
 	$stm->execute(array(':id'=>$aid));
 	list($defpoints, $aname, $itemorder, $defoutcome, $showhints, $assesscourseid, $tutoredit, $submitby) = $stm->fetch(PDO::FETCH_NUM);
+	$showhints = (($showhints&2)==2);
 	if ($assesscourseid != $cid) {
 		echo "Invalid assessment ID";
 		exit;
@@ -68,7 +68,7 @@
 	$placeinhead = '<script type="text/javascript">';
 	$placeinhead .= '$(function() {$("a[href*=\'gradeallq\']").attr("title","'._('Grade this question for all students').'");});';
 	$placeinhead .= 'function previewq(qn) {';
-	$placeinhead .= "var addr = '$imasroot/course/testquestion.php?cid=$cid&qsetid='+qn;";
+	$placeinhead .= "var addr = '$imasroot/course/testquestion2.php?cid=$cid&qsetid='+qn;";
 	$placeinhead .= "window.open(addr,'Testing','width=400,height=300,scrollbars=1,resizable=1,status=1,top=20,left='+(screen.width-420));";
 	$placeinhead .= "}\n</script>";
 	$placeinhead .= '<style type="text/css"> .manualgrade { background: #ff6;} td.pointer:hover {text-decoration: underline;}</style>';
@@ -143,7 +143,7 @@
                 AND imas_students.courseid = :courseid
                 AND imas_students.locked = 0";
 	if ($secfilter!=-1) {
-		$query .= " AND enrollments.section=:section ";
+		$query .= " AND imas_students.section=:section ";
 	}
 	$stm = $DBH->prepare($query);
 	if ($secfilter!=-1) {
@@ -164,7 +164,6 @@
 	        // Get the scored question version.
 	        $scoredQuestionIndex = $questionData['scored_version'];
             $scoredQuestion = $questionData['question_versions'][$scoredQuestionIndex];
-
             // The imas_questions.id for this question.
             $questionId = $scoredQuestion['qid'];
 
@@ -178,7 +177,30 @@
             // How many times this question was displayed to all students.
             $qcnt[$questionId] += 1;
 
-            // Total number of times this question was RE-generated for all students.
+            // The number of tries on this question. Use max tries on any part.
+            if (!empty($scoredQuestion['scored_try'])) {
+                $scoredTries = array_map(function($n) { return ++$n; }, $scoredQuestion['scored_try']);
+                $attempts[$questionId] += max($scoredTries);
+                // Figure out if any part of the question is incomplete.
+                // Skip if a score override is set.  TODO: actually look per-part
+                $untried = array_keys($scoredQuestion['scored_try'], -1);
+								if (!empty($scoredQuestion['scoreoverride']) && is_array($scoredQuestion['scoreoverride'])) {
+									$overridden = array_keys($scoredQuestion['scoreoverride']);
+									if (count(array_diff($untried, $overridden)) > 0) {
+										$qincomplete[$questionId] += 1;
+										continue;
+									}
+								} else if (count($untried) > 0) {
+									$qincomplete[$questionId] += 1;
+									continue;
+								}
+            } else {
+							// not even tried yet
+							$qincomplete[$questionId] += 1;
+							continue;
+						}
+
+						// Total number of times this question was RE-generated for all students.
             // Reduce by one to exclude the first generated question.
             $regens[$questionId] += count($questionData['question_versions']) - 1;
 
@@ -187,17 +209,6 @@
 
             // Time spent on all versions of this question.
             $timeontask[$questionId] += $questionData['time'];
-
-            // The number of tries on this question. Use max tries on any part.
-            if (!empty($scoredQuestion['scored_try'])) {
-                $scoredTries = array_map(function($n) { return ++$n; }, $scoredQuestion['scored_try']);
-                $attempts[$questionId] += max($scoredTries);
-
-                // Figure out if any part of the question is incomplete.
-                if (in_array(-1, $scoredQuestion['scored_try'])) {
-                    $qincomplete[$questionId] += 1;
-                }
-            }
 
             // Time spent per version.
             $timeontaskperversion[$questionId] += $questionData['time'] / ($regens[$questionId] + 1);
@@ -283,7 +294,7 @@
 	} else {
 		echo "<th scope=\"col\" title=\"Average time a student worked on this question, and average time per attempt on this question\">Average time per student</th>";
 	}
-	if ($showhints==1) {
+	if ($showhints) {
 		echo '<th scope="col" title="Percentage of students who clicked on help resources in the question, if available">Clicked on Help</th>';
 	}
 	echo "<th scope=\"col\">Preview</th></tr></thead>\n";
@@ -316,7 +327,7 @@
 					$needmanualgrade[$row[1]] = true;
 				}
 			}
-			if ($row[8]!='' && ($row[7]==2 || ($row[7]==0 && $showhints==1))) {
+			if ($row[8]!='' && (($row[7]&2)==2 || ($row[7]==-1 && $showhints))) {
 				$showextref[$row[1]] = true;
 			} else {
 				$showextref[$row[1]] = false;
@@ -333,13 +344,13 @@
 				$pts = $defpoints;
 			}
 			if ($qcnt[$qid]>0) {
-				$avg = round($qtotal[$qid]/$qcnt[$qid],2);
+				$avg = $qtotal[$qid]/$qcnt[$qid];
 				if ($qcnt[$qid] - $qincomplete[$qid]>0) {
-					$avg2 = round($qtotal[$qid]/($qcnt[$qid] - $qincomplete[$qid]),2); //avg adjusted for not attempted
+					$avg2 = $qtotal[$qid]/($qcnt[$qid] - $qincomplete[$qid]); //avg adjusted for not attempted
 				} else {
 					$avg2 = 0;
 				}
-				$avgscore[$i-1] = $avg;
+				$avgscore[$i-1] = round($avg*$pts,2);
 				$qs[$i-1] = $qid;
 
 				if ($pts>0) {
@@ -350,7 +361,6 @@
 					$pc2 = 'N/A';
 				}
 				$pi = round(100*$qincomplete[$qid]/$qcnt[$qid],1);
-
 				if ($qcnt[$qid] - $qincomplete[$qid]>0) {
 					$avgatt = round($attempts[$qid]/($qcnt[$qid] - $qincomplete[$qid]),2);
 					$avgreg = round($regens[$qid]/($qcnt[$qid] - $qincomplete[$qid]),2);
@@ -380,7 +390,7 @@
 				$pc = 0; $pc2 = 0; $pi = "NA";
 			}
 
-			echo "<td>" . Sanitize::onlyInt($itemnum[$qid]) . "</td><td>";
+			echo "<td>" . Sanitize::encodeStringForDisplay($itemnum[$qid]) . "</td><td>";
 			if ($withdrawn[$qid]==1) {
 				echo '<span class="noticetext">Withdrawn</span> ';
 			}
@@ -409,7 +419,7 @@
 				echo sprintf("<td class=\"pointer\" onclick=\"GB_show('Most Time','gb-itemanalysisdetail2.php?cid=%s&aid=%d&qid=%d&type=time',500,500);return false;\">%s</td>",
                 $cid, Sanitize::onlyInt($aid), Sanitize::onlyInt($qid), Sanitize::encodeStringForDisplay($avgtot));
 			}
-			if ($showhints==1) {
+			if ($showhints) {
 				if ($showextref[$qid] && $qcnt[$qid]!=$qincomplete[$qid]) {
 					echo sprintf("<td class=\"pointer c\" onclick=\"GB_show('Got Help','gb-itemanalysisdetail2.php?cid=%s&aid=%d&qid=%d&type=help',500,500);return false;\">%.0f%%</td>",
                         $cid, Sanitize::onlyInt($aid), Sanitize::onlyInt($qid), round(100*$vidcnt[$qid]/($qcnt[$qid] - $qincomplete[$qid])));
@@ -448,7 +458,7 @@
 	//echo "<p><a href=\"gradebook.php?stu=$stu&cid=$cid\">Return to GradeBook</a></p>\n";
 
 	echo '<p>Items with grade link <span class="manualgrade">highlighted</span> require manual grading.<br/>';
-	echo "Note: Average Score, Tries, Regens, and Times only counts those who attempted the problem.<br/>";
+	echo "Note: Average Score, Tries, Regens, and Times only counts those who completed the problem.<br/>";
 	echo 'Average Score is based on raw score, before any penalties are applied.<br/>';
 	echo 'All averages only include those who have started the assessment.</p>';
 	if ($submitby == 'by_assessment') {

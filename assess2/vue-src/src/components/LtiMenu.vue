@@ -42,7 +42,7 @@ export default {
   },
   computed: {
     LtiOptions () {
-      let out = [];
+      const out = [];
       out.push({
         label: this.$t('lti.userprefs'),
         onclick: () => {
@@ -61,10 +61,10 @@ export default {
           link: store.APIbase + '../msgs/msglist.php?cid=' + store.cid,
           target: '_self'
         });
-      }*/
+      } */
       // view scored assessment link
       if (store.assessInfo.in_practice &&
-          store.assessInfo['prev_attempts'].length > 0
+          store.assessInfo.prev_attempts.length > 0
       ) {
         out.push({
           label: this.$t('closed.view_scored'),
@@ -72,7 +72,7 @@ export default {
           target: '_self'
         });
       }
-      if (store.assessInfo['can_use_latepass']) {
+      if (store.assessInfo.can_use_latepass) {
         out.push({
           label: this.$t('lti.use_latepass'),
           link: store.APIbase + '../course/redeemlatepass.php?cid=' + store.cid + '&aid=' + store.aid,

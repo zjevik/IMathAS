@@ -34,11 +34,11 @@ function chglinktoggle() {
 }
 function setupGBpercents() {
   var colpts = [];
-  $("thead th").each(function(i,el) { 
+  $("thead th").each(function(i,el) {
   	if (el.className.match(/nocolorize/)) {
   		colpts[i] = -1;
-  	} else if (p = el.innerHTML.match(/(\d+)(\s*|&nbsp;)pts/)) {
-  		colpts[i] = p[1];
+  	} else if (el.hasAttribute('data-pts')) {
+  		colpts[i] = 1*el.getAttribute('data-pts');
   	} else {
   		colpts[i] = 100;
   	}
@@ -56,20 +56,18 @@ function setupGBpercents() {
   	}
     if (p = el.textContent.match(/^\s*(\d+\.?\d*)\s*\/\s*(\d+\.?\d*)\s*$/)) {
       var pct = p[2]>0?Math.round( 1000*p[1]/p[2] )/10:0;
-      $(el).empty().append($("<span/>", {
-        "data-ptv": p[0],
-        "data-pct": pct,
-        text: gbmod.pts==0?p[0]:pct+"%",
-        title: gbmod.pts==1?p[0]+"pts":pct+"%"
-      }));    
+			$(el).attr("data-ptv", p[0]).attr("data-pct", pct)
+				.attr("title", gbmod.pts==1?p[0]+"pts":pct+"%");
+			if (gbmod.pts!=0) {
+				$(el).text(pct+"%");
+			}
     } else if (p = el.textContent.match(/^\s*(\d+(\.\d*)?)\s*$/)) {
       var pct = colpts[i%colpts.length]>0?Math.round( 1000*p[1]/colpts[i%colpts.length] )/10:0;
-      $(el).empty().append($("<span/>", {
-        "data-ptv": p[0],
-        "data-pct": pct,
-        text: gbmod.pts==0?p[0]:pct+"%",
-        title: gbmod.pts==1?p[0]+"pts":pct+"%",
-      }));  
+			$(el).attr("data-ptv", p[0]).attr("data-pct", pct)
+				.attr("title", gbmod.pts==1?p[0]+"pts":pct+"%");
+			if (gbmod.pts!=0) {
+				$(el).text(pct+"%");
+			}
     }
  });
 };
@@ -89,12 +87,12 @@ $(function() {
 			$("a[data-pts]").parent().removeClass("active");
 			$(this).parent().addClass("active");
 			if (val == 0) { //show points
-				$("span[data-ptv]").each(function() {
+				$("*[data-ptv]").each(function() {
 					$(this).text($(this).attr("data-ptv"))
 					 .attr("title", $(this).attr("data-pct")+"%");
-				});                            
+				});
 			} else { //show percents
-				$("span[data-pct]").each(function() {
+				$("*[data-pct]").each(function() {
 					$(this).text($(this).attr("data-pct")+"%")
 					 .attr("title", $(this).attr("data-ptv")+"pts");
 				});
@@ -171,13 +169,6 @@ function makeofflineeditable(el) {
 			    newinp.value = anchors[i].innerHTML;
 			}
 			anchors[i].parentNode.appendChild(newinp);
-			var newtxta = document.createElement("textarea");
-			newtxta.name = "feedback["+bits[1]+"]";
-			newtxta.cols = 50;
-			var feedbtd = anchors[i].parentNode.nextSibling.nextSibling.nextSibling;
-			newtxta.value = feedbtd.innerHTML;
-			feedbtd.innerHTML = "";
-			feedbtd.appendChild(newtxta);
 		}
 	}
 	document.getElementById("savechgbtn").style.display = "";
@@ -221,7 +212,7 @@ function conditionalColor(table,type,low,high) {
 					if (k = v.match(/([\d\.]+)%/)) {
 						perc = parseFloat(k[1]);
 					} else if (v.match(/\d+\/\d+\/\d+/)) {
-						continue;	
+						continue;
 					} else if (k = v.match(/([\d\.]+)\/(\d+)/)) {
 						if (k[2]==0) { perc = 0;} else { perc= Math.round(1000*parseFloat(k[1])/parseFloat(k[2]))/10;}
 					} else if (v.replace(/[^\d\.\-]/g,"")=="-") {

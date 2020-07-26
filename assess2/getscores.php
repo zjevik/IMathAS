@@ -45,30 +45,36 @@ if ($isstudent) {
 $assess_record = new AssessRecord($DBH, $assess_info, false);
 $assess_record->loadRecord($uid);
 
-// if have active scored record end it
-if ($assess_record->hasActiveAttempt()) {
-  echo '{"error": "active_attempt"}';
+if (!$assess_record->hasRecord()) {
+  echo '{"error": "not_ready"}';
   exit;
 }
-
 // grab any assessment info fields that may have updated:
 $include_from_assess_info = array(
   'available', 'startdate', 'enddate', 'original_enddate', 'submitby',
   'extended_with', 'allowed_attempts', 'latepasses_avail', 'latepass_extendto',
-  'showscores', 'timelimit', 'points_possible'
+  'showscores', 'timelimit', 'points_possible', 'timelimit_grace', 'timelimit_expires'
 );
 $assessInfoOut = $assess_info->extractSettings($include_from_assess_info);
 //get attempt info
 $assessInfoOut['has_active_attempt'] = $assess_record->hasActiveAttempt();
 
+
+
+// if have active scored record end it
+if ($assessInfoOut['has_active_attempt'] && $assessInfoOut['submitby'] == 'by_assessment') {
+  echo '{"error": "active_attempt"}';
+  exit;
+}
+
 // grab all questions settings and scores, based on end-of-assessment settings
-$assess_info->loadQuestionSettings('all', false);
 $showscores = $assess_info->showScoresAtEnd();
-$reshowQs = $assess_info->reshowQuestionsAtEnd();
-$assessInfoOut['questions'] = $assess_record->getAllQuestionObjects($showscores, true, $reshowQs, 'scored');
+$reshowQs = $assess_info->reshowQuestionsInGb();
+$assess_info->loadQuestionSettings('all', $reshowQs);
+$assessInfoOut['questions'] = $assess_record->getAllQuestionObjects($showscores, true, $reshowQs);
 $assessInfoOut['score'] = $assess_record->getAttemptScore();
 $totalScore = $assessInfoOut['score'];
-$assessInfoOut['has_active_attempt'] = false;
+
 
 //get prev attempt info
 if ($assessInfoOut['submitby'] == 'by_assessment') {
@@ -86,16 +92,15 @@ if ($assessInfoOut['submitby'] == 'by_question') {
 }
 
 // get endmsg
-if ($assessInfoOut['showscores'] != 'none') {
   $assessInfoOut['endmsg'] = AssessUtils::getEndMsg(
     $assess_info->getSetting('endmsg'),
     $totalScore,
     $assess_info->getSetting('points_possible')
   );
-}
+
 
 //prep date display
 prepDateDisp($assessInfoOut);
 
 //output JSON object
-echo json_encode($assessInfoOut);
+echo json_encode($assessInfoOut, JSON_INVALID_UTF8_IGNORE);

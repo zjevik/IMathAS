@@ -12,6 +12,7 @@ export const store = Vue.observable({
   inTransit: false,
   saving: '',
   errorMsg: null,
+  confirmObj: null,
   curAver: 0,
   ispractice: false,
   curQver: [],
@@ -27,6 +28,10 @@ export const store = Vue.observable({
 
 export const actions = {
   loadGbAssessData (callback, keepversion) {
+    if (store.inTransit) {
+      window.setTimeout(() => this.loadGbAssessData(callback, keepversion), 20);
+      return;
+    }
     if (store.assessInfo === null && window.gbAssessData) {
       store.assessInfo = window.gbAssessData;
       if (typeof callback !== 'undefined') {
@@ -61,7 +66,7 @@ export const actions = {
           Vue.nextTick(() => {
             window.initAnswerboxHighlights();
             if (window.location.hash) {
-              let el = document.getElementById(window.location.hash.substring(1));
+              const el = document.getElementById(window.location.hash.substring(1).replace(/\//, ''));
               if (el) {
                 el.scrollIntoView();
               }
@@ -77,7 +82,11 @@ export const actions = {
     }
   },
   loadGbAssessVersion (ver, practice) {
-    let qs = store.queryString + '&ver=' + ver + '&practice=' + (practice ? 1 : 0);
+    if (store.inTransit) {
+      window.setTimeout(() => this.loadGbAssessVersion(ver, practice), 20);
+      return;
+    }
+    const qs = store.queryString + '&ver=' + ver + '&practice=' + (practice ? 1 : 0);
     store.inTransit = true;
     store.errorMsg = null;
     window.$.ajax({
@@ -127,6 +136,10 @@ export const actions = {
       });
   },
   loadGbQuestionVersion (qn, ver, forceload, beforeSet) {
+    if (store.inTransit) {
+      window.setTimeout(() => this.loadGbQuestionVersion(qn, ver, forceload, beforeSet), 20);
+      return;
+    }
     let qs = store.queryString + '&ver=' + ver + '&qn=' + qn;
     qs += '&practice=' + (store.ispractice ? 1 : 0);
     if (store.assessInfo.assess_versions[store.curAver].questions[qn][ver].html !== null &&
@@ -174,11 +187,15 @@ export const actions = {
       });
   },
   saveChanges (exit) {
-    let qs = store.queryString;
+    if (store.inTransit) {
+      window.setTimeout(() => this.saveChanges(exit), 20);
+      return;
+    }
+    const qs = store.queryString;
     store.inTransit = true;
     store.saving = 'saving';
     store.errorMsg = null;
-    let data = new FormData();
+    const data = new FormData();
     data.append('scores', JSON.stringify(store.scoreOverrides));
     data.append('feedback', JSON.stringify(store.feedbacks));
     data.append('practice', store.ispractice ? 1 : 0);
@@ -208,35 +225,54 @@ export const actions = {
         }
         // update store.assessInfo with the new scores so it
         // can tell if we change anything
-        for (let key in store.scoreOverrides) {
+        for (const key in store.scoreOverrides) {
           if (key === 'gen') {
-            if (store.scoreOverrides['gen'] === '') {
+            if (store.scoreOverrides.gen === '') {
               delete store.assessInfo.scoreoverride;
             } else {
-              store.assessInfo.gbscore = store.scoreOverrides['gen'];
-              store.assessInfo.scoreoverride = store.scoreOverrides['gen'];
+              store.assessInfo.gbscore = store.scoreOverrides.gen;
+              store.assessInfo.scoreoverride = store.scoreOverrides.gen;
             }
             continue;
           }
           // Update part score
-          let pts = key.split(/-/);
-          let qdata = store.assessInfo.assess_versions[pts[0]].questions[pts[1]][pts[2]];
+          const pts = key.split(/-/);
+          const qdata = store.assessInfo.assess_versions[pts[0]].questions[pts[1]][pts[2]];
+          if (qdata.scoreoverride && store.scoreOverrides[key] === '') {
+            if (typeof qdata.scoreoverride === 'number') {
+              Vue.delete(qdata, 'scoreoverride');
+            } else {
+              Vue.delete(qdata.scoreoverride, pts[3]);
+            }
+          }
           if (qdata.parts[pts[3]]) {
-            qdata.parts[pts[3]].score = Math.round(1000 * store.scoreOverrides[key] * qdata.parts[pts[3]].points_possible) / 1000;
+            if (store.scoreOverrides[key] === '') {
+              Vue.delete(store.scoreOverrides, key);
+            } else {
+              qdata.parts[pts[3]].score = Math.round(1000 * store.scoreOverrides[key] * qdata.parts[pts[3]].points_possible) / 1000;
+            }
           }
         }
         // update question scores
-        for (let key in response.newscores) {
-          let pts = key.split(/-/);
+        for (const key in response.newscores) {
+          const pts = key.split(/-/);
           Vue.set(
             store.assessInfo.assess_versions[pts[0]].questions[pts[1]][pts[2]],
             'score',
-            response.newscores[key]
+            response.newscores[key][0]
           );
+          // update part info
+          for (let i = 0; i < response.newscores[key][1].length; i++) {
+            Vue.set(
+              store.assessInfo.assess_versions[pts[0]].questions[pts[1]][pts[2]].parts,
+              i,
+              response.newscores[key][1][i]
+            );
+          }
         }
         // update feedbacks in store
-        for (let key in store.feedbacks) {
-          let pts = key.split(/-/);
+        for (const key in store.feedbacks) {
+          const pts = key.split(/-/);
           if (pts[1] === 'g') { // general feedback
             Vue.set(
               store.assessInfo.assess_versions[pts[0]],
@@ -258,7 +294,10 @@ export const actions = {
         for (let an = 0; an < response.assess_info.length; an++) {
           store.assessInfo.assess_versions[an].score = response.assess_info[an].score;
           for (let qn = 0; qn < response.assess_info[an].scoredvers.length; qn++) {
-            let qvers = store.assessInfo.assess_versions[an].questions[qn];
+            if (!store.assessInfo.assess_versions[an].hasOwnProperty('questions')) {
+              continue; // questions not loaded for this version
+            }
+            const qvers = store.assessInfo.assess_versions[an].questions[qn];
             for (let qv = 0; qv < qvers.length; qv++) {
               if (qv === response.assess_info[an].scoredvers[qn]) {
                 qvers[qv].scored = true;
@@ -284,7 +323,7 @@ export const actions = {
     this.clearAttempt(true);
   },
   clearAttempt (keepver) {
-    let data = {
+    const data = {
       type: store.clearAttempts.type,
       keepver: keepver
     };
@@ -312,7 +351,6 @@ export const actions = {
           this.handleError(response.error);
           return;
         }
-
         // TODO: update displayed data rather than just exiting
         if (store.clearAttempts.type === 'all' && data.keepver === 0) {
           // cleared all - exit
@@ -327,8 +365,8 @@ export const actions = {
           store.assessInfo.scored_version = response.scored_version;
           if (store.clearAttempts.type === 'attempt') {
             // clear out any score overrides associated with this version
-            let regex = new RegExp('^' + data.aver + '-');
-            for (let key in store.scoreOverrides) {
+            const regex = new RegExp('^' + data.aver + '-');
+            for (const key in store.scoreOverrides) {
               if (key.match(regex)) {
                 Vue.delete(store.scoreOverrides, key);
               }
@@ -346,8 +384,8 @@ export const actions = {
             }
           } else if (store.clearAttempts.type === 'qver') {
             // clear out any score overrides associated with this version
-            let regex = new RegExp('^' + data.aver + '-' + data.qn + '-' + data.qver + '-');
-            for (let key in store.scoreOverrides) {
+            const regex = new RegExp('^' + data.aver + '-' + data.qn + '-' + data.qver + '-');
+            for (const key in store.scoreOverrides) {
               if (key.match(regex)) {
                 Vue.delete(store.scoreOverrides, key);
               }
@@ -382,6 +420,10 @@ export const actions = {
       });
   },
   endAssess () {
+    if (store.inTransit) {
+      window.setTimeout(() => this.endAssess(), 20);
+      return;
+    }
     store.inTransit = true;
     store.errorMsg = null;
     window.$.ajax({
@@ -409,7 +451,7 @@ export const actions = {
       });
   },
   setQverAsScored (aver) {
-    let qdata = store.assessInfo.assess_versions[aver].questions;
+    const qdata = store.assessInfo.assess_versions[aver].questions;
     let qv;
     qloop: for (let i = 0; i < qdata.length; i++) {
       for (qv = 0; qv < qdata[i].length; qv++) {
@@ -424,26 +466,36 @@ export const actions = {
   },
   setScoreOverride (qn, pn, score) {
     // get current assess and question versions
-    let av = store.curAver;
-    let qv = store.curQver[qn];
+    const av = store.curAver;
+    const qv = store.curQver[qn];
 
     // compare new score against existing value
-    let qdata = store.assessInfo.assess_versions[av].questions[qn][qv];
-    let key = av + '-' + qn + '-' + qv + '-' + pn;
-    if (qdata.parts[pn] && qdata.parts[pn].try > 0 &&
-      (score === '' || Math.abs(score - qdata.parts[pn].rawscore) < 0.001)
-    ) {
-      // same as existing - don't submit as an override
-      delete store.scoreOverrides[key];
+    const qdata = store.assessInfo.assess_versions[av].questions[qn][qv];
+    const key = av + '-' + qn + '-' + qv + '-' + pn;
+    if (score === '') {
+      store.scoreOverrides[key] = '';
     } else {
-      // different score - submit as override. Save raw score (0-1)?.
-      store.scoreOverrides[key] = Math.round(10000*score)/10000;
+      let scoreChanged = true;
+      if (qdata.singlescore) {
+        scoreChanged = (Math.abs(score - qdata.rawscore) > 0.001);
+      } else if (qdata.parts[pn]) {
+        scoreChanged = (Math.abs(score - qdata.parts[pn].score / qdata.parts[pn].points_possible) > 0.001);
+      }
+      if (qdata.parts[pn] && qdata.parts[pn].try > 0 &&
+        (score === '' || !scoreChanged)
+      ) {
+        // same as existing - don't submit as an override
+        delete store.scoreOverrides[key];
+      } else {
+        // different score - submit as override. Save raw score (0-1)?.
+        store.scoreOverrides[key] = Math.round(10000 * score) / 10000;
+      }
     }
     store.saving = '';
   },
   setFeedback (qn, feedback) {
     // get current assess and question versions
-    let av = store.curAver;
+    const av = store.curAver;
     let key = av;
     let isNew = true;
     if (qn === null) {
@@ -453,7 +505,7 @@ export const actions = {
         isNew = false;
       }
     } else {
-      let qv = store.curQver[qn];
+      const qv = store.curQver[qn];
       key += '-' + qn + '-' + qv;
       if (feedback === store.assessInfo.assess_versions[store.curAver].questions[qn][qv].feedback) {
         isNew = false;

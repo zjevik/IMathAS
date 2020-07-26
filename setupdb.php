@@ -17,6 +17,7 @@ Because of this, this file does NOT contain the full up-to-date database schema.
 
 $dbsetup = true;
 $use_local_sessions = true;
+$init_session_start = true;
 include("init_without_validate.php");
 $stm = $DBH->query("SHOW TABLES LIKE 'imas_dbschema'");
 if ($stm->rowCount()>0) {
@@ -166,7 +167,6 @@ $sql = 'CREATE TABLE `imas_courses` ('
         . ' `name` VARCHAR(254) NOT NULL, '
         . ' `enrollkey` VARCHAR(100) NOT NULL, '
 	. ' `itemorder` MEDIUMTEXT NOT NULL, '
-	. ' `hideicons` TINYINT(2) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `allowunenroll` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `copyrights` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `blockcnt` INT(10) UNSIGNED NOT NULL DEFAULT \'1\', '
@@ -177,7 +177,6 @@ $sql = 'CREATE TABLE `imas_courses` ('
 	. ' `lockaid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `theme` VARCHAR(32) NOT NULL DEFAULT \'default.css\', '
 	. ' `latepasshrs` SMALLINT(4) UNSIGNED NOT NULL DEFAULT \'24\', '
-	. ' `picicons` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `newflag` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `istemplate` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `deflatepass` TINYINT(2) UNSIGNED NOT NULL DEFAULT \'0\','
@@ -373,20 +372,6 @@ $sql = 'CREATE TABLE `imas_firstscores` (
 	) ENGINE = InnoDB';
 $DBH->query($sql);
 echo 'imas_firstscores created<br/>';
-
-$sql = 'CREATE TABLE `imas_sessions` ('
-        . ' `sessionid` VARCHAR(32) NOT NULL, '
-        . ' `userid` INT(10) UNSIGNED NOT NULL, '
-        . ' `time` INT(10) UNSIGNED NOT NULL, '
-	. ' `tzoffset` SMALLINT(4) NOT NULL DEFAULT \'0\', '
-	. ' `tzname` VARCHAR(254) NOT NULL DEFAULT \'\', '
-	. ' `sessiondata` TEXT NOT NULL, '
-        . ' PRIMARY KEY (`sessionid`), INDEX(`time`), INDEX(`userid`) '
-        . ' )'
-        . ' ENGINE = InnoDB'
-        . ' COMMENT = \'Session data\';';
-$DBH->query($sql);
-echo 'imas_sessions created<br/>';
 
 $sql = 'CREATE TABLE `imas_inlinetext` ('
         . ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '

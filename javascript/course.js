@@ -28,6 +28,7 @@ function ahahDone(url, target) {
       $('#'+target+' div.itemhdricon[data-tip]').on('click mouseover', icontipshow).on('mouseout', tipout);
       var x = document.getElementById(target).getElementsByTagName("script");
       for(var i=0;i<x.length;i++) {
+        if (x[i].type == "math/asciimath") { continue; }
 	      if (x[i].src) {
 		      var script = document.createElement("script");
 		      script.src = x[i].src;
@@ -258,7 +259,7 @@ function showcalcontentsid(elid) {
 				html += '</li>';
 			} else if (caleventsarr[elid].data[i].type=='FP') {
 				html += '<li><span class="calitem" '+(caleventsarr[elid].data[i].color==""?"":('style="background-color:'+caleventsarr[elid].data[i].color+'"'))+'>'+ caleventsarr[elid].data[i].tag+'</span> ';
-				if (caleventsarr[elid].data[i].id!=null) {
+				if (caleventsarr[elid].data[i].id!=null && !caleventsarr[elid].data[i].hasOwnProperty('inactive')) {
 					html += '<a href="../forums/thread.php?cid='+cid+'&forum='+caleventsarr[elid].data[i].id+'">';
 					html += caleventsarr[elid].data[i].name + '</a>';
 				} else {
@@ -277,7 +278,7 @@ function showcalcontentsid(elid) {
 				html += '</li>';
 			} else if (caleventsarr[elid].data[i].type=='FR') {
 				html += '<li><span class="calitem" '+(caleventsarr[elid].data[i].color==""?"":('style="background-color:'+caleventsarr[elid].data[i].color+'"'))+'>'+ caleventsarr[elid].data[i].tag+'</span> ';
-				if (caleventsarr[elid].data[i].id!=null) {
+				if (caleventsarr[elid].data[i].id!=null && !caleventsarr[elid].data[i].hasOwnProperty('inactive')) {
 					html += '<a href="../forums/thread.php?cid='+cid+'&forum='+caleventsarr[elid].data[i].id+'">';
 					html += caleventsarr[elid].data[i].name + '</a>';
 				} else {

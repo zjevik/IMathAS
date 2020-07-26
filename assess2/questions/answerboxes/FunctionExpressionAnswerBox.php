@@ -46,6 +46,7 @@ class FunctionExpressionAnswerBox implements AnswerBox
         if (isset($options['hidepreview'])) {if (is_array($options['hidepreview'])) {$hidepreview = $options['hidepreview'][$partnum];} else {$hidepreview = $options['hidepreview'];}}
         if (isset($options['answerformat'])) {if (is_array($options['answerformat'])) {$answerformat = $options['answerformat'][$partnum];} else {$answerformat = $options['answerformat'];}}
         if (isset($options['answer'])) {if (is_array($options['answer'])) {$answer = $options['answer'][$partnum];} else {$answer = $options['answer'];}}
+        if (isset($options['readerlabel'])) {if (is_array($options['readerlabel'])) {$readerlabel = $options['readerlabel'][$partnum];} else {$readerlabel = $options['readerlabel'];}}
 
         if (!isset($sz)) { $sz = 20;}
         if ($multi) { $qn = ($qn+1)*1000+$partnum; }
@@ -63,12 +64,17 @@ class FunctionExpressionAnswerBox implements AnswerBox
     		$ansformats = array_map('trim',explode(',',$answerformat));
 
     		if (isset($ansprompt) && !in_array('nosoln',$ansformats) && !in_array('nosolninf',$ansformats))  {
-    			$out .= "<label for=\"qn$qn\">$ansprompt</label>";
+    			$out .= $ansprompt;
     		}
     		if (in_array('equation',$ansformats)) {
     			$shorttip = _('Enter an algebraic equation');
-    		} else {
+          		$tip = _('Enter your answer as an equation.  Example: y=3x^2+1, 2+x+y=3') . "\n<br/>" . _('Be sure your variables match those in the question');
+    		} else if (in_array('inequality',$ansformats)) {
+    			$shorttip = _('Enter an algebraic inequality');
+          		$tip = _('Enter your answer as an inequality.  Example: y<3x^2+1, 2+x+y>=3') . "\n<br/>" . _('Be sure your variables match those in the question');
+			} else {
     			$shorttip = _('Enter an algebraic expression');
+          		$tip = _('Enter your answer as an expression.  Example: 3x^2+1, x/5, (a+b)/c') . "\n<br/>" . _('Be sure your variables match those in the question');
     		}
 
     		if (!isset($variables)) { $variables = "x";}
@@ -76,7 +82,7 @@ class FunctionExpressionAnswerBox implements AnswerBox
     		$ofunc = array();
     		for ($i = 0; $i < count($variables); $i++) {
     			$variables[$i] = trim($variables[$i]);
-    			if (strpos($variables[$i],'(')!==false) {
+    			if (strpos($variables[$i],'()')!==false) {
     				$ofunc[] = substr($variables[$i],0,strpos($variables[$i],'('));
     				$variables[$i] = substr($variables[$i],0,strpos($variables[$i],'('));
     			}
@@ -126,7 +132,9 @@ class FunctionExpressionAnswerBox implements AnswerBox
     			'name' => "qn$qn",
     			'id' => "qn$qn",
     			'value' => $la,
-    			'autocomplete' => 'off'
+    			'autocomplete' => 'off',
+                'aria-label' => $this->answerBoxParams->getQuestionIdentifierString() . 
+                    (!empty($readerlabel) ? ' '.Sanitize::encodeStringForDisplay($readerlabel) : '')
     		];
 
     		$params['tip'] = $shorttip;
@@ -134,7 +142,7 @@ class FunctionExpressionAnswerBox implements AnswerBox
     		if ($useeqnhelper) {
     			$params['helper'] = 1;
     		}
-    		if (!isset($hidepreview) && $GLOBALS['sessiondata']['userprefs']['livepreview']==1) {
+    		if (!isset($hidepreview) && $_SESSION['userprefs']['livepreview']==1) {
     			$params['preview'] = 1;
     		}
     		$params['calcformat'] = Sanitize::encodeStringForDisplay($answerformat);
@@ -143,7 +151,7 @@ class FunctionExpressionAnswerBox implements AnswerBox
     		$params['domain'] = $newdomain;
 
     		$out .= '<input ' .
-    						Sanitize::generateAttributeString($attributes) .
+                Sanitize::generateAttributeString($attributes) .
     						'class="'.implode(' ', $classes) .
     						'" />';
 
@@ -155,12 +163,6 @@ class FunctionExpressionAnswerBox implements AnswerBox
     		}
     		$preview .= "<span id=p$qn></span>\n";
 
-
-    		if (in_array('equation',$ansformats)) {
-    			$tip = _('Enter your answer as an equation.  Example: y=3x^2+1, 2+x+y=3') . "\n<br/>" . _('Be sure your variables match those in the question');
-    		} else {
-    			$tip = _('Enter your answer as an expression.  Example: 3x^2+1, x/5, (a+b)/c') . "\n<br/>" . _('Be sure your variables match those in the question');
-    		}
     		if (in_array('nosoln',$ansformats) || in_array('nosolninf',$ansformats)) {
     			list($out,$answer) = setupnosolninf($qn, $out, $answer, $ansformats, $la, $ansprompt, $colorbox);
     		}
@@ -181,14 +183,19 @@ class FunctionExpressionAnswerBox implements AnswerBox
     							break;
     						}
     					}
-    					if (!$isgreek && preg_match('/^(\w+)_(\w+)$/',$variables[$i],$matches)) {
+    					if (!$isgreek && preg_match('/^(\w+)_(\w+|\(.*?\))$/',$variables[$i],$matches)) {
+                $chg = false;
     						if (strlen($matches[1])>1) {
     							$matches[1] = '"'.$matches[1].'"';
+                  $chg = true;
     						}
-    						if (strlen($matches[2])>1) {
+    						if (strlen($matches[2])>1 && $matches[2]{0} != '(') {
     							$matches[2] = '"'.$matches[2].'"';
+                  $chg = true;
     						}
-    						$sa = str_replace($matches[0], $matches[1].'_'.$matches[2], $sa);
+                if ($chg) {
+                  $sa = str_replace($matches[0], $matches[1].'_'.$matches[2], $sa);
+                }
     					} else if (!$isgreek && $variables[$i]!='varE') {
     						$sa = str_replace($variables[$i], '"'.$variables[$i].'"', $sa);
     					}

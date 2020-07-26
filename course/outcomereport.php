@@ -36,8 +36,8 @@ while ($row = $stm->fetch(PDO::FETCH_NUM)) {
 
 if (isset($_GET['gbmode']) && $_GET['gbmode']!='') {
 	$gbmode = $_GET['gbmode'];
-} else if (isset($sessiondata[$cid.'gbmode'])) {
-	$gbmode =  $sessiondata[$cid.'gbmode'];
+} else if (isset($_SESSION[$cid.'gbmode'])) {
+	$gbmode =  $_SESSION[$cid.'gbmode'];
 } else {
 	$stm = $DBH->prepare("SELECT defgbmode FROM imas_gbscheme WHERE courseid=:courseid");
 	$stm->execute(array(':courseid'=>$cid));
@@ -107,6 +107,7 @@ if ($report == 'overview') {
 			$usefullwidth = true;
 		}
 	}
+	$placeinhead .= '$(function() {ts.init();});';
 	$placeinhead .= "\nfunction lockcol() { \n";
 	$placeinhead .= "var tog = ts.toggle(); ";
 	$placeinhead .= "document.cookie = 'ocrhdr-$cid=1';\n document.getElementById(\"lockbtn\").value = \"" . _('Unlock headers') . "\"; ";

@@ -1455,8 +1455,9 @@ username or password, so they will only be able to access IMathAS resources thro
 		<li>For Content Type, select Canvas Course Export Package.
 			Select the export file from your computer,
 			and select All Content.  Click Import.</li>
-		<li>If you have a course-level configuration, skip ahead.
-		   If are setting up a course-level App Config follow these steps.
+		<li>If you have a global college-wide key and secret, you do not need to set
+		 	   up a course-level configuration.  If you need to set up a course level
+		 	   configuration, in your Canvas course:
 			<ul>
 			<li>Go to Settings, then Apps, then View App Configurations</li>
 			<li>Locate for the IMathAS App. Use the gear icon dropdown to select Edit</li>
@@ -2182,23 +2183,23 @@ can be omitted.</p>
 <li><strong>nonzerorrand(min,max,p)</strong>:  Returns a nonzero real number between min and max in steps of p</li>
 <li><strong>randfrom(list or array)</strong>: Return an element of the list/array.  Examples of lists: &quot;2,4,6,8&quot;, or &quot;red,green,blue&quot;</li>
 <li><strong>randname(),randmalename(),randfemalename()</strong>:  Returns a random first name</li>
-<li><strong>randnamewpronouns()</strong>:  Returns a random first name with pronouns in the order: subjective, objective, possessive (singular), possessive (plural).
-	Use: $name,$heshe,$himher,$hisher,$hishers = randnamewpronouns()</li>
+<li><strong>randnamewpronouns([option])</strong>:  Returns a random first name with pronouns in the order: subjective, objective, possessive (singular), possessive (plural), reflexive. Can set option to 'neutral' for they/them/their/theirs/themself pronouns.
+	Use: $name,$heshe,$himher,$hisher,$hishers,$himherself = randnamewpronouns()</li>
 </ul>
 
 <p>Array randomizers (return multiple results):</p>
 <ul>
-<li><strong>rands(min,max,n)</strong>:  Returns n integers between min and max</li>
-<li><strong>rrands(min,max,p,n)</strong>:  Returns n real numbers between min and max in steps of p</li>
-<li><strong>nonzerorands(min,max,n)</strong>:  Returns n nonzero integers between min and max</li>
-<li><strong>nonzerorrands(min,max,p,n)</strong>:  Returns n nonzero real numbers between min and max in steps of p</li>
-<li><strong>randsfrom(list/array,n)</strong>: Return n elements of the list/array.</li>
+<li><strong>rands(min,max,n,[order])</strong>:  Returns n integers between min and max. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>rrands(min,max,p,n,[order])</strong>:  Returns n real numbers between min and max in steps of p. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>nonzerorands(min,max,n,[order])</strong>:  Returns n nonzero integers between min and max. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>nonzerorrands(min,max,p,n,[order])</strong>:  Returns n nonzero real numbers between min and max in steps of p. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>randsfrom(list/array,n,[order])</strong>: Return n elements of the list/array. Can set order to 'inc' or 'dec' to sort the values.</li>
 <li><strong>jointrandfrom(list/array,list/array)</strong>:  Returns one element from each list, where the location used in each list is the same</li>
-<li><strong>diffrands(min,max,n)</strong>:  Returns n different integers between min and max</li>
-<li><strong>diffrrands(min,max,p,n)</strong>:  Returns n different real numbers between min and max in steps of p</li>
-<li><strong>diffrandsfrom(list/array,n)</strong>: Return n different elements of the list/array.</li>
-<li><strong>nonzerodiffrands(min,max,n)</strong>:  Returns n different nonzero integers between min and max</li>
-<li><strong>nonzerodiffrrands(min,max,p,n)</strong>:  Returns n different nonzero real numbers between min and max in steps of p</li>
+<li><strong>diffrands(min,max,n,[order])</strong>:  Returns n different integers between min and max. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>diffrrands(min,max,p,n,[order])</strong>:  Returns n different real numbers between min and max in steps of p. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>diffrandsfrom(list/array,n,[order])</strong>: Return n different elements of the list/array. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>nonzerodiffrands(min,max,n,[order])</strong>:  Returns n different nonzero integers between min and max. Can set order to 'inc' or 'dec' to sort the values.</li>
+<li><strong>nonzerodiffrrands(min,max,p,n,[nonzero,order])</strong>:  Returns n different nonzero real numbers between min and max in steps of p. Can set order to 'inc' or 'dec' to sort the values.</li>
 <li><strong>jointshuffle(list/array1,list/array2,[n1,n2])</strong>:  Shuffles two lists/arrays in a way that retains
     respective order.  In n1 is provided, n1 elements from each shuffled array will be returned (like
     a joint version of diffrandsfrom).  If n2 is also provided, n1 elements of list/array1 and n2
@@ -2208,6 +2209,7 @@ can be omitted.</p>
 <li><strong>randnames(n),randmalenames(n),randfemalenames(n)</strong>:  Returns n random first names</li>
 <li><strong>randcity(),randcities(n)</strong>:  Returns one or n random city names</li>
 <li><strong>randstate(),randstates(n)</strong>:  Returns one or n random US state names</li>
+<li><strong>randcountry(),randcountries(n)</strong>:  Returns one or n random country names</li>
 <li><strong>randpythag([min,max])</strong>:  Return a Pythagorean triple.  min/max default to 1 to 100</li>
 </ul>
 
@@ -2307,8 +2309,10 @@ The following macros create graphs or tables:
 <li><strong>changeimagesize(image or graph, width, [height])</strong>: Changes the display width for an image.
     Note this doesn't resize the file itself, just changes the display size - it's always better to resize the original
     image file.</li>
-<li><strong>textonimage(img,text,left,top[text,left,top...])</strong>:  Overlays text over an image.  Image can be a URL or the variable for an uploaded
-    image.  Specify the text string, and offset in pixels from the top left corner.  Can specify multiple strings to overlay.</li>
+<li><strong>textonimage(img,text,left,top[text,left,top,left,...])</strong>:  Overlays text over an image.  Image can be a URL or the variable for an uploaded
+    image.  Specify the text string, and offset in pixels from the top left corner.  Can specify multiple strings to overlay.
+    textonimage is not screenreader-friendly, so it's recommended you provide an alt text on the image, 
+    which will be read to the screenreader instead of the image and any layered text.</li>
 <li><strong>arraystodoteqns(xarray,yarray,[color])</strong>:  Converts an array of x-values and y-values into a form that can be used in
   showplot.</li>
 <li><strong>connectthedots(xarray,yarray,[color,thickness,startmarker,endmarker])</strong>: Converts an array of x-values and y-values into a form that
@@ -2317,7 +2321,7 @@ The following macros create graphs or tables:
 <li><strong>gettwopointlinedata(stuans, [xmin, xmax, ymin, ymax, drawing width, drawing height])</strong>:  Takes a $stuanswers from a drawing
   question and pulls out the two-point line data.  Returns an array of lines, each of form array(x1,y1,x2,y2) giving the coordinates
   of the two points used.</li>
-  <li><strong>gettwopointdata(stuans, type, [xmin, xmax, ymin, ymax, drawing width, drawing height])</strong>:  Takes a $stuanswers from a drawing question
+<li><strong>gettwopointdata(stuans, type, [xmin, xmax, ymin, ymax, drawing width, drawing height])</strong>:  Takes a $stuanswers from a drawing question
   and pulls out the two-point data for the given curve type.  Type should be one of 'line', 'lineseg', 'ray', 'parab', 'horizparab', 'sqrt', 'cubic', 'cuberoot',
   'rationa', 'exp', 'log', 'sin', 'cos', 'abs', 'vector', 'circle'.  Returns an array of curve data, each of form array(x1,y1,x2,y2) giving the coordinates of
   the two points used.  They are returned in the order clicked.  For example, with 'parab' type, the first point is the vertex and the
@@ -2331,6 +2335,11 @@ The following macros create graphs or tables:
 <li><strong>getlinesdata(stuans, [xmin, xmax, ymin, ymax, drawing width, drawing height])</strong>:  Takes a $stuanswers from a drawing
   question and pulls out the lines data, which includes polygons.  Returns an array, with an element for each line/curve draw.  Each of those
   elements will be an array of points on that line/curve.  Each of those points is array (x,y).</li>
+<li><strong>getineqdata(stuans, [type, xmin, xmax, ymin, ymax, drawing width, drawing height])</strong>:  Takes a $stuanswers from a drawing question
+  and pulls out the inequalities data for the given curve type.  Type should be one of 'linear' or 'quadratic'.
+	Returns an array of curve data, each of form array(style,x1,y1,x2,y2,x3,y3) giving the coordinates of
+  the three points used.  They are returned in the order clicked.  style will be either 'ne' for strict inequality (dashed line),
+	or 'eq' for inequality with equality (solid line).</li>
 <li><strong>getsnapwidthheight(xmin, xmax, ymin, ymax, drawing width, drawing height, snaptogrid)</strong>:  Takes drawing grid info and a snaptogrid
   value or string, and returns an array(width,height) giving a closeby drawing width and height that will guarantee that the snaptogrid values
   fall on exact drawing pixel locations.</li>
@@ -2355,6 +2364,17 @@ The following macros help with formatting values for display:
    numtowords(1203,false,true) returns "1023rd"<br/>
    numtowords(1203,false,false,true) returns "one thousand, two hundred three"
   </li>
+<li><strong>fractowords(numerator,denominator,[options])</strong>: Creates a string containing fraction numerator/denominator written out in words. By default, fractions will be reduced to integers if possible,
+	and pos/neg signs will be reduced. Options is a string that can include combinations of 'mixed' or 'literal', and 'over' or 'by'. Using 'over' or 'by' will connect numerator and denominator with that word.
+	Using 'mixed' will output a mixed number, and 'literal' overrides the default simplifications. Does not allow division by zero. If 'over' and 'by' both used, defaults to 'over'. If 'mixed' and 'literal' both used,
+	defaults to 'mixed'.<br/>
+	fractowords(5,-2) returns "negative five halves"<br/>
+	fractowords(6,3) returns "two"<br/>
+	fractowords(-7,4,'mixed') returns "negative one and three fourths"<br/>
+	fractowords(-7,4,'mixed over') returns "negative one and three over four"<br/>
+	fractowords(6,3,'literal') returns "six thirds"<br/>
+	fractowords(6,3,'literal over') returns "six over three"<br/>
+</li>
 <li><strong>numtoroman(number,[uppercase])</strong>:  Converts a number 0.5-3999.5 to a roman numeral string.  Defaults to uppercase; set second parameter to false to
     produce lowercase</li>
 <li><strong>prettyint(number)</strong>:  Adds commas in thousands spaces of integers.  Example: prettyint(1234) will return "1,234".  The result is a string, which
@@ -2362,9 +2382,11 @@ The following macros help with formatting values for display:
 <li><strong>prettyreal(number,decimals,[comma])</strong>:  Adds commas in thousands spaces of number, and displays the value to a fixed number of decimals places (rounding if needed).
    Example: prettyreal(1234.567,2) will return "1,234.57", and prettyreal(1.8,3) will return "1.800".  The result is a string, which
    can only be used for display, not in calculations.  By default adds a comma as a thousands separator; set comma to "" to override.</li>
-<li><strong>prettysmallnumber(number)</strong>:  Prevents very small numbers from being displayed as scientific notation</li>
+<li><strong>prettysmallnumber(number, [space])</strong>:  Prevents very small numbers from being displayed as scientific notation.
+   Set space to true to add space in groups of 3, like 0.000 000 02</li>
 <li><strong>prettysigfig(number,sigfigs,[comma,choptrailingzeros])</strong>:  Rounds number to sigfigs significant figures.  By default it adds commas in thousands spaces; set comma to "" override.
-   Set choptrailingzeros to true to chop trailing zeros from the decimal part, even if significant.</li>
+   Set choptrailingzeros to true to chop trailing zeros from the decimal part, even if significant.
+   This is for display; to round a number for calculations, use roundsigfig.</li>
 <li><strong>makescinot(number,[decimals,format])</strong>:  Converts number to scientific notation.  If provided, rounds mantissa to decimals places.  Can specify format: "*" "E" as alternative to default cross.</li>
 <li><strong>prettytime(value,informat,outformat)</strong>:  Creates a nice representation of a time.  Informat can be 'h', 'm', or 's' designating whether
     value is hours, minutes, or seconds.  Outformat can be any combination of these to specify output.  For example, 'hm' will return "__ hours and __ minutes".  Outformat
@@ -2434,7 +2456,7 @@ These macros are for working with arrays:
 	 </ul>
 	 </li>
 <li><strong>joinarray(array,symbol)</strong>:  Convert an array to a string, joining elements with the given symbol</li>
-<li><strong>mergearrays(array,array)</strong>:  Combines two arrays into one long array</li>
+<li><strong>mergearrays(array,array,[array,...])</strong>:  Combines two or more arrays into one long array</li>
 <li><strong>unionarrays(array,array)</strong>:  Unions two arrays, preventing duplicates, into a new array</li>
 <li><strong>intersectarrays(array,array)</strong>:  Finds the intersection of two arrays</li>
 <li><strong>diffarrays(array1,array2)</strong>: Returns all elements in array1 that are not also in array2</li>
@@ -2479,6 +2501,7 @@ These macros are used for mathematical calculations:
 <li><strong>lcm(a,b)</strong>: Least common multiple of a and b</li>
 <li><strong>sign(a,[option])</strong>:  Returns the sign of a, as 1 or -1.  If option is set to true, returns a string "+" or "-" instead. If option
   is set to "onlyneg", it returns the string "-" if a is negative, or "" otherwise.</li>
+<li><strong>sgn(a)</strong>: Returns the sign of a, as -1, 0, or 1.</li>
 <li><strong>v!</strong>: Factorial, like $a = $b!</li>
 <li><strong>evalfunc(func,vars,val1,val2,..)</strong>: Evaluates a function given the variables and values for each variable.
   for example evalfunc("x^2*y","x,y",2,3) will evaluate x^2*y with x=2, y=3</li>
@@ -2563,7 +2586,11 @@ available in each library</p>
 </div> <!-- h2 -->
 <div class=h2>
 <h2 id="mathentry">Math Entry</h2>
-<p>IMathAS uses ASCIIMath for math entry.  For calculations, a limited subset is available:</p>
+<p>IMathAS uses ASCIIMath for math entry.  In question text or inside strings that
+	will be displayed in the question text, wrap expressions to be rendered in the
+	backtick/grave symbol, like <code>`x^2`</code>.  That key is usually located on the same keyboard button as the tilde.
+</p>
+<p>For calculations, a limited subset is available:</p>
 <table>
 <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
 <tbody>
@@ -2581,6 +2608,8 @@ available in each library</p>
 <tr><td>log</td><td>Common Logarithm base 10</td></tr>
 <tr><td>abs</td><td>Absolute Value.  Note that while abs() is used for calculations, you may prefer to use | brackets for display</td></tr>
 <tr><td>round(n,d)</td><td>round number n to d decimal places</td></tr>
+<tr><td>roundsigfig(n,s)</td><td>round number n to s significant digits. This is for calculations;
+	if you need a value for display and want to ensure trailing 0's display, use prettysigfig</td></tr>
 <tr><td>floor,ceil</td><td>floor/ceiling: integer below/above given number</td></tr>
 <tr><td>min,max</td><td>min or max of the passed values. Can be used as min($a,$b,$c) or min($arrayvariable).</td></tr>
 </tbody>
@@ -2588,8 +2617,7 @@ available in each library</p>
 
 <p>For display only, the full ASCIIMath language is available (which includes support
 for a limited subset of LaTeX). For more info, see the
-<a href="http://www1.chapman.edu/~jipsen/mathml/asciimathsyntax.html">full ASCIIMath syntax</a>, or look at
-some <a href="http://www1.chapman.edu/~jipsen/mathml/asciimath.html">examples</a>.</p>
+<a href="http://asciimath.org/#syntax">ASCIIMath syntax</a>.</p>
 
 </div> <!-- h2 -->
 <div class=h2>
@@ -2837,7 +2865,9 @@ The answer is compared to a given tolerance.  Can also accept DNE, oo (Infinity)
 <dt>$displayformat = "alignright" </dt>
 	<dd>Aligns the text in the answer box to the right side</dd>
 <dt>$answerboxsize = number </dt>
-	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
+    <dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input box in that location</dd>
 <dt>$showanswer </dt>
@@ -2951,7 +2981,9 @@ A student is asked to enter a number or a calculation, like 2/3, 5^2, or sin(2).
 	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
 <dt>$hidepreview = true </dt>
 	<dd>Hides the Preview button.  Could be useful in multipart questions, or if you're only asking for a simple
-	response, like a fraction</dd>
+    response, like a fraction</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input box in that location</dd>
 <dt>$showanswer </dt>
@@ -2993,6 +3025,8 @@ of choices is automatically randomized.
 	index is the index in $questions, and score is a proportion between 0 and 1 to award as partial credit.  For example, if $answer = 0
 	and $partialcredit = array(2,.3), then the student would get full credit for selecting the item corresponding with $questions[0], and 30% credit
 	for selecting the item corresponding with $questions[2].  All other answers would receive 0 credit.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the choice list in that location</dd>
 <dt>$showanswer </dt>
@@ -3031,6 +3065,8 @@ of choices is automatically randomized.
 	<dd>Will lay out the choices horizontally, in multiple columns, or inline with text rather than using the default vertical layout</dd>
 <dt>$noshuffle = "all" </dt>
 	<dd>If $noshuffle="all", then the $questions array will not be randomized (shuffled)</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the choice list in that location</dd>
 <dt>$showanswer </dt>
@@ -3073,6 +3109,8 @@ A student is asked to match answers with questions
 <dt>$displayformat = "select" or "2columnselect"</dt>
 	<dd>Only displays the $answers, with select boxes next to each containing the $questions.  This should only be used with
 	pure text $questions.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place matching questions and answers in that location</dd>
 <dt>$showanswer </dt>
@@ -3119,11 +3157,14 @@ A student is asked to enter a function
 	Include "ignore_case,false" to make the search case sensitive.
 	Include "ignore_symbol,$" (or some symbol other than $) at the beginning of the $requiretimes to ignore that symbol in the answer<br/>
 	Note that commas are ignored by default with Function type, and a basic exponent like x^(-3) is converted to x^-3 before the check.</dd>
-<dt>$answerformat = "equation" or "toconst" or "nosoln" or "nosolninf" (can combine, like "equation,nosoln")</dt>
+<dt>$answerformat = "equation" or "inequality" or "toconst" or "nosoln" or "nosolninf" (can combine, like "equation,nosoln")</dt>
 	<dd>By default, the student answer is expected to be an expression, and be equivalent (at points) to the specified answer.  This option changes
 	this behavior.<br/>
 	"equation": Specifies that the answer expected is an equation rather than an expression.  The given
 	answer should also be an equation.  Be sure to specify all variables in the equation in $variables.  This may fail
+	on equations that are near zero for most values of the input; this can often be overcome by changing the $domain<br/>
+	"inequality": Specifies that the answer is expected to be an inequality rather than an expression.
+	The given answers hould also be an inequality.  Be sure to specify all variables in the equation in $variables.  This may fail
 	on equations that are near zero for most values of the input; this can often be overcome by changing the $domain<br/>
 	"toconst": Specifies that the answer provided by the student is allowed to differ from the specified answer by a constant
 	for all inputs.  Appropriate for comparing antiderivatives.  This may fail on expressions that evaluate to very large
@@ -3145,6 +3186,8 @@ A student is asked to enter a function
 	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
 <dt>$hidepreview = true </dt>
 	<dd>Hides the Preview button.  Could be useful in multipart questions, but generally not recommended</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input box in that location</dd>
 <dt>$showanswer </dt>
@@ -3190,9 +3233,10 @@ A student is asked to enter a string (a word or list of letters).
 		</ul>
 		By default, compress_whitespace and ignore_case are On.  Only one of
 		partial_credit, allow_diff, in_answer or regex may be used at a time.</dd>
-<dt>$scoremethod = "takeanything" or "takeanythingorblank"</dt>
-	<dd>Sets the problem to give full credit for any answer.  The latter also counts
-	blank answers as correct.</dd>
+<dt>$scoremethod = "takeanything" or "takeanythingorblank" or "submitblank"</dt>
+	<dd>"takeanything" or "takeanythingorblank" sets the problem to give full credit
+		for any answer.  "takeanythingorblank" also counts blank answers as correct.
+	  "submitblank" will cause blank answers to get submitted for scoring (new system only).</dd>
 <dt>$answerformat = "list" </dt>
 	<dd>Specifies that a list of answers is expected.  Renders ignore_commas unnecessary.  Cannot be used with
 	partial_credit flag.  Duplicates are not ignored.</dd>
@@ -3205,6 +3249,8 @@ A student is asked to enter a string (a word or list of letters).
 	<dd>A string that will be displayed in front of the input box.  Example: $ansprompt="type: "</dd>
 <dt>$answerboxsize = number </dt>
 	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the answer entry box in that location</dd>
 <dt>$showanswer </dt>
@@ -3236,6 +3282,8 @@ None - the essay type is not computer graded.
 <dt>$scoremethod = "takeanything" or "takeanythingorblank"</dt>
 	<dd>Sets the problem to give full credit for any answer.  The latter also counts
 	blank answers as correct.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the essay box in that location</dd>
 <dt>$showanswer </dt>
@@ -3334,8 +3382,8 @@ drawn line from the correct line.
 	<dd>Defines the grid to be drawn on.  Defaults to "-5,5,-5,5,1,1,300,300".  You can set all or just some of the
 	    values.  For example, to just set the window, you could use "0,10,0,10"<br/>
 	    If using $answerformat="numberline", set ymin and ymax to 0.<br/>If desired, you can set separate label and grid
-	    spacing using "xmin,xmax,ymin,ymax,xlabel:xgrid,ylabel:ygrid,imagewidth,imageheight".  You can specify axis labels using
-	    "xmin,xmax,ymin,ymax,xlabel:xgrid:xaxislabel,ylabel:ygrid:yaxislabel,imagewidth,imageheight".
+	    spacing using "xmin,xmax,ymin,ymax,xlabelspacing:xgridspacing,ylabelspacing:ygridspacing,imagewidth,imageheight".  You can specify axis labels using
+	    "xmin,xmax,ymin,ymax,xlabelspacing:xgridspacing:xaxislabel,ylabelspacing:ygridspacing:yaxislabel,imagewidth,imageheight".
 	    To create first quadrant graphs, use "0:-n" (for some value of n) for xmin and/or ymin to only have gridlines and labels
 	    after 0, while still using -n to adjust spacing. </dd>
 <dt>$background = equation or array of equations, using the showplot macro format </dt>
@@ -3350,6 +3398,10 @@ drawn line from the correct line.
 	<dd>Sets all-or-nothing grading.  If score &lt; $abstolerance, the student receives 0 for the question (note: score is
 	between 0 and 1).  Otherwise
 	the student will receive full credit.  Not set by default.</dd>
+<dt>$scoremethod = "takeanything" </dt>
+		<dd>When used, this will give full credit for any non-blank answer.  This might be of use with the freehand drawing option.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input drawing tool in that location</dd>
 <dt>$showanswer </dt>
@@ -3392,6 +3444,8 @@ This can be used for coordinate points, vectors, or any other n-tuple of numbers
 	used by default.</dd>
 <dt>$abstolerance = a number </dt>
 	<dd>Defines the largest absolute error that will be accepted.  This will override the use of $reltolerance</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input drawing tool in that location</dd>
 <dt>$showanswer </dt>
@@ -3444,6 +3498,8 @@ rather than just numbers, such as (5/3, 2/3).
 	used by default.</dd>
 <dt>$abstolerance = a number </dt>
 	<dd>Defines the largest absolute error that will be accepted.  This will override the use of $reltolerance</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input drawing tool in that location</dd>
 <dt>$showanswer </dt>
@@ -3478,6 +3534,8 @@ Complex questions require the student to enter a complex number in a+bi form.
 	used by default.</dd>
 <dt>$abstolerance = a number </dt>
 	<dd>Defines the largest absolute error that will be accepted.  This will override the use of $reltolerance</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input drawing tool in that location</dd>
 <dt>$showanswer </dt>
@@ -3522,6 +3580,8 @@ rather than just numbers, such as 1/3+sqrt(2)i.
 	used by default.</dd>
 <dt>$abstolerance = a number </dt>
 	<dd>Defines the largest absolute error that will be accepted.  This will override the use of $reltolerance</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input drawing tool in that location</dd>
 <dt>$showanswer </dt>
@@ -3561,11 +3621,20 @@ The entries are compared to a given tolerance.
 	used by default.</dd>
 <dt>$abstolerance = a number </dt>
 	<dd>Defines the largest absolute error that will be accepted.  This will override the use of $reltolerance</dd>
+<dt>$scoremethod = "byelement" </dt>
+	<dd>By default, the whole matrix must be correct to receive any credit.
+	Set $scoremethod = "byelement" to give partial credit if only some elements of
+	the matrix are correct.</dd>
+<dt>$displayformat = "det" </dt>
+	<dd>When $answersize is used, by default square brackets are used around the
+		entry array. Set $displayformat = "det" to use vertical bars instead.</dd>
 <dt>$ansprompt = string </dt>
 	<dd>A string that will be displayed in front of the input box.  Example: $ansprompt="y="</dd>
 <dt>$answerboxsize = number </dt>
 	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.  Will only be
 	used if $answersize is not supplied.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input box in that location</dd>
 <dt>$showanswer </dt>
@@ -3607,6 +3676,13 @@ The entries are compared to a given tolerance.
 	used by default.</dd>
 <dt>$abstolerance = a number </dt>
 	<dd>Defines the largest absolute error that will be accepted.  This will override the use of $reltolerance</dd>
+<dt>$scoremethod = "byelement" </dt>
+	<dd>By default, the whole matrix must be correct to receive any credit.
+	Set $scoremethod = "byelement" to give partial credit if only some elements of
+	the matrix are correct.</dd>
+<dt>$displayformat = "det" </dt>
+	<dd>When $answersize is used, by default square brackets are used around the
+		entry array. Set $displayformat = "det" to use vertical bars instead.</dd>
 <dt>$ansprompt = string </dt>
 	<dd>A string that will be displayed in front of the input box.  Example: $ansprompt="y="</dd>
 <dt>$answerboxsize = number </dt>
@@ -3614,6 +3690,8 @@ The entries are compared to a given tolerance.
 	used if $answersize is not supplied.</dd>
 <dt>$hidepreview = true </dt>
 	<dd>Hides the Preview button.  Could be useful in multipart questions, but generally not recommended</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the question input box in that location</dd>
 <dt>$showanswer </dt>
@@ -3656,10 +3734,15 @@ A student is asked to enter an interval notation answer. Example: (2,5]U(7,oo)
 <dt>$answerformat = "normalcurve" </dt>
 	<dd>Changes the question to use a "shade the area under the normal curve" widget. Define $answer using the interval that should be
 	shaded. Note that the shading tool only allows selection of z-values to 1 decimal place.</dd>
+<dt>$scoremethod = "partialcredit"</dt>
+  <dd>By default, interval answers will be marked all right or all wrong.  Setting $scoremethod = "partialcredit"
+		will changing the scoring mode to give partial credit. (new assessment system only).</dd>
 <dt>$ansprompt = string </dt>
 	<dd>A string that will be displayed in front of the input box.  Example: $ansprompt="`x in`"</dd>
 <dt>$answerboxsize = number </dt>
 	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the entry box in that location</dd>
 <dt>$showanswer </dt>
@@ -3707,10 +3790,17 @@ invertal notation.
 	<dd>Defines the decimal accuracy required (ie 2 for two decimal places).  This will put a message in the answer tips stating the
 	decimals required.  If neither $abstolerance or $reltolerance is set, this will set the tolerance, otherwise the provided tolerance
 	will be used (even if it doesn't agree with the $reqdecimal setting).</dd>
+<dt>$scoremethod = "partialcredit"</dt>
+  <dd>By default, interval answers will be marked all right or all wrong.  Setting $scoremethod = "partialcredit"
+		will changing the scoring mode to give partial credit. Note that answers
+		not meeting $answerformat requirements will have deductions in addition to
+		correctness checks. (new assessment system only).</dd>
 <dt>$ansprompt = string </dt>
 	<dd>A string that will be displayed in front of the input box.  Example: $ansprompt="`x in`"</dd>
 <dt>$answerboxsize = number </dt>
 	<dd>Determines the number of characters space provided for entry of an answer.  Defaults to 20.</dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the entry box in that location</dd>
 <dt>$showanswer </dt>
@@ -3742,6 +3832,14 @@ None - the file upload type is not computer graded.
 <dt>$scoremethod = "takeanything" or "takeanythingorblank"</dt>
 	<dd>Sets the problem to give full credit for any answer.  The latter also counts
 	blank answers as correct.</dd>
+<dt>$answerformat = "images", "canpreview", or a list of file extensions</dt>
+	<dd>Set a list of preferred file formats for the file selector.  "images" is
+	 a shorthand for .jpg,.gif,.png,.jpeg. "canpreview" is a shorthand for image
+   files, office files, and pdfs, which can be previewed inline.  If listing
+   file extensions, provide a comma separated list with leading periods, like
+    ".pdf,.docx,.doc"  </dd>
+<dt>$readerlabel = string</dt>
+    <dd>A string that will be used as a visually hidden label on the input box for screenreaders.</dd>
 <dt>$answerbox (In Question Text)</dt>
 	<dd>Using the variable $answerbox in the Question Text will place the file upload box in that location</dd>
 <dt>$showanswer </dt>

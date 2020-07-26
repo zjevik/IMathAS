@@ -32,7 +32,9 @@ export default {
   },
   methods: {
     triggerOpen (event, val) {
-      if (this.show === false) {
+      if (typeof this.tip === 'undefined' || this.tip === '') {
+        return;
+      } else if (this.show === false) {
         this.open = false;
       } else if (typeof val === 'boolean') {
         this.open = val;
@@ -42,8 +44,8 @@ export default {
       if (this.open) {
         this.$nextTick(() => {
           this.$refs.pane.style.right = '';
-          let bndbox = this.$refs.pane.getBoundingClientRect();
-          let pageWidth = document.documentElement.clientWidth;
+          const bndbox = this.$refs.pane.getBoundingClientRect();
+          const pageWidth = document.documentElement.clientWidth;
           if (bndbox.right >= pageWidth) {
             this.$refs.pane.style.right = '12px';
           }
@@ -54,7 +56,7 @@ export default {
       }
       if (event.type === 'touchstart' && event.cancelable) {
         // Disabled - was preventing activating menus inside tooltipspans
-        //event.preventDefault();
+        // event.preventDefault();
       }
     }
   }

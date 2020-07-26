@@ -151,6 +151,7 @@ var AMsymbols = [
 {input:"~=",  tag:"mo", output:"\u2245", tex:"stackrel{\\sim}{=}", notexcopy: true, ttype:CONST}, //back hack b/c mimetex doesn't support /cong
 {input:"cong",   tag:"mo", output:"~=", tex:null, ttype:DEFINITION},
 {input:"~~",  tag:"mo", output:"\u2248", tex:"approx", ttype:CONST},
+{input:"~",  tag:"mo", output:"~", tex:"sim", ttype:CONST},
 {input:"prop", tag:"mo", output:"\u221D", tex:"propto", ttype:CONST},
 
 //logical symbols
@@ -210,6 +211,9 @@ var AMsymbols = [
 {input:":'",  tag:"mo", output:"\u2235",  tex:"because", ttype:CONST},
 {input:"/_",  tag:"mo", output:"\u2220",  tex:"angle", ttype:CONST},
 {input:"/_\\",  tag:"mo", output:"\u25B3",  tex:"triangle", ttype:CONST},
+{input:"^prime",   tag:"mi", output:"'", tex:null, ttype:DEFINITION},
+{input:"^\\prime",   tag:"mi", output:"'", tex:null, ttype:DEFINITION},
+{input:"prime",   tag:"mi", output:"'", tex:null, ttype:DEFINITION},
 {input:"\\ ",  tag:"mo", output:"\u00A0", tex:null, ttype:CONST, val:true},
 {input:"frown",  tag:"mo", output:"\u2322", tex:null, ttype:CONST},
 {input:"%",  tag:"mo", output:"%", tex:"%", ttype:CONST, notexcopy:true},

@@ -1,5 +1,5 @@
 <template>
-  <div id="app" role="main" aria-live="polite">
+  <div id="app" role="main">
     <div v-if="!assessInfoLoaded">
       {{ $t('loading') }}
     </div>
@@ -9,7 +9,15 @@
     <error-dialog
       v-if="hasError"
       :errormsg="errorMsg"
+      :lastpos="lastPos"
       @clearerror="clearError"
+    />
+    <due-dialog v-if="showDueDialog"/>
+    <confirm-dialog
+      v-if="confirmObj !== null"
+      :data="confirmObj"
+      :lastpos="lastPos"
+      @close="closeConfirm"
     />
   </div>
 </template>
@@ -17,11 +25,15 @@
 <script>
 import { store, actions } from './basicstore';
 import ErrorDialog from '@/components/ErrorDialog.vue';
+import DueDialog from '@/components/DueDialog.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import './assess2.css';
 
 export default {
   components: {
-    ErrorDialog
+    ErrorDialog,
+    DueDialog,
+    ConfirmDialog
   },
   data: function () {
     return {
@@ -38,8 +50,17 @@ export default {
     errorMsg () {
       return store.errorMsg;
     },
+    confirmObj () {
+      return store.confirmObj;
+    },
     assessName () {
       return store.assessInfo.name;
+    },
+    showDueDialog () {
+      return store.show_enddate_dialog;
+    },
+    lastPos () {
+      return store.lastPos;
     }
   },
   methods: {
@@ -50,8 +71,8 @@ export default {
       var unanswered = true;
       if (store.assessInfo.hasOwnProperty('questions')) {
         let qAnswered = 0;
-        let nQuestions = store.assessInfo.questions.length;
-        for (let i in store.assessInfo.questions) {
+        const nQuestions = store.assessInfo.questions.length;
+        for (const i in store.assessInfo.questions) {
           if (store.assessInfo.questions[i].try > 0) {
             qAnswered++;
           }
@@ -60,7 +81,17 @@ export default {
           unanswered = false;
         }
       }
-      if (Object.keys(actions.getChangedQuestions()).length > 0) {
+      if (store.noUnload) {
+
+      } else if (!store.inProgress && Object.keys(store.work).length > 0 && !this.prewarned) {
+        evt.preventDefault();
+        this.prewarned = false;
+        return this.$t('unload.unsubmitted_work');
+      } else if (!store.inProgress) {
+
+      } else if (Object.keys(actions.getChangedQuestions()).length > 0 &&
+        !this.prewarned
+      ) {
         evt.preventDefault();
         this.prewarned = false;
         return this.$t('unload.unsubmitted_questions');
@@ -79,23 +110,44 @@ export default {
     },
     clearError () {
       store.errorMsg = null;
+    },
+    closeConfirm () {
+      store.confirmObj = null;
     }
   },
   created () {
+    window.$(document).on('click', function (e) {
+      store.lastPos = e.pageY;
+    });
+    window.$(document).on('focusin', function (e) {
+      store.lastPos = e.target.getBoundingClientRect().top;
+    });
     window.$(window).on('beforeunload', this.beforeUnload);
     // Give a warning if the assessment is quiz-style and not submitted
     // We're attaching this to breadcrumbs and nav buttons to avoid the default
     // beforeunload
-    var warning = this.$t('unload.unsubmitted_assessment');
     var self = this;
     window.$('a').not('#app a, a[href="#"]').on('click', function (e) {
       if (store.assessInfo.submitby === 'by_assessment' && store.assessInfo.has_active_attempt) {
-        if (!window.confirm(warning)) {
-          e.preventDefault();
-          return false;
-        } else {
-          self.prewarned = true;
-        }
+        e.preventDefault();
+        store.confirmObj = {
+          body: 'unload.unsubmitted_assessment',
+          action: () => {
+            self.prewarned = true;
+            window.location = e.target.href;
+          }
+        };
+        return false;
+      } else if (!store.inProgress && Object.keys(store.work).length > 0) {
+        e.preventDefault();
+        store.confirmObj = {
+          body: 'unload.unsubmitted_work',
+          action: () => {
+            self.prewarned = true;
+            window.location = e.target.href;
+          }
+        };
+        return false;
       }
     });
   }

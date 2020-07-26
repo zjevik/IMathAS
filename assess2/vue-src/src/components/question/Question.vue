@@ -1,5 +1,5 @@
 <template>
-  <div class = "questionwrap questionpane">
+  <div class = "questionwrap questionpane" ref="main">
     <div v-if = "!questionContentLoaded">
       {{ $t('loading') }}
     </div>
@@ -27,11 +27,33 @@
       v-html="questionData.html"
       class = "question"
       :id="'questionwrap' + qn"
+      ref = "thisqwrap"
     />
     <question-helps
       v-if = "showHelps"
       :qn = "qn"
     />
+
+    <div v-if="showWork && questionContentLoaded">
+      <button
+        v-if = "getwork !== 2"
+        @click = "showWorkInput = !showWorkInput"
+      >
+        {{ showWorkInput ? $t('work.hide') : $t('work.add') }}
+      </button>
+      <div v-show="getwork === 2 || showWorkInput">
+        {{ $t("question.showwork") }}
+        <showwork-input
+          :id="'sw' + qn"
+          :value = "questionData.work"
+          rows = "3"
+          :active = "getwork === 2 || showWorkInput"
+          @input = "updateWork"
+          @blur = "workChanged"
+          @focus = "workFocused"
+        />
+      </div>
+    </div>
     <div v-if="showSubmit" class="submitbtnwrap">
       <button
         type = "button"
@@ -40,6 +62,9 @@
         :disabled = "!canSubmit"
       >
         {{ submitLabel }}
+        <span class="sr-only">
+          {{ $t('question_n', {n: qn+1}) }}
+        </span>
       </button>
       <button
         v-if = "canJumpToAnswer"
@@ -51,6 +76,17 @@
         {{ $t('question.jump_to_answer') }}
       </button>
     </div>
+    <div v-else-if="showNext"  class="submitbtnwrap">
+      <router-link
+        :to="'/skip/'+ (this.qn + 2)"
+        tag="button"
+        class="secondarybtn"
+        :disabled = "!canSubmit"
+      >
+        <icons name="right" />
+        {{ $t('question.next') }}
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -59,19 +95,23 @@ import { store, actions } from '../../basicstore';
 import ScoreResult from '@/components/question/ScoreResult.vue';
 import Icons from '@/components/widgets/Icons.vue';
 import QuestionHelps from '@/components/question/QuestionHelps.vue';
+import ShowworkInput from '@/components/ShowworkInput.vue';
+import { pauseVideos } from '@/components/pauseVideos';
 
 export default {
   name: 'Question',
-  props: ['qn', 'active', 'state', 'seed', 'disabled'],
+  props: ['qn', 'active', 'state', 'seed', 'disabled', 'getwork'],
   components: {
     ScoreResult,
     QuestionHelps,
+    ShowworkInput,
     Icons
   },
   data: function () {
     return {
-      timeActivated: null,
-      timeActive: 0
+      work: '',
+      lastWorkVal: '',
+      showWorkInput: false
     };
   },
   computed: {
@@ -87,14 +127,27 @@ export default {
     questionContentLoaded () {
       return (this.questionData.html !== null);
     },
-    showSubmit () {
+    hasSeqNext () {
+      return (this.questionData.jsparams &&
+        this.questionData.jsparams.hasseqnext);
+    },
+    hasSubmitAll () {
+      return (this.questionData.jsparams &&
+        this.questionData.jsparams.submitall === 1);
+    },
+    buttonsOk () {
       return (store.inProgress &&
         this.questionContentLoaded &&
         !store.inPrintView &&
+        !this.disabled &&
         this.questionData.withdrawn === 0 &&
-        this.questionData.canretry && (
+        this.questionData.canretry);
+    },
+    showSubmit () {
+      return (this.buttonsOk && (
         store.assessInfo.submitby === 'by_question' ||
-          this.questionData.tries_max > 1
+          store.assessInfo.showscores === 'during' ||
+          this.hasSeqNext
       ) && (
       // if livepoll, only show if state is 2
         store.assessInfo.displaymethod !== 'livepoll' ||
@@ -102,13 +155,20 @@ export default {
       )
       );
     },
+    showNext () {
+      return (this.buttonsOk && !this.showSubmit &&
+        store.assessInfo.displaymethod === 'skip' &&
+        this.qn < store.assessInfo.questions.length - 1);
+    },
     submitClass () {
-      return (store.assessInfo.submitby === 'by_assessment') ?
-        'secondary' : 'primary';
+      return (store.assessInfo.submitby === 'by_assessment')
+        ? 'secondary' : 'primary';
     },
     showScore () {
       return (store.inProgress &&
         !store.inPrintView &&
+        !this.disabled &&
+        this.questionData.hadSeqNext !== true &&
         (this.questionData.hasOwnProperty('score') ||
          this.questionData.status === 'attempted'
         ) &&
@@ -119,16 +179,23 @@ export default {
       );
     },
     submitLabel () {
+      let label = 'question.';
       if (store.assessInfo.submitby === 'by_question') {
         // by question submission
-        return this.$t('question.submit');
-      } else if (this.questionData.tries_max === 1) {
-        // by assessment, with one try
-        return this.$t('question.saveans');
+        label += 'submit';
+      } else if (store.assessInfo.showscores === 'during') {
+        // by assessment, show scores
+        label += 'checkans';
       } else {
-        // by assessment, can retry
-        return this.$t('question.checkans');
+        // by assessment, with one try
+        label += 'saveans';
       }
+      if (this.hasSeqNext) {
+        label += '_seqnext';
+      } else if (this.hasSubmitAll) {
+        label += '_submitall';
+      }
+      return this.$t(label);
     },
     showHelps () {
       return ((store.assessInfo.hasOwnProperty('help_features') && (
@@ -147,37 +214,43 @@ export default {
         errors = errors.concat(this.questionData.errors);
       }
       return errors;
+    },
+    showWork () {
+      return ((this.getwork === 1 && store.assessInfo.questions[this.qn].showwork & 1) ||
+        (this.getwork === 2 && store.assessInfo.questions[this.qn].showwork & 2));
     }
   },
   methods: {
     loadQuestionIfNeeded (skiprender) {
       if (!this.questionContentLoaded && this.active && store.errorMsg === null) {
         actions.loadQuestion(this.qn, false, false);
-      } else if (this.questionContentLoaded && this.active
-        && !this.questionData.rendered && skiprender !== true)
-      {
+      } else if (this.questionContentLoaded && this.active &&
+        !this.questionData.rendered && skiprender !== true) {
         this.renderAndTrack();
       }
     },
     submitQuestion () {
-      this.updateTime(false);
-      actions.submitQuestion(this.qn, false, this.timeActive);
+      actions.submitQuestion(this.qn, false);
+      // reset timeactive counter
+      store.timeActive[this.qn] = 0;
+      store.timeActivated[this.qn] = new Date();
     },
     jumpToAnswer () {
-      if (confirm(this.$t('question.jump_warn'))) {
-        actions.loadQuestion(this.qn, false, true);
-      }
+      store.confirmObj = {
+        body: 'question.jump_warn',
+        action: () => actions.loadQuestion(this.qn, false, true)
+      };
     },
     updateTime (goingActive) {
-      if (this.timeActivated === null || goingActive) {
-        this.timeActivated = new Date();
-      } else if (this.timeActivated !== null) {
-        let now = new Date();
-        this.timeActive += (now - this.timeActivated);
+      if (!store.timeActivated.hasOwnProperty(this.qn) || goingActive) {
+        store.timeActivated[this.qn] = new Date();
+      } else if (store.timeActivated.hasOwnProperty(this.qn)) {
+        const now = new Date();
+        store.timeActive[this.qn] += (now - store.timeActivated[this.qn]);
+        delete store.timeActivated[this.qn]; // so it doesn't add more on submitall
       }
     },
     addDirtyTrackers () {
-      var self = this;
       window.$('#questionwrap' + this.qn).find('input[name],select[name],textarea[name]')
         .off('focus.dirtytrack').off('change.dirtytrack').off('input.dirtytrack')
         .on('focus.dirtytrack', function () {
@@ -192,7 +265,7 @@ export default {
           store.somethingDirty = true;
         })
         .on('change.dirtytrack', function () {
-          let val = window.$(this).val().trim();
+          const val = window.$(this).val().trim();
           let changed = false;
           if (this.type === 'radio' || this.type === 'checkbox') {
             changed = true;
@@ -201,8 +274,8 @@ export default {
           }
           if (changed) {
             store.somethingDirty = true;
-            let name = window.$(this).attr('name');
-            let m = name.match(/^(qs|qn|tc)(\d+)/);
+            const name = window.$(this).attr('name');
+            const m = name.match(/^(qs|qn|tc)(\d+)/);
             if (m !== null) {
               var qn = m[2] * 1;
               var pn = 0;
@@ -212,16 +285,16 @@ export default {
               }
 
               // autosave value
-              let now = new Date();
-              let timeactive = self.timeActive + (now - self.timeActivated);
+              const now = new Date();
+              const timeactive = store.timeActive[qn] + (now - store.timeActivated[qn]);
               actions.doAutosave(qn, pn, timeactive);
             }
           }
         });
     },
     disableOutOfTries () {
-      let trymax = this.questionData.tries_max;
-      for (let pn in this.questionData.parts) {
+      const trymax = this.questionData.tries_max;
+      for (const pn in this.questionData.parts) {
         var regex;
         if (this.questionData.parts[pn].try >= trymax) {
           // out of tries - disable inputs
@@ -247,23 +320,16 @@ export default {
         return;
       }
       setTimeout(window.drawPics, 100);
-      window.rendermathnode(document.getElementById('questionwrap' + this.qn));
+      window.rendermathnode(this.$refs.thisqwrap);
+      window.initSageCell(this.$refs.thisqwrap);
+      window.initlinkmarkup(this.$refs.thisqwrap);
       this.updateTime(true);
       this.setInitValues();
       // add in timeactive from autosave, if exists
-      this.timeActive += actions.getInitTimeactive(this.qn);
+      store.timeActive[this.qn] += actions.getInitTimeactive(this.qn);
       this.addDirtyTrackers();
-
-      let svgchk = '<svg class="scoremarker" viewBox="0 0 24 24" width="16" height="16" stroke="green" stroke-width="3" fill="none" role="img" aria-label="' + this.$t('icons.correct') + '">';
-      svgchk += '<polyline points="20 6 9 17 4 12"></polyline></svg>';
-      let svgychk = '<svg class="scoremarker" viewBox="0 0 24 24" width="16" height="16" stroke="rgb(255,187,0)" stroke-width="3" fill="none" role="img" aria-label="' + this.$t('icons.partial') + '">';
-      svgychk += '<path d="M 5.3,10.6 9,14.2 18.5,4.6 21.4,7.4 9,19.8 2.7,13.5 z" /></svg>';
-      let svgx = '<svg class="scoremarker" viewBox="0 0 24 24" width="16" height="16" stroke="rgb(153,0,0)" stroke-width="3" fill="none" role="img" aria-label="' + this.$t('icons.incorrect') + '">';
-      svgx += '<path d="M18 6 L6 18 M6 6 L18 18" /></svg>';
-      window.$('#questionwrap' + this.qn).find('.scoremarker').remove();
-      window.$('#questionwrap' + this.qn).find('div.ansgrn,table.ansgrn').append(svgchk);
-      window.$('#questionwrap' + this.qn).find('div.ansyel,table.ansyel').append(svgychk);
-      window.$('#questionwrap' + this.qn).find('div.ansred,table.ansred').append(svgx);
+      // set work
+      this.work = this.questionData.work;
 
       if (this.disabled) {
         window.$('#questionwrap' + this.qn).find('input,select,textarea').each(function (i, el) {
@@ -273,14 +339,9 @@ export default {
         });
       };
 
-      window.imathasAssess.init(this.questionData.jsparams, store.enableMQ);
+      window.imathasAssess.init(this.questionData.jsparams, store.enableMQ, this.$refs.thisqwrap);
 
-      window.$('#questionwrap' + this.qn).find('select.ansgrn').after(svgchk);
-      window.$('#questionwrap' + this.qn).find('select.ansyel').after(svgychk);
-      window.$('#questionwrap' + this.qn).find('select.ansred').after(svgx);
-
-      actions.setRendered(this.qn);
-
+      actions.setRendered(this.qn, true);
     },
     setInitValues () {
       var regex = new RegExp('^(qn|tc|qs)\\d');
@@ -297,29 +358,63 @@ export default {
             }
           }
         });
+      if (this.showWork) {
+        actions.setInitValue(thisqn, 'sw' + this.qn, this.questionData.work);
+        this.work = this.questionData.work;
+      }
+    },
+    updateWork (val) {
+      this.work = val;
+    },
+    workChanged () {
+      // changed - cue for autosave
+      if (this.work !== this.lastWorkVal) {
+        store.work[this.qn] = this.work;
+        // autosave value
+        if (this.getwork === 1) {
+          const now = new Date();
+          const timeactive = store.timeActive[this.qn] + (now - store.timeActivated[this.qn]);
+          actions.doAutosave(this.qn, 'sw', timeactive);
+        } else if (this.getwork === 2) {
+          this.$emit('workchanged', this.work);
+        }
+      }
+    },
+    workFocused () {
+      actions.clearAutosaveTimer();
+      this.lastWorkVal = this.work;
     }
   },
   updated () {
     if (this.questionContentLoaded) {
-      this.renderAndTrack();
       this.disableOutOfTries();
+      this.renderAndTrack();
     } else {
       this.loadQuestionIfNeeded();
     }
   },
   created () {
     this.loadQuestionIfNeeded(true);
+    if (!store.timeActive.hasOwnProperty(this.qn)) {
+      store.timeActive[this.qn] = 0;
+    }
   },
   mounted () {
     if (this.questionContentLoaded) {
-      this.renderAndTrack();
       this.disableOutOfTries();
+      this.renderAndTrack();
     }
+  },
+  beforeDestroy () {
+    actions.setRendered(this.qn, false);
   },
   watch: {
     active: function (newVal, oldVal) {
       this.loadQuestionIfNeeded();
       this.updateTime(newVal);
+      if (newVal === false) {
+        pauseVideos(this.$refs.main);
+      }
     },
     state: function (newVal, oldVal) {
       if ((newVal > 1 && oldVal <= 1) ||
@@ -387,11 +482,6 @@ input.red {
   border-color: #090;
   color: #090;
 }
-.questionwrap .question {
-  border: 0;
-  background-color: #fff;
-  margin: 12px 0;
-}
 .submitbtnwrap {
   margin: 16px 0;
 }
@@ -407,15 +497,15 @@ input.red {
 div.ansgrn, div.ansred, div.ansyel {
   margin: -1px;
 }
-input[type=text].ansgrn, .mq-editable-field.ansgrn {
+input[type=text].ansgrn, .mathquill-math-field.ansgrn {
   padding-right: 17px;
   background: right no-repeat url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBzdHJva2U9ImdyZWVuIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiPjxwb2x5bGluZSBwb2ludHM9IjIwIDYgOSAxNyA0IDEyIj48L3BvbHlsaW5lPjwvc3ZnPg==");
 }
-input[type=text].ansred, .mq-editable-field.ansred {
+input[type=text].ansred, .mathquill-math-field.ansred {
   padding-right: 17px;
   background: right no-repeat url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBzdHJva2U9InJnYigxNTMsMCwwKSIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIj48cGF0aCBkPSJNMTggNiBMNiAxOCBNNiA2IEwxOCAxOCIgLz48L3N2Zz4=");
 }
-input[type=text].ansyel, .mq-editable-field.ansyel {
+input[type=text].ansyel, .mathquill-math-field.ansyel {
   padding-right: 17px;
   background: right no-repeat url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBzdHJva2U9InJnYigyNTUsMTg3LDApIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiPjxwYXRoIGQ9Ik0gNS4zLDEwLjYgOSwxNC4yIDE4LjUsNC42IDIxLjQsNy40IDksMTkuOCAyLjcsMTMuNSB6IiAvPjwvc3ZnPg==");
 }

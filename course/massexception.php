@@ -1,7 +1,7 @@
 <?php
 //IMathAS:  Make deadline exceptions for a multiple students; included by listusers and gradebook
 //(c) 2007 David Lippman
-
+require_once(__DIR__."/../includes/TeacherAuditLog.php");
 
 	if (!isset($imasroot)) {
 		echo "This file cannot be called directly";
@@ -63,6 +63,7 @@
 			$stm = $DBH->prepare($query);
 			$stm->execute($insertExceptionVals);
 		}
+		$gradesToLog = array();
 		foreach($toarr as $stu) {
 			foreach($addexcarr as $aid) {
 				if (isset($_POST['forceregen'])) {
@@ -123,8 +124,23 @@
 					}
 
 				} else if (isset($_POST['forceclear'])) {
+					$stm = $DBH->prepare("SELECT bestscores FROM imas_assessment_sessions WHERE userid=:userid AND assessmentid=:assessmentid");
+			    $stm->execute(array(':userid'=>$stu, ':assessmentid'=>$aid));
+			    while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
+			      $sp = explode(';', $row['bestscores']);
+			      $as = str_replace(array('-1','-2','~'), array('0','0',','), $sp[0]);
+			      $total = array_sum(explode(',', $as));
+			      $gradesToLog[$stu][$aid] = $total;
+			    }
+					$stm = $DBH->prepare("SELECT score FROM imas_assessment_records WHERE userid=:userid AND assessmentid=:assessmentid");
+			    $stm->execute(array(':userid'=>$stu, ':assessmentid'=>$aid));
+			    while ($row = $stm->fetch(PDO::FETCH_ASSOC)) {
+			      $gradesToLog[$stu][$aid] = $row['score'];
+			    }
 					//this is not group-safe
 					$stm = $DBH->prepare("DELETE FROM imas_assessment_sessions WHERE userid=:userid AND assessmentid=:assessmentid");
+					$stm->execute(array(':userid'=>$stu, ':assessmentid'=>$aid));
+					$stm = $DBH->prepare("DELETE FROM imas_assessment_records WHERE userid=:userid AND assessmentid=:assessmentid");
 					$stm->execute(array(':userid'=>$stu, ':assessmentid'=>$aid));
 				}
 
@@ -157,6 +173,16 @@
 				}
 			}
 		}
+		if (!empty($gradesToLog)) {
+			TeacherAuditLog::addTracking(
+				$cid,
+				"Clear Attempts",
+				null,
+				array(
+					'grades'=>$gradesToLog
+				)
+			);
+		}
 
 		if (isset($_POST['eatlatepass'])) {
 			$n = intval($_POST['latepassn']);
@@ -171,6 +197,9 @@
 			exit;
 		}
 	}
+	if (empty($_POST['checked'])) {
+		$_POST['checked'] = array();
+	}
 
 
 	$pagetitle = "Manage Exceptions";
@@ -184,7 +213,21 @@
 	   .optionlist p.list { margin: 7px 0 7px 20px; padding: 0;}
 	   .optionlist input[type=checkbox] {margin-left:-20px;}
 	   </style>';
-
+	$placeinhead .= '<script>
+	$(function() {
+		$("input[name=forceclear]").on("change", function (e) {
+			$("#forceclearwarn").toggle($(this).prop("checked"));
+		});
+		$("form").on("submit", function(e) {
+			if ($("input[name=forceclear]").prop("checked")) {
+				if (!confirm("'._('WARNING! You are about to clear student attempts, deleting their grades. This cannot be undone. Are you SURE you want to do this?').'")) {
+					e.preventDefault();
+					return false;
+				}
+			}
+			return true;
+		});
+	})</script>';
 	require("../header.php");
 
 	$cid = Sanitize::courseId($_GET['cid']);
@@ -418,13 +461,17 @@
 	echo '<p class="list"><input type="checkbox" name="eatlatepass"/> Deduct <input type="input" name="latepassn" size="1" value="1"/> LatePass(es) from each student. '.Sanitize::encodeStringForDisplay($lpmsg).'</p>';
 	echo '<p class="list"><input type="checkbox" name="sendmsg"/> Send message to these students?</p>';
 	echo '<p>For assessments:</p>';
-	echo '<p class="list"><input type="checkbox" name="forceregen"/> <sup>*</sup> Force student to work on new versions of all questions?  Students ';
-	echo 'will keep any scores earned, but must work new versions of questions to improve score. <i>Do not use with group assessments</i>.</p>';
-	echo '<p class="list"><input type="checkbox" name="forceclear"/> <sup>*</sup> Clear student\'s attempts?  Students ';
-	echo 'will <b>not</b> keep any scores earned, and must rework all problems.</p>';
+	if ($courseUIver < 2) {
+		echo '<p class="list"><input type="checkbox" name="forceregen"/> Force student to work on new versions of all questions?  Students ';
+		echo 'will keep any scores earned, but must work new versions of questions to improve score. <i>Do not use with group assessments</i>.</p>';
+	}
+	echo '<p class="list"><input type="checkbox" name="forceclear"/> Clear students\' attempts?  Students ';
+	echo 'will <b>not</b> keep any scores earned, and must rework all problems.';
+	echo '<span style="display:none" class="noticetext" id="forceclearwarn">';
+	echo '<br/>Warning: this will delete the students\' attempts and grades for these assessments.</span>';
+	echo '</p>';
 	echo '<p class="list"><input type="checkbox" name="waivereqscore"/> Waive "show based on an another assessment" requirements, if applicable.</p>';
 	echo '<p class="list"><input type="checkbox" name="overridepenalty"/> Override default exception/LatePass penalty.  Deduct <input type="input" name="newpenalty" size="2" value="0"/>% for questions done while in exception.</p>';
-	echo '<p class="small"><sup>*</sup> Note: These two options only work on older-format assessments for now</p>';
 	echo '</fieldset>';
 
 

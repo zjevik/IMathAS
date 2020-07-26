@@ -16,7 +16,7 @@ if (isset($CFG['GEN']['translatewidgetID'])) {
 	}
 	</script><script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>';
 }
-if (isset($useeditor) && $sessiondata['useed']==1) {
+if (isset($useeditor) && $_SESSION['useed']==1) {
 	//echo "<script type=\"text/javascript\">initEditor();</script>\n";
 }
 if (!isset($courseUIver)) { $courseUIver = 1;}
@@ -39,6 +39,11 @@ if ((isset($testsettings) && $testsettings['showtips']==2) ||
 }
 if (isset($placeinfooter)) {
 	echo $placeinfooter;
+}
+
+$curdir = rtrim(dirname(__FILE__), '/\\');
+if (isset($CFG['GEN']['footerscriptinclude'])) {
+	require("$curdir/{$CFG['GEN']['footerscriptinclude']}");
 }
 ?>
 </body>

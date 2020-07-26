@@ -9,14 +9,14 @@
 	}
 	/*** master php includes *******/
 	require("../init_without_validate.php");
-	require("../i18n/i18n.php");
+
 	require("courseshowitems.php");
 
 
 	$ispublic = true;
 	$cid = Sanitize::courseId($_GET['cid']);
 
-	$stm = $DBH->prepare("SELECT name,theme,itemorder,hideicons,picicons,allowunenroll,msgset FROM imas_courses WHERE id=:id");
+	$stm = $DBH->prepare("SELECT name,theme,itemorder,allowunenroll,msgset FROM imas_courses WHERE id=:id");
 	$stm->execute(array(':id'=>$cid));
 	$line = $stm->fetch(PDO::FETCH_ASSOC);
 	if ($line == null) {
@@ -39,7 +39,7 @@
 		$backtrack = array();
 		for ($i=1;$i<count($blocktree);$i++) {
 			$backtrack[] = array($items[$blocktree[$i]-1]['name'],implode('-',array_slice($blocktree,0,$i+1)));
-			if ($items[$blocktree[$i]-1]['public']==1) {
+			if (!empty($items[$blocktree[$i]-1]['public'])) {
 				$blockispublic = true;
 			}
 			if (!is_array($items[$blocktree[$i]-1])) { //invalid blocktree

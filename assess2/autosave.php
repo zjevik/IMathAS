@@ -58,7 +58,7 @@ $now = time();
 
 // load settings
 $assess_info = new AssessInfo($DBH, $aid, $cid, false);
-$assess_info->loadException($uid, $isstudent, $studentinfo['latepasses'] , $latepasshrs, $courseenddate);
+$assess_info->loadException($uid, $isstudent);
 if ($isstudent) {
   $assess_info->applyTimelimitMultiplier($studentinfo['timelimitmult']);
 }
@@ -66,8 +66,14 @@ if ($isstudent) {
 // reject if not available
 if ($assess_info->getSetting('available') === 'practice' && !empty($_POST['practice'])) {
   $in_practice = true;
+} else if ($assess_info->getSetting('available') === 'yes' && !empty($_POST['practice'])) {
+  echo '{"error": "not_practice"}';
+  exit;
 } else if ($assess_info->getSetting('available') === 'yes' || $canViewAll) {
   $in_practice = false;
+  if ($canViewAll) {
+    $assess_info->overrideAvailable('yes');
+  }
 } else {
   echo '{"error": "not_avail"}';
   exit;
@@ -122,7 +128,7 @@ if (!$assess_record->checkVerification($verification)) {
     $assessInfoOut['questions'][$qn] = $assess_record->getQuestionObject($qn, $showscores, true, true);
   }
   $assessInfoOut['error'] = "already_submitted";
-  echo json_encode($assessInfoOut);
+  echo json_encode($assessInfoOut, JSON_INVALID_UTF8_IGNORE);
   exit;
 }
 
@@ -131,11 +137,14 @@ foreach ($qns as $qn=>$parts) {
   if (!isset($timeactive[$qn])) {
     $timeactive[$qn] = 0;
   }
-  $ok_to_save = $assess_record->isSubmissionAllowed($qn, $qids[$qn]);
+  $ok_to_save = $assess_record->isSubmissionAllowed($qn, $qids[$qn], $parts);
   foreach ($parts as $part) {
     if ($ok_to_save === true || $ok_to_save[$part]) {
       $assess_record->setAutoSave($now, $timeactive[$qn], $qn, $part);
     }
+  }
+  if (isset($_POST['sw' . $qn])) {  //autosaving work
+    $assess_record->setAutoSave($now, $timeactive[$qn], $qn, 'work');
   }
   $k++;
 }

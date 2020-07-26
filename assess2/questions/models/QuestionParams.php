@@ -18,8 +18,10 @@ class QuestionParams
 
     private $allQuestionAnswers;        // Orig: $GLOBALS['stuanswers']
     private $allQuestionAnswersAsNum;   // Orig: $GLOBALS['stuanswersval']
+    private $allQuestionAutosaves;      // related to stuanswers
     private $studentAttemptNumber;
     private $studentPartAttemptCount;
+    private $seqPartDone;
     private $lastRawScores;     // All of a student's scores on their last attempt.
 
     // Orig: $doshowans - int, from displayq2.php
@@ -145,7 +147,7 @@ class QuestionParams
      */
     public function getQuestionId(): ?int
     {
-        return $this->assessmentId;
+        return $this->questionId;
     }
 
     /**
@@ -154,7 +156,7 @@ class QuestionParams
      * @param int $questionId The question ID.
      * @return QuestionParams
      */
-    public function setQuestionId(?int $assessmentId): QuestionParams
+    public function setQuestionId(?int $questionId): QuestionParams
     {
         $this->questionId = $questionId;
         return $this;
@@ -255,6 +257,28 @@ class QuestionParams
     }
 
     /**
+     * Get all of the student's autosaves to ALL questions. (as entered)
+     *
+     * @return array
+     */
+    public function getAllQuestionAutosaves(): ?array
+    {
+        return $this->allQuestionAutosaves;
+    }
+
+    /**
+     * Set all of the student's autosaves to ALL questions. (as entered)
+     *
+     * @param array $allQuestionAutosaves
+     * @return QuestionParams
+     */
+    public function setAllQuestionAutosaves(?array $allQuestionAutosaves): QuestionParams
+    {
+        $this->allQuestionAutosaves = $allQuestionAutosaves;
+        return $this;
+    }
+
+    /**
      * @return int
      */
     public function getStudentAttemptNumber(): ?int
@@ -291,6 +315,28 @@ class QuestionParams
     public function setStudentPartAttemptCount(?array $studentPartAttemptCount): QuestionParams
     {
         $this->studentPartAttemptCount = $studentPartAttemptCount;
+        return $this;
+    }
+
+    /**
+     * Whether the part is "done" for purposes of showing the next in sequence
+     *
+     * @return array
+     */
+    public function getSeqPartDone()
+    {
+        return $this->seqPartDone;
+    }
+
+    /**
+     * Whether the part is "done" for purposes of showing the next in sequence
+     *
+     * @param array $seqPartDone
+     * @return QuestionParams
+     */
+    public function setSeqPartDone($seqPartDone): QuestionParams
+    {
+        $this->seqPartDone = $seqPartDone;
         return $this;
     }
 

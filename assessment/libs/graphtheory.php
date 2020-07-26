@@ -308,7 +308,7 @@ function graphkruskal($g) {
 	$steps = 0;
 	while (count($addededges)<$n-1) {
 		$steps++;
-		if (count($c)==0) {break;}
+		if (count($keys) == 0) {break;}
 		$c = array_shift($keys);
 		if ($clusters[$edges[$c][0]] != $clusters[$edges[$c][1]]) {
 			$addededges[] = $c;
@@ -420,7 +420,7 @@ function graphsortededges($g) {
 	$steps = 0;
 	while (count($addededges)<$n) {
 		$steps++;
-		if (count($c)==0) {break;}
+		if (count($keys) == 0) {break;}
 		$c = array_shift($keys);
 		if ($valence[$edges[$c][0]]<2 && $valence[$edges[$c][1]]<2 && ($clusters[$edges[$c][0]] != $clusters[$edges[$c][1]] || count($addededges)==$n-1)) {
 			$addededges[] = $c;
@@ -461,7 +461,7 @@ function graphsequenceeuleredgedups($g,$op,$seq) {
 	$len = strlen($seq);
 	$vseq = array();
 	for ($i=0; $i<$len; $i++) {
-		$vseq[$i] = $lblrev[$seq{$i}];
+		$vseq[$i] = $lblrev[$seq[$i]];
 	}
 	if ($vseq[0] != $vseq[$len-1]) {
 		return -1; //doesn't return to start
@@ -509,7 +509,7 @@ function graphsequenceishamiltonian($g,$op,$seq) {
 	$len = strlen($seq);
 	$vseq = array();
 	for ($i=0; $i<$len; $i++) {
-		$vseq[$i] = $lblrev[$seq{$i}];
+		$vseq[$i] = $lblrev[$seq[$i]];
 	}
 	if ($vseq[0] != $vseq[$len-1]) {
 		return false;
@@ -552,9 +552,9 @@ function graphgetpathlength($g,$op,$seq) {
 	$lblrev = array_flip($lbl);
 	$len = strlen($seq);
 	$pathlen = '';
-	$last = $lblrev[$seq{0}];
+	$last = $lblrev[$seq[0]];
 	for ($i=1; $i<$len; $i++) {
-		$cur = $lblrev[$seq{$i}];
+		$cur = $lblrev[$seq[$i]];
 		$pathlen += max($g[$last][$cur],$g[$cur][$last]);
 		$last = $cur;
 	}

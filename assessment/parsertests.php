@@ -7,6 +7,7 @@ if ($myrights < 100) {
   exit;
 }
 
+
 $tests = [
  ['log(100)', [], 2],
  ['ln(e^3)', [], 3],
@@ -41,6 +42,8 @@ $tests = [
  ['log_x(9)', ['x'=>3], 2],
  ['log_2(8)',[], 3],
  ['log_(2)(8)',[], 3],
+ ['log_(4/2)(8)',[], 3],
+ ['log_(4-(2*1))(8)',[], 3],
  ['llog(l)', ['l'=>100], 200],
  ['1 && 1', [], 1],
  ['1 && 0', [], 0],
@@ -55,16 +58,54 @@ $tests = [
  ['1.2E3', [], 1200],
  ['-3.5E-3', [], -0.0035],
  ['-3.5E-3x', ['x'=>2], -0.007],
- ['Cos(x)+C', ['x'=>M_PI,'C'=>3], 2]
+ ['Cos(x)+C', ['x'=>M_PI,'C'=>3], 2],
+ ['icos(pi)', ['i'=>2], -2],
+ ['Icos(pi)', ['I'=>2], -2],
+ ['pcos(pi)', ['p'=>2], -2],
+ ['pcos(pi)+i', ['p'=>2,'i'=>3], 1],
+ ['2pi', ['pi'=>2], 4]
 ];
 
 
 foreach ($tests as $test) {
   $p = new MathParser(implode(',', array_keys($test[1])));
-  $p->parse($test[0]);
-  $out = $p->evaluate($test[1]);
-  if (abs($out - $test[2]) > 1e-6) {
-    echo "Test failed on {$test[0]}: $out vs {$test[2]}<br>";
+  $out = 0;
+  try {
+    $p->parse($test[0]);
+    $out = $p->evaluate($test[1]);
+    if (abs($out - $test[2]) > 1e-6) {
+      echo "Test failed on {$test[0]}: $out vs {$test[2]}<br>";
+    }
+  } catch (Throwable $t) {
+    echo "Test crashed on {$test[0]}: $out vs {$test[2]}<br>";
+    echo $t->getMessage();
   }
 }
+
+$sameformtests = [
+    ['(x+3)(-x+5)','(5-x)(3+x)',['x']],
+    ['1x+3','3+x',['x']],
+    ['(x+2)/(x+3)','(x+2)/((x+3))',['x']],
+    ['2^(x)+1','2^x+1',['x']],
+    ['3x^2+5xy+4','5yx+4+3x^2',['x','y']],
+    ['2x-3','2*x-3',['x']]
+];
+$st = microtime(true);
+foreach ($sameformtests as $test) {
+    $p = new MathParser(implode(',', $test[2]));
+    $out = 0;
+    try {
+      $p->parse($test[0]);
+      $str1 = $p->normalizeTreeString();
+      $p->parse($test[1]);
+      $str2 = $p->normalizeTreeString();
+      if ($str1 != $str2) {
+        echo "Sameform Test failed on {$test[0]} vs {$test[1]}: $str1 vs $str2<br>";
+      }
+    } catch (Throwable $t) {
+      echo "Test crashed on {$test[0]}: $out vs {$test[2]}<br>";
+      echo $t->getMessage();
+    }
+}
+echo microtime(true) - $st;
 echo "Done";

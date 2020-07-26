@@ -4,9 +4,9 @@ require_once(__DIR__."/updateptsposs.php");
 require_once(__DIR__."/migratesettings.php");
 //boost operation time
 
-ini_set("max_input_time", "900");
+
 ini_set("max_execution_time", "900");
-ini_set("memory_limit", "104857600");
+
 
 //IMathAS:  Copy Items utility functions
 //(c) 2008 David Lippman
@@ -92,7 +92,7 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 		//$query = "INSERT INTO imas_linkedtext (courseid,title,summary,text,startdate,enddate) ";
 		//$query .= "SELECT '$cid',title,summary,text,startdate,enddate FROM imas_linkedtext WHERE id='$typeid'";
 		//mysql_query($query) or die("Query failed :$query " . mysql_error());
-		$stm = $DBH->prepare("SELECT title,summary,text,startdate,enddate,avail,oncal,caltag,target,outcomes,points FROM imas_linkedtext WHERE id=:id");
+		$stm = $DBH->prepare("SELECT title,summary,text,startdate,enddate,avail,oncal,caltag,target,outcomes,points,fileid FROM imas_linkedtext WHERE id=:id");
 		$stm->execute(array(':id'=>$typeid));
 		$row = $stm->fetch(PDO::FETCH_ASSOC);
 		$istool = (substr($row['text'],0,8)=='exttool:');
@@ -117,21 +117,18 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 			}
 			$row['outcomes'] = implode(',',$newoutcomes);
 		}
-		$query = "INSERT INTO imas_linkedtext (courseid,title,summary,text,startdate,enddate,avail,oncal,caltag,target,outcomes,points) ";
-		$query .= "VALUES (:courseid,:title,:summary,:text,:startdate,:enddate,:avail,:oncal,:caltag,:target,:outcomes,:points) ";
+		$query = "INSERT INTO imas_linkedtext (courseid,title,summary,text,startdate,enddate,avail,oncal,caltag,target,outcomes,points,fileid) ";
+		$query .= "VALUES (:courseid,:title,:summary,:text,:startdate,:enddate,:avail,:oncal,:caltag,:target,:outcomes,:points,:fileid) ";
 		$stm = $DBH->prepare($query);
 		$stm->execute(array(':courseid'=>$cid, ':title'=>$row['title'], ':summary'=>$row['summary'], ':text'=>$row['text'],
 		   ':startdate'=>$row['startdate'], ':enddate'=>$row['enddate'], ':avail'=>$row['avail'], ':oncal'=>$row['oncal'], ':caltag'=>$row['caltag'],
-			 ':target'=>$row['target'], ':outcomes'=>$row['outcomes'], ':points'=>$row['points']));
+			 ':target'=>$row['target'], ':outcomes'=>$row['outcomes'], ':points'=>$row['points'], ':fileid'=>$row['fileid']));
 		$newtypeid = $DBH->lastInsertId();
 		if ($istool) {
 			$exttooltrack[$newtypeid] = intval($tool[0]);
 		}
 	} else if ($itemtype == "Forum") {
-		//$query = "INSERT INTO imas_forums (courseid,name,summary,startdate,enddate) ";
-		//$query .= "SELECT '$cid',name,summary,startdate,enddate FROM imas_forums WHERE id='$typeid'";
-		//mysql_query($query) or die("Query failed : $query" . mysql_error());
-		$stm = $DBH->prepare("SELECT name,description,postinstr,replyinstr,startdate,enddate,settings,defdisplay,replyby,postby,avail,points,cntingb,gbcategory,forumtype,taglist,outcomes,caltag,allowlate,rubric FROM imas_forums WHERE id=:id");
+		$stm = $DBH->prepare("SELECT name,description,postinstr,replyinstr,startdate,enddate,settings,defdisplay,replyby,postby,avail,points,cntingb,gbcategory,forumtype,taglist,outcomes,caltag,allowlate,rubric,groupsetid,tutoredit,sortby,autoscore FROM imas_forums WHERE id=:id");
 		$stm->execute(array(':id'=>$typeid));
 		$row = $stm->fetch(PDO::FETCH_ASSOC);
 		if ($sethidden) {$row['avail'] = 0;}
@@ -140,8 +137,11 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 		} else if ($_POST['ctc']!=$cid) {
 			$row['gbcategory'] = 0;
 		}
+		if ($_POST['ctc'] != $cid) {
+			$row['groupsetid'] = 0;
+		}
 		$rubric = $row['rubric']; //array_pop($row);
-		$row[0] .= $_POST['append'];
+		$row['name'] .= $_POST['append'];
 		if ($row['outcomes']!='') {
 			$curoutcomes = explode(',',$row['outcomes']);
 			$newoutcomes = array();
@@ -152,14 +152,16 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 			}
 			$row['outcomes'] = implode(',',$newoutcomes);
 		}
-		$query = "INSERT INTO imas_forums (courseid,name,description,postinstr,replyinstr,startdate,enddate,settings,defdisplay,replyby,postby,avail,points,cntingb,gbcategory,forumtype,taglist,outcomes,caltag,allowlate) ";
-		$query .= "VALUES (:courseid,:name,:description,:postinstr,:replyinstr,:startdate,:enddate,:settings,:defdisplay,:replyby,:postby,:avail,:points,:cntingb,:gbcategory,:forumtype,:taglist,:outcomes,:caltag,:allowlate)";
+		$query = "INSERT INTO imas_forums (courseid,name,description,postinstr,replyinstr,startdate,enddate,settings,defdisplay,replyby,postby,avail,points,cntingb,gbcategory,forumtype,taglist,outcomes,caltag,allowlate,groupsetid,tutoredit,sortby,autoscore) ";
+		$query .= "VALUES (:courseid,:name,:description,:postinstr,:replyinstr,:startdate,:enddate,:settings,:defdisplay,:replyby,:postby,:avail,:points,:cntingb,:gbcategory,:forumtype,:taglist,:outcomes,:caltag,:allowlate,:groupsetid,:tutoredit,:sortby,:autoscore)";
 		$stm = $DBH->prepare($query);
 		$stm->execute(array(':courseid'=>$cid, ':name'=>$row['name'], ':description'=>$row['description'], ':postinstr'=>$row['postinstr'],
 		  ':replyinstr'=>$row['replyinstr'], ':startdate'=>$row['startdate'], ':enddate'=>$row['enddate'], ':settings'=>$row['settings'],
 			':defdisplay'=>$row['defdisplay'], ':replyby'=>$row['replyby'], ':postby'=>$row['postby'], ':avail'=>$row['avail'], ':points'=>$row['points'],
 			':cntingb'=>$row['cntingb'], ':gbcategory'=>$row['gbcategory'], ':forumtype'=>$row['forumtype'], ':taglist'=>$row['taglist'],
-			':outcomes'=>$row['outcomes'], ':caltag'=>$row['caltag'], ':allowlate'=>$row['allowlate']));
+			':outcomes'=>$row['outcomes'], ':caltag'=>$row['caltag'], ':allowlate'=>$row['allowlate'],
+			':groupsetid'=>$row['groupsetid'],':tutoredit'=>$row['tutoredit'],
+			':sortby'=>$row['sortby'],':autoscore'=>$row['autoscore']));
 		$newtypeid = $DBH->lastInsertId();
 		if ($_POST['ctc']!=$cid) {
 			$forumtrack[$typeid] = $newtypeid;
@@ -229,7 +231,8 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 			deffeedbacktext,eqnhelper,caltag,calrtag,tutoredit,posttoforum,msgtoinstr,
 			istutorial,viddata,reqscore,reqscoreaid,reqscoretype,ancestors,defoutcome,
 			posttoforum,ptsposs,extrefs,submitby,showscores,showans,viewingb,scoresingb,
-			ansingb,defregens,defregenpenalty,ver,keepscore,overtime_grace,overtime_penalty
+			ansingb,defregens,defregenpenalty,ver,keepscore,overtime_grace,overtime_penalty,
+			showwork
 			FROM imas_assessments WHERE id=:id";
 		$stm = $DBH->prepare($query);
 		$stm->execute(array(':id'=>$typeid));
@@ -284,7 +287,9 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 		}
 
 		$reqscoreaid = $row['reqscoreaid'];
-		unset($row['reqscoreaid']);
+		if ($cid != $sourcecid) { // if same course, can keep this
+			unset($row['reqscoreaid']);
+		}
 		$row['name'] .= $_POST['append'];
 
 		$row['courseid'] = $cid;
@@ -338,7 +343,7 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 			$flat = implode(',', $goodqs);
 			//$flat is santized above
 			$query = "SELECT id,questionsetid,points,attempts,penalty,category,regen,
-				showans,showhints,rubric,withdrawn,fixedseeds FROM imas_questions
+				showans,showhints,rubric,withdrawn,fixedseeds,showwork FROM imas_questions
 				WHERE id IN ($flat)";
 			$stm = $DBH->query($query);
 			$inssph = array(); $inss = array();
@@ -365,8 +370,8 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 						$row['category'] = 0;
 					}
 				}
-				$inssph[] = "(?,?,?,?,?,?,?,?,?,?)";
-				array_push($inss, $newtypeid, $row['questionsetid'],$row['points'],$row['attempts'],$row['penalty'],$row['category'],$row['regen'],$row['showans'],$row['showhints'],$row['fixedseeds']);
+				$inssph[] = "(?,?,?,?,?,?,?,?,?,?,?)";
+				array_push($inss, $newtypeid, $row['questionsetid'],$row['points'],$row['attempts'],$row['penalty'],$row['category'],$row['regen'],$row['showans'],$row['showhints'],$row['fixedseeds'],$row['showwork']);
 				$rubric[$row['id']] = $row['rubric'];
 				//check for a category that's set to an assessment e.g. AID-1234
 				if (0==strncmp($row['category'],"AID-",4)) {
@@ -378,7 +383,7 @@ function copyitem($itemid,$gbcats=false,$sethidden=false) {
 			$idtoorder = array_flip($insorder);
 
 			if (count($inss)>0) {
-				$query = "INSERT INTO imas_questions (assessmentid,questionsetid,points,attempts,penalty,category,regen,showans,showhints,fixedseeds) ";
+				$query = "INSERT INTO imas_questions (assessmentid,questionsetid,points,attempts,penalty,category,regen,showans,showhints,fixedseeds,showwork) ";
 				$query .= "VALUES ".implode(',',$inssph);
 				$stm = $DBH->prepare($query);
 				$stm->execute($inss);
@@ -487,7 +492,7 @@ function copysub($items,$parent,&$addtoarr,$gbcats=false,$sethidden=false) {
 
 }
 
-function doaftercopy($sourcecid) {
+function doaftercopy($sourcecid, &$newitems) {
 	global $DBH;
 	global $cid,$reqscoretrack,$categoryassessmenttrack,$assessnewid,$forumtrack,$posttoforumtrack;
 	if (intval($cid)==intval($sourcecid)) {
@@ -535,6 +540,16 @@ function doaftercopy($sourcecid) {
 	}
 	if (!$samecourse) {
 		handleextoolcopy($sourcecid);
+		removeGrouplimits($newitems);
+	}
+}
+
+function removeGrouplimits(&$items) {
+	foreach ($items as $k=>$item) {
+		if (is_array($item)) {
+			$item['grouplimit'] = array();
+			removeGrouplimits($items[$k]['items']);
+		}
 	}
 }
 

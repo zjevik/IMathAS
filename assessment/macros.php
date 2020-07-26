@@ -2,10 +2,41 @@
 //IMathAS:  Core randomizers and display macros
 //(c) 2006 David Lippman
 
+require_once(__DIR__ . '/../includes/Rand.php');
+$RND = new Rand();
 
+array_push($allowedmacros,"exp","sec","csc","cot","sech","csch","coth","nthlog",
+ "sinn","cosn","tann","secn","cscn","cotn","rand","rrand","rands","rrands",
+ "randfrom","randsfrom","jointrandfrom","diffrandsfrom","nonzerorand",
+ "nonzerorrand","nonzerorands","nonzerorrands","diffrands","diffrrands",
+ "nonzerodiffrands","nonzerodiffrrands","singleshuffle","jointshuffle",
+ "makepretty","makeprettydisp","showplot","addlabel","showarrays","horizshowarrays",
+ "showasciisvg","listtoarray","arraytolist","calclisttoarray","sortarray","consecutive",
+ "gcd","lcm","calconarray","mergearrays","sumarray","dispreducedfraction","diffarrays",
+ "intersectarrays","joinarray","unionarrays","count","polymakepretty",
+ "polymakeprettydisp","makexpretty","makexprettydisp","calconarrayif","in_array",
+ "prettyint","prettyreal","prettysigfig","roundsigfig","arraystodots","subarray",
+ "showdataarray","arraystodoteqns","array_flip","arrayfindindex","fillarray",
+ "array_reverse","root","getsnapwidthheight","is_numeric","sign","sgn","prettynegs",
+ "dechex","hexdec","print_r","replacealttext","randpythag","changeimagesize","mod",
+ "numtowords","randname","randnamewpronouns","randmalename","randfemalename",
+ "randnames","randmalenames","randfemalenames","randcity","randcities","prettytime",
+ "definefunc","evalfunc","safepow","arrayfindindices","stringtoarray","strtoupper",
+ "strtolower","ucfirst","makereducedfraction","makereducedmixednumber","stringappend",
+ "stringprepend","textonimage","addplotborder","addlabelabs","makescinot","today",
+ "numtoroman","sprintf","arrayhasduplicates","addfractionaxislabels","decimaltofraction",
+ "ifthen","multicalconarray","htmlentities","formhoverover","formpopup","connectthedots",
+ "jointsort","stringpos","stringlen","stringclean","substr","substr_count","str_replace",
+ "makexxpretty","makexxprettydisp","forminlinebutton","makenumberrequiretimes",
+ "comparenumbers","comparefunctions","getnumbervalue","showrecttable","htmldisp",
+ "getstuans","checkreqtimes","stringtopolyterms","getfeedbackbasic","getfeedbacktxt",
+ "getfeedbacktxtessay","getfeedbacktxtnumber","getfeedbacktxtnumfunc",
+ "getfeedbacktxtcalculated","explode","gettwopointlinedata","getdotsdata",
+ "getopendotsdata","gettwopointdata","getlinesdata","getineqdata","adddrawcommand",
+ "mergeplots","array_unique","ABarray","scoremultiorder","scorestring","randstate",
+ "randstates","prettysmallnumber","makeprettynegative","rawurlencode","fractowords",
+ "randcountry","randcountries");
 
-array_push($allowedmacros,"exp","sec","csc","cot","sech","csch","coth","nthlog","sinn","cosn","tann","secn","cscn","cotn","rand","rrand","rands","rrands","randfrom","randsfrom","jointrandfrom","diffrandsfrom","nonzerorand","nonzerorrand","nonzerorands","nonzerorrands","diffrands","diffrrands","nonzerodiffrands","nonzerodiffrrands","singleshuffle","jointshuffle","makepretty","makeprettydisp","showplot","addlabel","showarrays","horizshowarrays","showasciisvg","listtoarray","arraytolist","calclisttoarray","sortarray","consecutive","gcd","lcm","calconarray","mergearrays","sumarray","dispreducedfraction","diffarrays","intersectarrays","joinarray","unionarrays","count","polymakepretty","polymakeprettydisp","makexpretty","makexprettydisp","calconarrayif","in_array","prettyint","prettyreal","prettysigfig","arraystodots","subarray","showdataarray","arraystodoteqns","array_flip","arrayfindindex","fillarray","array_reverse","root","getsnapwidthheight","is_numeric","sign","prettynegs","dechex","hexdec","print_r","replacealttext","randpythag","changeimagesize","mod");
-array_push($allowedmacros,"numtowords","randname","randnamewpronouns","randmalename","randfemalename","randnames","randmalenames","randfemalenames","randcity","randcities","prettytime","definefunc","evalfunc","safepow","arrayfindindices","stringtoarray","strtoupper","strtolower","ucfirst","makereducedfraction","makereducedmixednumber","stringappend","stringprepend","textonimage","addplotborder","addlabelabs","makescinot","today","numtoroman","sprintf","arrayhasduplicates","addfractionaxislabels","decimaltofraction","ifthen","multicalconarray","htmlentities","formhoverover","formpopup","connectthedots","jointsort","stringpos","stringlen","stringclean","substr","substr_count","str_replace","makexxpretty","makexxprettydisp","forminlinebutton","makenumberrequiretimes","comparenumbers","comparefunctions","getnumbervalue","showrecttable","htmldisp","getstuans","checkreqtimes","stringtopolyterms","getfeedbackbasic","getfeedbacktxt","getfeedbacktxtessay","getfeedbacktxtnumber","getfeedbacktxtnumfunc","getfeedbacktxtcalculated","explode","gettwopointlinedata","getdotsdata","getopendotsdata","gettwopointdata","getlinesdata","adddrawcommand","mergeplots","array_unique","ABarray","scoremultiorder","scorestring","randstate","randstates","prettysmallnumber","makeprettynegative");
 function mergearrays() {
 	$args = func_get_args();
 	foreach ($args as $k=>$arg) {
@@ -41,7 +72,7 @@ function stringclean($str,$mode=0) {
 function stringtoarray($str) {
         $str_array=array();
         $len=strlen($str);
-        for($i=0;$i<$len;$i++) {$str_array[]=$str{$i};}
+        for($i=0;$i<$len;$i++) {$str_array[]=$str[$i];}
         return $str_array;
 }
 function jointsort() {
@@ -129,6 +160,9 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 	if (strpos($settings[4],':')) {
 		$settings[4] = str_replace(array('(',')'),'',$settings[4]);
 		$lbl = explode(':',$settings[4]);
+		$lbl = array_map('evalbasic', $lbl);
+	} else {
+		$settings[4] = evalbasic($settings[4]);
 	}
 	if (is_numeric($settings[4]) && $settings[4]>0) {
 		$commands .= 'axes('.$settings[4].','.$settings[4].',1';
@@ -149,6 +183,9 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 	if (strpos($settings[5],':')) {
 		$settings[5] = str_replace(array('(',')'),'',$settings[5]);
 		$grid = explode(':',$settings[5]);
+		$grid = array_map('evalbasic', $grid);
+	} else {
+		$settings[5] = evalbasic($settings[5]);
 	}
 	if (is_numeric($settings[5]) && $settings[5]>0) {
 		$commands .= ','.$settings[5].','.$settings[5];
@@ -166,6 +203,7 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 	} else {
 		$commands .= ');';
 	}
+
 	if (isset($lbl) && count($lbl)>3) {
 		$commands .= "text([{$winxmax},0],\"{$lbl[2]}\",\"aboveleft\");";
 		$commands .= "text([0,{$ymax}],\"{$lbl[3]}\",\"belowright\");";
@@ -321,7 +359,7 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 				$path .= "fill=\"transblue\";";
 			}
 			if ($isineq) {
-				if ($ineqtype{0}=='<') {
+				if ($ineqtype[0]=='<') {
 					$path .= "rect([$xxmin,$thisymin],[$val,$thisymax]);";
 					$alt .= "Shaded left";
 				} else {
@@ -345,11 +383,14 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 			} else {
 				$xmax = $winxmax;
 			}
-			$avoid = array_slice($xmaxarr,1);
+			if (count($xmaxarr)>1) {
+				$avoid = array_slice($xmaxarr,1);
+				sort($avoid);
+			}
 			$domainlimited = true;
 		} else {$xmax = $winxmax;}
 
-		if ($GLOBALS['sessiondata']['graphdisp']==0) {
+		if ($_SESSION['graphdisp']==0) {
 			if ($xmax-$xmin>2 || $xmax==$xmin) {
 				$dx = 1;
 				$stopat = ($xmax-$xmin)+1;
@@ -383,16 +424,20 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 		$py = null;
 		$pathstr = '';
 		$firstpoint = false;
+		$nextavoid = null;
 		$fx = array();  $fy = array();
 		$yyaltmin = $yymin-.5*($yymax-$yymin);
 		$yyaltmax = $yymax+.5*($yymax-$yymin);
+		if (count($avoid)>0) {
+			$nextavoid = array_shift($avoid);
+		}
 		for ($i = 0; $i<$stopat;$i++) {
 			if ($isparametric) {
 				$t = $xmin + $dx*$i + 1E-10;
 				if (in_array($t,$avoid)) { continue;}
 				$x = $evalxfunc(['t'=>$t]);
 				$y = $evalyfunc(['t'=>$t]);
-				if (!is_numeric($x) || !is_numeric($y)) {
+				if (isNaN($x) || isNaN($y)) {
 					continue;
 				}
 				$x = round($x,$xrnd);//round(eval("return ($xfunc);"),3);
@@ -401,11 +446,20 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 					$alt .= "<tr><td>$x</td><td>$y</td></tr>";
 				}
 			} else {
-				$x = $xmin + $dx*$i + (($i<$stopat/2)?1E-10:-1E-10) - (($domainlimited || $GLOBALS['sessiondata']['graphdisp']==0)?0:5*abs($xmax-$xmin)/$plotwidth);
+				$x = $xmin + $dx*$i + (($i<$stopat/2)?1E-10:-1E-10) - (($domainlimited || $_SESSION['graphdisp']==0)?0:5*abs($xmax-$xmin)/$plotwidth);
 				if (in_array($x,$avoid)) { continue;}
 				//echo $func.'<br/>';
-				$y = $evalfunc(['x'=>$x]);
-				if (!is_numeric($y)) {
+                $y = $evalfunc(['x'=>$x]);
+				if (isNaN($y)) {
+                    if ($lastl != 0) {
+                        if ($py !== null) {
+                            $pathstr .= ",[$px,$py]";
+                        }
+                        $pathstr .= ']);';
+                        $lastl = 0;
+                        $px = null;
+                        $py = null;
+                    }
 					continue;
 				}
 				$y = round($y,$yrnd);//round(eval("return ($func);"),3);
@@ -423,11 +477,19 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 			if (isNaN($y)) {
 				continue;
 			}
+
 			if ($py===null) { //starting line
 
 			} else if ($y>$yymax || $y<$yymin) { //going or still out of bounds
 				if ($py <= $yymax && $py >= $yymin) { //going out
-					if ($yymax-$py < .5*($yymax-$yymin)) { //closer to top
+					if ($isparametric) {
+						$y = $evalyfunc(['t'=>$t-1E-10]);
+						$tempy = $evalyfunc(['t'=>$t-$dx/10]);
+					} else {
+						$y = $evalfunc(['x'=>$x-1E-10]);
+						$tempy = $evalfunc(['x'=>$x-$dx/10]);
+					}
+					if ($tempy<$y) { // going up
 						$iy = $yymax;
 						//if jumping from top of graph to bottom, change value
 						//for interpolation purposes
@@ -440,7 +502,7 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 					if ($lastl == 0) {$pathstr .= "path([";} else { $pathstr .= ",";}
 					$pathstr .= "[$px,$py],[$ix,$iy]]);";
 					$lastl = 0;
-				} else { //still out
+                } else { //still out
 
 				}
 			} else if ($py>$yymax || $py<$yymin) { //coming or staying in bounds?
@@ -448,10 +510,10 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 					//need to determine which direction.  Let's calculate an extra value
 					//and need un-rounded y-value for comparison
 					if ($isparametric) {
-						$y = $evalyfunc(['t'=>$t]);
+						$y = $evalyfunc(['t'=>$t-1E-10]);
 						$tempy = $evalyfunc(['t'=>$t-$dx/10]);
 					} else {
-						$y = $evalfunc(['x'=>$x]);
+						$y = $evalfunc(['x'=>$x-1E-10]);
 						$tempy = $evalfunc(['x'=>$x-$dx/10]);
 					}
 					if ($tempy>$y) { //seems to be coming down
@@ -466,15 +528,27 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 					$pathstr .= "[$ix,$iy]";
 					$lastl++;
 				} else { //still out
-
+                    
 				}
 			} else {//all in
 				if ($lastl == 0) {$pathstr .= "path([";} else { $pathstr .= ",";}
 				$pathstr .= "[$px,$py]";
-				if ($i==$stopat-1) {
+				$lastl++;
+				if ($nextavoid !== null && $x > $nextavoid &&
+					abs($y-$py) > .4*($yymax-$yymin)
+				) {
+					// graph jumps over domain gap; break it
+					$ix = ($px+$nextavoid)/2;
+					$iy = ($py < .5*($yymax+$yymin)) ? $yymin : $yymax;
+					$pathstr .= ",[$ix,$iy]]);";
+					$ix = ($x+$nextavoid)/2;
+					$iy = ($y < .5*($yymax+$yymin)) ? $yymin : $yymax;
+					$pathstr .= "path([[$ix,$iy]";
+					$lastl = 1;
+				}
+				if ($i==$stopat-1 && $lastl > 0) {
 					$pathstr .= ",[$x,$y]";
 				}
-				$lastl++;
 				if ($py<$absymin) {
 					$absymin = $py;
 				}
@@ -484,6 +558,15 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 			}
 			$px = $x;
 			$py = $y;
+
+			if ($nextavoid !== null && $x > $nextavoid) {
+				// grab next avoid point
+				if (count($avoid) > 0) {
+					$nextavoid = array_shift($avoid);
+				} else {
+					$nextavoid = null;
+				}
+			}
 			/*if (abs($y-$lasty) > ($ymax-$ymin)) {
 				if ($lastl > 1) { $pathstr .= ']);'; $lastl = 0;}
 				$lasty = $y;
@@ -514,7 +597,7 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 			preg_match('/^path\(\[\[(-?[\d\.]+),(-?[\d\.]+).*(-?[\d\.]+),(-?[\d\.]+)\]$/',$pathstr,$matches);
 			$sig = ($xxmax-$xxmin)/100;
 			$ymid = ($yymax + $yymin)/2;
-			if ($ineqtype{0}=='<') {
+			if ($ineqtype[0]=='<') {
 				if (abs($matches[3] - $xxmax)>$sig && $matches[4]>$ymid) {
 					$pathstr .= ",[$xxmax,$yymax]"; //need to add upper right corner
 				}
@@ -572,7 +655,7 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 	$commands = "setBorder(5); initPicture({$winxmin},{$winxmax},{$ymin},{$ymax});".$commands;
 	$alt = "Graphs with window x: {$winxmin} to {$winxmax}, y: {$ymin} to {$ymax}. ".$alt;
 
-	if ($GLOBALS['sessiondata']['graphdisp']==0) {
+	if ($_SESSION['graphdisp']==0) {
 		return $alt;
 	} else {
 		return "<embed type='image/svg+xml' align='middle' width='$plotwidth' height='$plotheight' script='$commands' />\n";
@@ -586,7 +669,7 @@ function addplotborder($plot,$left,$bottom=5,$right=5,$top=5) {
 }
 
 function replacealttext($plot, $alttext) {
-	if ($GLOBALS['sessiondata']['graphdisp']==0) {
+	if ($_SESSION['graphdisp']==0) {
 		return $alttext;
 	} else {
 		if (strpos($plot, 'alt="')!==false) { //replace
@@ -604,7 +687,7 @@ function addlabel($plot,$x,$y,$lbl) {
 	} else {
 		$color = "black";
 	}
-	if ($GLOBALS['sessiondata']['graphdisp']==0) {
+	if ($_SESSION['graphdisp']==0) {
 		return $plot .= "Label &quot;$lbl&quot; at ($x,$y). ";
 	}
 	if (func_num_args()>6) {
@@ -625,7 +708,7 @@ function addlabelabs($plot,$x,$y,$lbl) {
 	} else {
 		$color = "black";
 	}
-	if ($GLOBALS['sessiondata']['graphdisp']==0) {
+	if ($_SESSION['graphdisp']==0) {
 		return $plot .= "Label &quot;$lbl&quot; at pixel coordinates ($x,$y).";
 	}
 	if (func_num_args()>6) {
@@ -653,7 +736,7 @@ function mergeplots($plota) {
 	}
 	for ($i=1;$i<$n;$i++) {
 		$plotb = func_get_arg($i);
-		if ($GLOBALS['sessiondata']['graphdisp']==0) {
+		if ($_SESSION['graphdisp']==0) {
 			$newtext = preg_replace('/^Graphs.*?y:.*?to.*?\.\s/', '', $plotb);
 			$plota .= $newtext;
 		} else {
@@ -665,7 +748,7 @@ function mergeplots($plota) {
 }
 
 function addfractionaxislabels($plot,$step) {
-	if ($GLOBALS['sessiondata']['graphdisp']==0) {
+	if ($_SESSION['graphdisp']==0) {
 		return $plot .= "Horizontal axis labels in steps of $step.";
 	}
 	if (strpos($step,'/')===false) {
@@ -736,7 +819,7 @@ function connectthedots($xarray,$yarray,$color='black',$thick=1,$startdot='',$en
 }
 
 function showasciisvg($script, $width=200, $height=200, $alt="") {
-	if ($GLOBALS['sessiondata']['graphdisp']==0) {
+	if ($_SESSION['graphdisp']==0) {
 		if ($alt != '') {
 			return $alt;
 		} else {
@@ -913,7 +996,7 @@ function xclean($exp) {
 	$exp = preg_replace('/\^1([^\d])/',"$1",$exp); //3x^1+4 =>3x+4
 	$exp = preg_replace('/\^1$/','',$exp);  //4x^1 -> 4x
 	$exp = clean($exp);
-	if ($exp{0}=='+') {
+	if ($exp[0]=='+') {
 		$exp = substr($exp,1);
 	}
 	return $exp;
@@ -930,7 +1013,7 @@ function polyclean($exp) {
 	$lastsign = '+';
 	$exp .= '+';
 	while ($i<strlen($exp)) {
-		$c = $exp{$i};
+		$c = $exp[$i];
 		if (($c >='0' && $c<='9') || $c=='.' || $c=='/' || $c=='(' || $c==')') {
 			if ($onpow) {
 				$parr[2] .= $c;
@@ -943,7 +1026,7 @@ function polyclean($exp) {
 			$onpow = true;
 		} else if ($c == '+' || $c == '-') {
 			if ($i+1<strlen($exp) && $parr[2]=='' && $onpow) {
-				$n = $exp{$i+1};
+				$n = $exp[$i+1];
 				if ($c=='-' && (($n>= '0' && $n<='9') || $n=='.')) {
 					$parr[2] .= '-';
 					$i++;
@@ -1000,7 +1083,7 @@ function polyclean($exp) {
 	return $outstr;
 	/*
 	$exp = clean($exp);
-	if ($exp{0}=='+') {
+	if ($exp[0]=='+') {
 		$exp = substr($exp,1);
 	}
 	return $exp;
@@ -1142,35 +1225,45 @@ function rrand($min,$max,$p=0) {
 	list($min,$max) = checkMinMax($min, $max, false, 'rrand');
 
 	$rn = max(0, getRoundNumber($p), getRoundNumber($min));
-	$out = round($min + $p*$GLOBALS['RND']->rand(0,floor(($max-$min)/$p)), $rn);
+	$out = round($min + $p*$GLOBALS['RND']->rand(0,floor(($max-$min)/$p + 1e-12)), $rn);
 	if ($rn==0) { $out = (int) $out;}
 	return( $out );
 }
 
 
-function rands($min,$max,$n=0) {
-	if (func_num_args()!=3) { echo "rands expects 3 arguments"; return $min;}
+function rands($min,$max,$n=0,$ord='def') {
+	if (func_num_args()<3) { echo "rands expects 3 arguments"; return $min;}
 	list($min,$max) = checkMinMax($min, $max, true, 'rands');
 	$n = floor($n);
 	if ($n==0) { echo "Need n &gt; 0";}
 	for ($i = 0; $i < $n; $i++) {
 		$r[$i] = $GLOBALS['RND']->rand($min,$max);
 	}
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
 	return $r;
 }
 
 
-function rrands($min,$max,$p=0,$n=0) {
-	if (func_num_args()!=4) { echo "rrands expects 4 arguments"; return $min;}
+function rrands($min,$max,$p=0,$n=0,$ord='def') {
+	if (func_num_args()<4) { echo "rrands expects 4 arguments"; return $min;}
 	if ($p<=0) {echo "Error with rrands: need to set positive step size"; return false;}
 	list($min,$max) = checkMinMax($min, $max, false, 'rrands');
 
 	$rn = max(0, getRoundNumber($p), getRoundNumber($min));
-
+	$maxi = floor(($max-$min)/$p + 1e-12);
 	for ($i = 0; $i < $n; $i++) {
-		$r[$i] = round($min + $p*$GLOBALS['RND']->rand(0,floor(($max-$min)/$p)), $rn);
+		$r[$i] = round($min + $p*$GLOBALS['RND']->rand(0,$maxi), $rn);
 		if ($rn==0) { $r[$i] = (int) $r[$i];}
 	}
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
 	return $r;
 }
 
@@ -1184,14 +1277,19 @@ function randfrom($lst) {
 }
 
 
-function randsfrom($lst,$n) {
-	if (func_num_args()!=2) { echo "randsfrom expects 2 arguments"; return 1;}
+function randsfrom($lst,$n,$ord='def') {
+	if (func_num_args()<2) { echo "randsfrom expects 2 arguments"; return 1;}
 	if (!is_array($lst)) {
 		$lst = listtoarray($lst);
 	}
 	for ($i=0; $i<$n;$i++) {
 		$r[$i] = $lst[$GLOBALS['RND']->rand(0,count($lst)-1)];
 	}
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
 	return $r;
 }
 
@@ -1209,13 +1307,19 @@ function jointrandfrom($lst1,$lst2) {
 }
 
 
-function diffrandsfrom($lst,$n) {
-	if (func_num_args()!=2) { echo "diffrandsfrom expects 2 arguments"; return array();}
+function diffrandsfrom($lst,$n,$ord='def') {
+	if (func_num_args()<2) { echo "diffrandsfrom expects 2 arguments"; return array();}
 	if (!is_array($lst)) {
 		$lst = listtoarray($lst);
 	}
 	$GLOBALS['RND']->shuffle($lst);
-	return array_slice($lst,0,$n);
+	$r = array_slice($lst,0,$n);
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
+  return $r;
 }
 
 
@@ -1235,22 +1339,28 @@ function nonzerorrand($min,$max,$p=0) {
 	list($min,$max) = checkMinMax($min, $max, false, 'nonzerorrand');
 	if ($min == 0 && $max == 0) { return 0; }
 	if ($p<=0) {echo "Error with nonzerorrand: need to set positive step size"; return $min;}
-	if (floor(($max-$min)/$p)==0) {
+	$maxi = floor(($max-$min)/$p + 1e-12);
+	if ($maxi==0) {
 		return $min;
 	}
 
 	$rn = max(0, getRoundNumber($p), getRoundNumber($min));
-
+  $cnt = 0;
 	do {
-		$ret = round($min + $p*$GLOBALS['RND']->rand(0,floor(($max-$min)/$p)), $rn);
+		$ret = round($min + $p*$GLOBALS['RND']->rand(0,$maxi), $rn);
+    $cnt++;
+    if ($cnt > 1000) {
+      echo "Error in nonzerorrand - not able to find valid value";
+      break;
+    }
 	} while (abs($ret)< 1e-14);
 	if ($rn==0) { $ret = (int) $ret;}
 	return $ret;
 }
 
 
-function nonzerorands($min,$max,$n=0) {
-	if (func_num_args()!=3) { echo "nonzerorands expects 3 arguments"; return $min;}
+function nonzerorands($min,$max,$n=0,$ord='def') {
+	if (func_num_args()<3) { echo "nonzerorands expects 3 arguments"; return $min;}
 	list($min,$max) = checkMinMax($min, $max, true, 'nonzerorands');
 	if ($min == 0 && $max == 0) { return 0; }
 
@@ -1259,89 +1369,122 @@ function nonzerorands($min,$max,$n=0) {
 			$r[$i] = $GLOBALS['RND']->rand($min,$max);
 		} while ($r[$i] == 0);
 	}
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
 	return $r;
 }
 
 
-function nonzerorrands($min,$max,$p=0,$n=0) {
-	if (func_num_args()!=4) { echo "nonzerorrands expects 4 arguments"; return $min;}
+function nonzerorrands($min,$max,$p=0,$n=0,$ord='def') {
+	if (func_num_args()<4) { echo "nonzerorrands expects 4 arguments"; return $min;}
 	$n = floor($n);
 	list($min,$max) = checkMinMax($min, $max, false, 'nonzerorrands');
 
 	if ($p<=0) {echo "Error with nonzerorrands: need to set positive step size"; return array_fill(0,$n,$min);}
-	if (floor(($max-$min)/$p)==0) {
+	$maxi = floor(($max-$min)/$p + 1e-12);
+	if ($maxi==0) {
 		return array_fill(0, $n, $min);
 	}
 
 	$rn = max(0, getRoundNumber($p), getRoundNumber($min));
 
 	for ($i = 0; $i < $n; $i++) {
+    $cnt = 0;
 		do {
-			$r[$i] = round($min + $p*$GLOBALS['RND']->rand(0,($max-$min)/$p), $rn);
+			$r[$i] = round($min + $p*$GLOBALS['RND']->rand(0,$maxi), $rn);
 			if ($rn==0) { $r[$i] = (int) $r[$i];}
+      $cnt++;
+      if ($cnt > 1000) {
+        echo "Error in nonzerorrands - not able to find valid value";
+        break;
+      }
 		} while (abs($r[$i]) <1e-14);
 	}
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
 	return $r;
 }
 
 
-function diffrands($min,$max,$n=0) {
-	if (func_num_args()!=3) { echo "diffrands expects 3 arguments"; return $min;}
+function diffrands($min,$max,$n=0,$ord='def') {
+	if (func_num_args()<3) { echo "diffrands expects 3 arguments"; return $min;}
 	list($min,$max) = checkMinMax($min, $max, true, 'diffrands');
 	if ($max == $min) {echo "diffrands: Need min&lt;max"; return array_fill(0,$n,$min);}
-	if ($n > $max-$min+1) {
+	/*if ($n > $max-$min+1) {
 		if ($GLOBALS['myrights']>10) {
 			echo "diffrands: min-max not far enough for n requested";
 		}
-	}
+	}*/
 
 	$n = floor($n);
 	if ($n<.1*($max-$min)) {
 		$out = array();
+    $cnt = 0;
 		while (count($out)<$n) {
 			$x = $GLOBALS['RND']->rand($min,$max);
 			if (!in_array($x,$out)) {
 				$out[] = $x;
 			}
+      $cnt++;
+      if ($cnt > 2000) {
+        echo "Error in diffrands - not able to find valid values";
+        break;
+      }
 		}
-		return $out;
 	} else {
 		$r = range($min,$max);
 		while ($n>count($r)) {
 			$r = array_merge($r,$r);
 		}
 		$GLOBALS['RND']->shuffle($r);
-		return array_slice($r,0,$n);
+		$out = array_slice($r,0,$n);
 	}
+  if ($ord == 'inc') {
+    sort($out);
+  } else if ($ord == 'dec') {
+    rsort($out);
+  }
+  return $out;
 }
 
 
-function diffrrands($min,$max,$p=0,$n=0, $nonzero=false) {
+function diffrrands($min,$max,$p=0,$n=0, $nonzero=false,$ord='def') {
 	if (func_num_args()<4) { echo "diffrrands expects 4 arguments"; return $min;}
 	$n = floor($n);
 	list($min,$max) = checkMinMax($min, $max, false, 'diffrrands');
 
 	if ($p<=0) {echo "Error with diffrrands: need to set positive step size"; return array_fill(0,$n,$min);}
 
-	if (floor(($max-$min)/$p)==0) {
+	$maxi = floor(($max-$min)/$p + 1e-12);
+
+	if ($maxi==0) {
 		echo "Error with diffrrands: step size is greater than max-min"; return array_fill(0,$n,$min);
 	}
 
 	$rn = max(0, getRoundNumber($p), getRoundNumber($min));
 
-	$maxi = floor(($max-$min)/$p);
-
 	if ($n<.1*$maxi) {
 		$out = array();
-
+    $cnt = 0;
 		while (count($out)<$n) {
 			$x = round($min + $p*$GLOBALS['RND']->rand(0,$maxi), $rn);
 			if ($rn==0) { $x = (int) $x;}
 			if (!in_array($x,$out) && (!$nonzero || abs($x)>1e-14)) {
 				$out[] = $x;
 			}
+      $cnt++;
+      if ($cnt > 2000) {
+        echo "Error in diffrrands - not able to find valid values";
+        break;
+      }
 		}
-		return $out;
+    $r = $out;
 	} else {
 		$r = range(0,$maxi);
 		while ($n>count($r)) {
@@ -1358,13 +1501,18 @@ function diffrrands($min,$max,$p=0,$n=0, $nonzero=false) {
 			$r[$i] = round($min+$p*$r[$i], $rn);
 			if ($rn==0) { $r[$i] = (int) $r[$i];}
 		}
-		return $r;
 	}
+  if ($ord == 'inc') {
+    sort($r);
+  } else if ($ord == 'dec') {
+    rsort($r);
+  }
+  return $r;
 }
 
 
-function nonzerodiffrands($min,$max,$n=0) {
-	if (func_num_args()!=3) { echo "nonzerodiffrands expects 3 arguments"; return $min;}
+function nonzerodiffrands($min,$max,$n=0,$ord='def') {
+	if (func_num_args()<3) { echo "nonzerodiffrands expects 3 arguments"; return $min;}
 	list($min,$max) = checkMinMax($min, $max, true, 'nonzerodiffrands');
 	if ($max == $min) {echo "nonzerodiffrands: Need min&lt;max"; return array_fill(0,$n,$min);}
 	if ($n > $max-$min+1 || ($min*$max<=0 && $n>$max-$min)) {
@@ -1375,13 +1523,18 @@ function nonzerodiffrands($min,$max,$n=0) {
 
 	if ($n<.1*($max-$min)) {
 		$out = array();
+    $cnt = 0;
 		while (count($out)<$n) {
 			$x = $GLOBALS['RND']->rand($min,$max);
 			if ($x!=0 && !in_array($x,$out)) {
 				$out[] = $x;
 			}
+      $cnt++;
+      if ($cnt > 2000) {
+        echo "Error in nonzerodiffrrands - not able to find valid values";
+        break;
+      }
 		}
-		return $out;
 	} else {
 		$r = range($min,$max);
 		if ($min <= 0 && $max >= 0) {
@@ -1391,13 +1544,19 @@ function nonzerodiffrands($min,$max,$n=0) {
 			$r = array_merge($r,$r);
 		}
 		$GLOBALS['RND']->shuffle($r);
-		return array_slice($r,0,$n);
+		$out = array_slice($r,0,$n);
 	}
+  if ($ord == 'inc') {
+    sort($out);
+  } else if ($ord == 'dec') {
+    rsort($out);
+  }
+  return $out;
 }
 
 
-function nonzerodiffrrands($min,$max,$p=0,$n=0) {
-	return diffrrands($min,$max,$p,$n, true);
+function nonzerodiffrrands($min,$max,$p=0,$n=0,$ord='def') {
+	return diffrrands($min,$max,$p,$n, true, $ord);
 }
 
 
@@ -1440,7 +1599,7 @@ function jointshuffle($a1,$a2) {  //optional third & fourth params $n1 and $n2
 
 
 function listtoarray($l) {
-	if (func_num_args()>1 && ($GLOBALS['sessiondata']['isteacher'] || isset($GLOBALS['teacherid']))) {
+	if (func_num_args()>1 && ($_SESSION['isteacher'] || isset($GLOBALS['teacherid']))) {
 		echo "Warning:  listtoarray expects one argument, more than one provided";
 	}
 	return array_map('trim',explode(',',$l));
@@ -1741,10 +1900,29 @@ function unionarrays($a1,$a2) {
 function prettyint($n) {
 	return number_format($n);
 }
-function prettyreal($n,$d=0,$comma=',') {
-	return number_format($n,$d,'.',$comma);
+function prettyreal($aarr,$d=0,$comma=',') {
+    if (!is_array($aarr)) {
+		$arrayout = false;
+		$aarr = array($aarr);
+	} else {
+		$arrayout = true;
+	}
+	$out = array();
+	foreach ($aarr as $a) {
+        $a = str_replace(',','',$a);
+        if (is_numeric($a)) {
+            $out[] = number_format($a,$d,'.',$comma);
+        } else {
+            $out[] = $a;
+        }
+    }
+	if ($arrayout) {
+		return $out;
+	} else {
+		return $out[0];
+	}
 }
-function prettysmallnumber($n) {
+function prettysmallnumber($n, $space=false) {
 	if (abs($n)<.01) {
 		$a = explode("E",$n);
 		if (count($a)==2) {
@@ -1753,10 +1931,19 @@ function prettysmallnumber($n) {
 			} else {
 				$sign = '';
 			}
-			$n = $sign."0.".str_repeat("0", -$a[1]-1).str_replace('.','',abs($a[0]));
+			$n = str_repeat("0", -$a[1]-1).str_replace('.','',abs($a[0]));
+			if ($space) {
+				$n = preg_replace('/(\d{3})/','$1&thinsp;', $n);
+			}
+			$n = $sign."0.".$n;
 		}
 	}
 	return $n;
+}
+
+function roundsigfig($val, $sigfig) {
+	$log = (int) floor(log10(abs($val)));
+	return round($val, $sigfig - $log - 1);
 }
 
 function prettysigfig($aarr,$sigfig,$comma=',',$choptrailing=false,$orscinot=false) {
@@ -1768,7 +1955,11 @@ function prettysigfig($aarr,$sigfig,$comma=',',$choptrailing=false,$orscinot=fal
 	}
 	$out = array();
 	foreach ($aarr as $a) {
-		$a = str_replace(',','',$a);
+        $a = str_replace(',','',$a);
+        if ($a === 'DNE') {
+            $out[] = $a;
+            continue;
+        }
 		if ($orscinot && is_numeric($a) && (abs($a)>1000 || abs($a)<.001)) {
 			$out[] = makescinot($a, $sigfig-1, '*');
 			continue;
@@ -1997,8 +2188,8 @@ function numtowords($num,$doth=false,$addcontractiontonum=false,$addcommas=false
 	if ($addcontractiontonum) {
 		$num = strval($num);
 		$len = strlen($num);
-		$last = $num{$len-1};
-		if ($len>1 && $num{$len-2}=="1") { //ie 612
+		$last = $num[$len-1];
+		if ($len>1 && $num[$len-2]=="1") { //ie 612
 			$c = "th";
 		} else if ($last=="1") {
 			$c = "st";
@@ -2044,10 +2235,100 @@ function numtowords($num,$doth=false,$addcontractiontonum=false,$addcommas=false
 	return trim($out);
 }
 
+function fractowords($numer,$denom,$options='no') { //options can combine 'mixed','over','by' and 'literal'
+
+  if (strpos($options,'mixed')===false) {
+    $int='';
+  }
+  $numersign=sign($numer);
+  $denomsign=sign($denom);
+  //creates integer and new numerator for mixed numbers
+  if (strpos($options,'mixed')!==false || strpos($options,'literal')===false) { //mixed or not literal
+    if (abs($numer-floor($numer))>1e-9 || abs($denom-floor($denom))>1e-9) { //integers only
+      return '';
+    }
+    if ($denom==0) {
+      echo 'Eek! Division by zero.';
+      return '';
+    }
+    if ($numer==0) {
+      return 'zero';
+    }
+      $numernew=abs($numer)%(abs($denom));
+      $numer=abs($numer); //numer and denom now positive
+      $denom=abs($denom);
+      $int=floor($numer/$denom);
+
+      if ($numernew==0) {//did fraction reduce to a whole number?
+        $int='';
+        $numer=$numer*$numersign;
+        $denom=$denom*$denomsign;
+        return numtowords($numer/$denom);
+      } elseif ($numernew!=0) {//is there a remainder after dividing?
+        if ($int==0) {//was the fraction proper to begin with?
+          $numer=$numernew*$numersign*$denomsign;
+          $int='';
+      } elseif ($int!=0) {//was the fraction improper to begin with?
+        if (strpos($options,'mixed')===false) {//not mixed and not literal
+          $int='';
+          $numer=$numer*$numersign*$denomsign;
+        } elseif (strpos($options,'mixed')!==false) {//mixed and not literal
+          $int=numtowords($int*$numersign*$denomsign).' and ';
+          $numer=$numernew;
+        }
+      }
+    }
+  } //end (mixed or not literal)
+
+//handles non-mixed numbers or fractional part of mixed numbers
+  if (abs($numer-floor($numer))>1e-9 || abs($denom-floor($denom))>1e-9) { //integers only
+    return '';
+  }
+  if ($denom==0) {
+    return '';
+  } else {
+    if (strpos($options,'over')===false && strpos($options,'by')===false) { //not over, not by
+      $top=numtowords($numer);
+      if ($denom==1) {
+        $bot='whole';
+      } elseif ($denom==-1) {
+        $bot='negative whole';
+      } elseif ($denom==2) {
+        if (abs($numer)==1) {
+          $bot='half';
+        } elseif ($numer!=1) {
+          $bot='halve';
+        }
+      } elseif ($denom==-2) {
+        if ($numer==1) {
+          $bot='negative half';
+        } else {
+          $bot='negative halve';
+        }
+      } else {
+        $bot=numtowords($denom,$doth=true);
+      }
+
+      if (abs($numer)==1) {
+        return $int.$top.' '.$bot;
+      } else {
+        return $int.$top.' '.$bot.'s';
+      }
+
+    } elseif (strpos($options,'over')!==false) {//over or overby, prefers over
+      return $int.numtowords($numer).' over '.numtowords($denom);
+    } elseif (strpos($options,'by')!==false) {//by or overby
+      return $int.numtowords($numer).' by '.numtowords($denom);
+    }
+  }
+}
+
 $namearray[0] = explode(',',"Aaron,Ahmed,Aidan,Alan,Alex,Alfonso,Andres,Andrew,Antonio,Armando,Arturo,Austin,Ben,Bill,Blake,Bradley,Brayden,Brendan,Brian,Bryce,Caleb,Cameron,Carlos,Casey,Cesar,Chad,Chance,Chase,Chris,Cody,Collin,Colton,Conner,Corey,Dakota,Damien,Danny,Darius,David,Deandre,Demetrius,Derek,Devante,Devin,Devonte,Diego,Donald,Dustin,Dylan,Eduardo,Emanuel,Enrique,Erik,Ethan,Evan,Francisco,Frank,Gabriel,Garrett,Gerardo,Gregory,Ian,Isaac,Jacob,Jaime,Jake,Jamal,James,Jared,Jason,Jeff,Jeremy,Jesse,John,Jordan,Jose,Joseph,Josh,Juan,Julian,Julio,Justin,Juwan,Keegan,Ken,Kevin,Kyle,Landon,Levi,Logan,Lucas,Luis,Malik,Manuel,Marcus,Mark,Matt,Micah,Michael,Miguel,Nate,Nick,Noah,Omar,Paul,Quinn,Randall,Ricardo,Ricky,Roberto,Roy,Russell,Ryan,Salvador,Sam,Santos,Scott,Sergio,Shane,Shaun,Skyler,Spencer,Stephen,Taylor,Tevin,Todd,Tom,Tony,Travis,Trent,Trevor,Trey,Tristan,Tyler,Wade,Warren,Wyatt,Zach");
 $namearray[1] = explode(',',"Adriana,Adrianna,Alejandra,Alexandra,Alexis,Alice,Alicia,Alma,Amanda,Amber,Amy,Andrea,Angela,Anna,April,Ariana,Ashley,Ashton,Autumn,Bianca,Bria,Brianna,Brittany,Brooke,Caitlyn,Carissa,Carolyn,Carrie,Cassandra,Catherine,Chasity,Chelsea,Chloe,Christy,Ciara,Claudia,Colleen,Courtney,Cristina,Crystal,Dana,Danielle,Delaney,Destiny,Diana,Elizabeth,Emily,Emma,Erica,Erin,Esmeralda,Gabrielle,Guadalupe,Haley,Hanna,Heather,Hillary,Holly,Jacqueline,Jamie,Jane,Jasmine,Jenna,Jennifer,Jessica,Julia,Karen,Karina,Karissa,Karla,Kathryn,Katie,Kayla,Kelly,Kelsey,Kendra,Kimberly,Kori,Kristen,Kristina,Krystal,Kylie,Laura,Lauren,Leah,Linda,Lindsey,Mackenzie,Madison,Maggie,Mariah,Marissa,Megan,Melissa,Meredith,Michelle,Mikayla,Miranda,Molly,Monique,Morgan,Naomi,Natalie,Natasha,Nicole,Nina,Noelle,Paige,Patricia,Rachael,Raquel,Rebecca,Renee,Riley,Rosa,Samantha,Sarah,Savannah,Shannon,Shantel,Sierra,Sonya,Sophia,Stacy,Stephanie,Summer,Sydney,Tatiana,Taylor,Tiana,Tiffany,Valerie,Vanessa,Victoria,Vivian,Wendy,Whitney,Zoe");
 
 $cityarray = explode(',','Los Angeles,Dallas,Houston,Atlanta,Detroit,San Francisco,Minneapolis,St. Louis,Baltimore,Pittsburg,Cincinnati,Cleveland,San Antonio,Las Vegas,Milwaukee,Oklahoma City,New Orleans,Tucson,New York City,Chicago,Philadelphia,Miami,Boston,Phoenix,Seattle,San Diego,Tampa,Denver,Portland,Sacramento,Orlando,Kansas City,Nashville,Memphis,Hartford,Salt Lake City');
+
+$countryarray = explode(',','Afghanistan,Albania,Algeria,Andorra,Angola,Antigua & Deps,Argentina,Armenia,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bhutan,Bolivia,Bosnia Herzegovina,Botswana,Brazil,Brunei,Bulgaria,Burkina,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Central African Rep,Chad,Chile,China,Colombia,Comoros,Congo,Congo,Costa Rica,Croatia,Cuba,Cyprus,Czech Republic,Denmark,Djibouti,Dominica,Dominican Republic,East Timor,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Ethiopia,Fiji,Finland,France,Gabon,Gambia,Georgia,Germany,Ghana,Greece,Grenada,Guatemala,Guinea,Guinea-Bissau,Guyana,Haiti,Honduras,Hungary,Iceland,India,Indonesia,Iran,Iraq,Ireland,Israel,Italy,Ivory Coast,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,North Korea,South Korea,Kosovo,Kuwait,Kyrgyzstan,Laos,Latvia,Lebanon,Lesotho,Liberia,Libya,Liechtenstein,Lithuania,Luxembourg,Macedonia,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Marshall Islands,Mauritania,Mauritius,Mexico,Micronesia,Moldova,Monaco,Mongolia,Montenegro,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,New Zealand,Nicaragua,Niger,Nigeria,Norway,Oman,Pakistan,Palau,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Poland,Portugal,Qatar,Romania,Russia,Rwanda,St Kitts & Nevis,St Lucia,Saint Vincent & the Grenadines,Samoa,San Marino,Sao Tome & Principe,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Swaziland,Sweden,Switzerland,Syria,Taiwan,Tajikistan,Tanzania,Thailand,Togo,Tonga,Trinidad & Tobago,Tunisia,Turkey,Turkmenistan,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,Uruguay,Uzbekistan,Vanuatu,Vatican City,Venezuela,Vietnam,Yemen,Zambia,Zimbabwe');
 
 function randcities($n=1) {
 	global $cityarray;
@@ -2056,6 +2337,18 @@ function randcities($n=1) {
 		return $cityarray[$GLOBALS['RND']->rand(0,$c-1)];
 	} else {
 		$out = $cityarray;
+		$GLOBALS['RND']->shuffle($out);
+		return array_slice($out,0,$n);
+	}
+}
+
+function randcountries($n=1) {
+	global $countryarray;
+	$c = count($countryarray);
+	if ($n==1) {
+		return $countryarray[$GLOBALS['RND']->rand(0,$c-1)];
+	} else {
+		$out = $countryarray;
 		$GLOBALS['RND']->shuffle($out);
 		return array_slice($out,0,$n);
 	}
@@ -2077,6 +2370,9 @@ function randstate() {
 }
 function randcity() {
 	return randcities(1);
+}
+function randcountry() {
+  return randcountries(1);
 }
 
 function randnames($n=1,$gender=2) {
@@ -2108,14 +2404,23 @@ function randfemalenames($n=1) {
 function randname() {
 	return randnames(1,2);
 }
-function randnamewpronouns() {
-	$gender = $GLOBALS['RND']->rand(0,1);
-	$name = randnames(1,$gender);
-	if ($gender==0) { //male
-		return array(randnames(1,0), _('he'), _('him'), _('his'), _('his'));
-	} else {
-		return array(randnames(1,1), _('she'), _('her'), _('her'), _('hers'));
-	}
+function randnamewpronouns($g=2) {
+  $gender = $GLOBALS['RND']->rand(0,1);
+  
+  if ($g==2) {
+  	if ($gender==0) { //male
+  		return array(randnames(1,0), _('he'), _('him'), _('his'), _('his'), _('himself'));
+  	} else {
+  		return array(randnames(1,1), _('she'), _('her'), _('her'), _('hers'), _('herself'));
+  	}
+  } elseif ($g=='neutral') {
+    if ($gender==0) { //male
+  		return array(randnames(1,0), _('they'), _('them'), _('their'), _('theirs'), _('themself'));
+  	} else {
+  		return array(randnames(1,1), _('they'), _('them'), _('their'), _('theirs'), _('themself'));
+  	}
+  }
+
 }
 function randmalename() {
 	return randnames(1,0);
@@ -2230,10 +2535,18 @@ function definefunc($func,$varlist) {
 	return array($func,$varlist);
 }
 
-function getstuans($v,$q,$i=0) {
+function getstuans($v,$q,$i=0,$blankasnull=true) {
 	if (is_array($v[$q])) {
+    if (!isset($v[$q][$i])) {
+      return null;
+    } else if ($blankasnull && ($v[$q][$i]==='' || $v[$q][$i]==='NA')) {
+      return null;
+    }
 		return $v[$q][$i];
 	} else {
+    if ($blankasnull && ($v[$q]==='' || $v[$q]==='NA')) {
+      return null;
+    }
 		return $v[$q];
 	}
 }
@@ -2328,16 +2641,22 @@ function evalfunc($farr) {
 
 function textonimage() {
 	$args = func_get_args();
-	$img = array_shift($args);
-	$img = preg_replace('/^.*src="(.*?)".*$/',"$1",$img);
+    $img = array_shift($args);
+    $alt = '';
+    if (preg_match('/alt="(.*?)"/', $img, $altmatch)) {
+        $alt = $altmatch[1];
+    }
+    $img = preg_replace('/^.*src="(.*?)".*$/',"$1",$img);
+
 	$out = '<div style="position: relative;" class="txtimgwrap">';
-	$out .= '<img src="'.$img.'" style="position: relative; top: 0px; left: 0px;" />';
+	$out .= '<img src="'.$img.'" alt="'.$alt.'" style="position: relative; top: 0px; left: 0px;" />';
 	while (count($args)>2) {
 		$text = array_shift($args);
 		$left = array_shift($args);
-		$top = array_shift($args);
-		$out .= "<div style=\"position: absolute; top: {$top}px; left: {$left}px;\">$text</div>";
-	}
+        $top = array_shift($args);
+        $hidden = (strpos($text,'[AB')===false)?'aria-hidden=true':'';
+		$out .= "<div $hidden style=\"position: absolute; top: {$top}px; left: {$left}px;\">$text</div>";
+    }
 	$out .= '</div>';
 	return $out;
 }
@@ -2430,7 +2749,7 @@ function decimaltofraction($d,$format="fraction",$maxden = 5000) {
 
 		$d2 = 1/($d2-$L2);
 	}
-	if (abs($numerators[$i]/$denominators[$i] - $d)>1e-9) {
+	if (abs($numerators[$i]/$denominators[$i] - $d)>1e-10) {
 		return $d;
 	}
 	if ($format=="mixednumber") {
@@ -2467,7 +2786,6 @@ function makenumberrequiretimes($arr) {
 
 function evalbasic($str) {
 	global $myrights;
-
 	$str = str_replace(',','',$str);
 	$str = str_replace('pi','3.141592653',$str);
 	$str = clean($str);
@@ -2475,7 +2793,9 @@ function evalbasic($str) {
 		return $str;
 	} else if (preg_match('/[^\d+\-\/\*\.]/',$str)) {
 		return $str;
-	} else {
+	} else if ($str === '') {
+    return 0;
+  } else {
 		try {
 			eval("\$ret = $str;");
 		} catch (Throwable $t) {
@@ -2609,8 +2929,8 @@ function intervaltoineq($str,$var) {
 	$out = array();
 	foreach ($arr as $v) {
 		$v = trim($v);
-		$sm = $v{0};
-		$em = $v{strlen($v)-1};
+		$sm = $v[0];
+		$em = $v[strlen($v)-1];
 		$pts = explode(',',substr($v,1,strlen($v)-2));
 		if ($pts[0]=='-oo') {
 			if ($pts[1]=='oo') {
@@ -2634,8 +2954,8 @@ function cleanbytoken($str,$funcs = array()) {
 	$primeoff = 0;
 	while (($p = strpos($str, "'", $primeoff))!==false) {
 		if ($instr == 0) {  //if not a match for an earlier quote
-			if ($p>0 && (ctype_alpha($str{$p-1}) || $str{$p-1}=='`')) {
-				$str{$p} = '`';
+			if ($p>0 && (ctype_alpha($str[$p-1]) || $str[$p-1]=='`')) {
+				$str[$p] = '`';
 			} else {
 				$instr = 1-$instr;
 			}
@@ -2706,7 +3026,7 @@ function cleanbytoken($str,$funcs = array()) {
 			} else if ($token[1]==3 && $token[0]==='1') {
 				$dontuse = false;
 				if ($lastout>-1) { //if not first character
-					if ($out[$lastout] != '^' && $out[$lastout] != '/' && $out[$lastout]!='+' && $out[$lastout]!='-') {
+					if ($out[$lastout] != '^' && $out[$lastout] != '/' && $out[$lastout]!='+' && $out[$lastout]!='-' && $out[$lastout]!=' ') {
 						//( )1, x1,*1
 						if ($out[$lastout]=='*') { //elim *
 							array_pop($out);
@@ -2727,7 +3047,7 @@ function cleanbytoken($str,$funcs = array()) {
 					} else if ($tokens[$i+1][0]=='*') {
 						$i++;  //skip over *
 						$dontuse = true;
-					} else if ($tokens[$i+1][0]!= '+' && $tokens[$i+1][0]!= '-' && $tokens[$i+1][0]!= '/') {
+					} else if ($tokens[$i+1][0]!= '+' && $tokens[$i+1][0]!= '-' && $tokens[$i+1][0]!= '/' && !is_numeric($tokens[$i+1][0])) {
 						// 1x, 1(), 1sin
 						if ($lastout<2 || ($out[$lastout-1] != '^' || $out[$lastout] != '-')) { //exclude ^-1 case
 							$dontuse = true;
@@ -2736,6 +3056,8 @@ function cleanbytoken($str,$funcs = array()) {
 				}
 				if (!$dontuse) {
 					$out[] = 1;
+				} else {
+					continue;
 				}
 			} else {
 				$out[] = $token[0];
@@ -2743,7 +3065,6 @@ function cleanbytoken($str,$funcs = array()) {
 			if ($i<$lasti && (($token[1]==3 && $tokens[$i+1][1]==3) || ($token[1]==4 && $tokens[$i+1][1]==4))) {
 				$out[] = ' ';
 			}
-
 		}
 		if ($out[0]=='+') {
 			array_shift($out);
@@ -2783,7 +3104,7 @@ function cleantokenize($str,$funcs) {
 		}
 		$intype = 0;
 		$out = '';
-		$c = $str{$i};
+		$c = $str[$i];
 		$eatenwhite = 0;
 		if ($c>="a" && $c<="z" || $c>="A" && $c<="Z") {
 			//is a string or function name
@@ -2793,7 +3114,7 @@ function cleantokenize($str,$funcs) {
 				$out .= $c;
 				$i++;
 				if ($i==$len) {break;}
-				$c = $str{$i};
+				$c = $str[$i];
 			} while ($c>="a" && $c<="z" || $c>="A" && $c<="Z" || $c=='_'); // took out : || $c>='0' && $c<='9'  don't need sin3 type function names for cleaning
 			//check if it's a special word
 			if ($out=='e') {
@@ -2804,7 +3125,7 @@ function cleantokenize($str,$funcs) {
 				//eat whitespace
 				while ($c==' ') {
 					$i++;
-					$c = $str{$i};
+					$c = $str[$i];
 					$eatenwhite++;
 				}
 				//if known function at end, strip off function
@@ -2815,7 +3136,7 @@ function cleantokenize($str,$funcs) {
 						$outend = substr($out,$j);
 						if (in_array($outend,$knownfuncs)) {
 							$i = $i - $outlen + $j;
-							$c = $str{$i};
+							$c = $str[$i];
 							$out = substr($out,0,$j);
 							break;
 						}
@@ -2837,7 +3158,7 @@ function cleantokenize($str,$funcs) {
 					}
 				}
 			}
-		} else if (($c>='0' && $c<='9') || ($c=='.'  && ($str{$i+1}>='0' && $str{$i+1}<='9')) ) { //is num
+		} else if (($c>='0' && $c<='9') || ($c=='.'  && ($str[$i+1]>='0' && $str[$i+1]<='9')) ) { //is num
 			$intype = 3; //number
 			$cont = true;
 			//handle . 3 which needs to act as concat
@@ -2849,22 +3170,22 @@ function cleantokenize($str,$funcs) {
 				$lastc = $c;
 				$i++;
 				if ($i==$len) {break;}
-				$c= $str{$i};
-				if (($c>='0' && $c<='9') || ($c=='.' && $str{$i+1}!='.' && $lastc!='.')) {
+				$c= $str[$i];
+				if (($c>='0' && $c<='9') || ($c=='.' && $str[$i+1]!='.' && $lastc!='.')) {
 					//is still num
 				} else if ($c=='e' || $c=='E') {
 					//might be scientific notation:  5e6 or 3e-6
-					$d = $str{$i+1};
+					$d = $str[$i+1];
 					if ($d>='0' && $d<='9') {
 						$out .= $c;
 						$i++;
 						if ($i==$len) {break;}
-						$c= $str{$i};
-					} else if (($d=='-'||$d=='+') && ($str{$i+2}>='0' && $str{$i+2}<='9')) {
+						$c= $str[$i];
+					} else if (($d=='-'||$d=='+') && ($str[$i+2]>='0' && $str[$i+2]<='9')) {
 						$out .= $c.$d;
 						$i+= 2;
 						if ($i>=$len) {break;}
-						$c= $str{$i};
+						$c= $str[$i];
 					} else {
 						$cont = false;
 					}
@@ -2893,9 +3214,9 @@ function cleantokenize($str,$funcs) {
 			while ($j<$len) {
 				//read terms until we get to right bracket at same nesting level
 				//we have to avoid strings, as they might contain unmatched brackets
-				$d = $str{$j};
+				$d = $str[$j];
 				if ($inq) {  //if inquote, leave if same marker (not escaped)
-					if ($d==$qtype && $str{$j-1}!='\\') {
+					if ($d==$qtype && $str[$j-1]!='\\') {
 						$inq = false;
 					}
 				} else {
@@ -2933,7 +3254,7 @@ function cleantokenize($str,$funcs) {
 				$i = $j;
 				echo "unmatched parens/brackets - likely will cause an error";
 			} else {
-				$c = $str{$i};
+				$c = $str[$i];
 			}
 		} else if ($c=='"' || $c=="'") { //string
 			$intype = 6;
@@ -2943,24 +3264,24 @@ function cleantokenize($str,$funcs) {
 				$i++;
 				if ($i==$len) {break;}
 				$lastc = $c;
-				$c = $str{$i};
+				$c = $str[$i];
 			} while (!($c==$qtype && $lastc!='\\'));
 			$out .= $c;
 
 			$i++;
-			$c = $str{$i};
+			$c = $str[$i];
 		}  else {
 			//no type - just append string.  Could be operators
 			$out .= $c;
 			$i++;
 			if ($i<$len) {
-				$c = $str{$i};
+				$c = $str[$i];
 			}
 		}
 		while ($c==' ') { //eat up extra whitespace
 			$i++;
 			if ($i==$len) {break;}
-			$c = $str{$i};
+			$c = $str[$i];
 			if ($c=='.' && $intype==3) {//if 3 . needs space to act like concat
 				$out .= ' ';
 			}
@@ -2988,7 +3309,7 @@ function cleantokenize($str,$funcs) {
 
 
 function comparenumbers($a,$b,$tol='.001') {
-	if ($tol{0}=='|') {
+	if ($tol[0]=='|') {
 		$abstolerance = floatval(substr($tol,1));
 	}
 	if (!is_numeric($a)) {
@@ -3009,7 +3330,7 @@ function comparenumbers($a,$b,$tol='.001') {
 function comparefunctions($a,$b,$vars='x',$tol='.001',$domain='-10,10') {
 	if ($a=='' || $b=='') { return false;}
 	//echo "comparing $a and $b";
-	if ($tol{0}=='|') {
+	if ($tol[0]=='|') {
 		$abstolerance = floatval(substr($tol,1));
 	}
 	$type = "expression";
@@ -3254,12 +3575,15 @@ function getfeedbacktxtnumber($stu, $partial, $fbtxt, $deffb='Incorrect', $tol=.
 	if (isset($GLOBALS['testsettings']['testtype']) && ($GLOBALS['testsettings']['testtype']=='NoScores' || $GLOBALS['testsettings']['testtype']=='EndScore')) {
 		return '';
 	}
+	if ($stu !== null) {
+		$stu = preg_replace('/[^\-\d\.e]/','',$stu);
+	}
 	if ($stu===null) {
 		return " ";
 	} else if (!is_numeric($stu)) {
 		return '<div class="feedbackwrap incorrect"><img src="'.$imasroot.'/img/redx.gif" alt="Incorrect"/> ' . _("This answer does not appear to be a valid number.") . '</div>';
 	} else {
-		if ($tol{0}=='|') {
+		if ($tol[0]=='|') {
 			$abstol = true;
 			$tol = substr($tol,1);
 		} else {
@@ -3297,7 +3621,7 @@ function getfeedbacktxtcalculated($stu, $stunum, $partial, $fbtxt, $deffb='Incor
 	if ($stu===null) {
 		return " ";
 	} else {
-		if ($tol{0}=='|') {
+		if ($tol[0]=='|') {
 			$abstol = true;
 			$tol = substr($tol,1);
 		} else {
@@ -3363,7 +3687,7 @@ function getfeedbacktxtnumfunc($stu, $partial, $fbtxt, $deffb='Incorrect', $vars
 	if ($stu===null || trim($stu)==='') {
 		return " ";
 	} else {
-		if ($tol{0}=='|') {
+		if ($tol[0]=='|') {
 			$abstol = true;
 			$tol = substr($tol,1);
 		} else {
@@ -3582,6 +3906,35 @@ function gettwopointdata($str,$type,$xmin=-5,$xmax=5,$ymin=-5,$ymax=5,$w=300,$h=
 	}
 	return $outpts;
 }
+
+function getineqdata($str,$type='linear',$xmin=-5,$xmax=5,$ymin=-5,$ymax=5,$w=300,$h=300) {
+	$imgborder = 5;
+	$pixelsperx = ($w - 2*$imgborder)/($xmax-$xmin);
+	$pixelspery = ($h - 2*$imgborder)/($ymax -$ymin);
+	$outpts = array();
+	list($lines,$dots,$odots,$tplines,$ineqlines) = explode(';;',$str);
+	if ($ineqlines=='') {return array();}
+	$ineqlines = explode('),(', substr($ineqlines,1,strlen($ineqlines)-2));
+	foreach ($ineqlines as $k=>$val) {
+		if ($type == 'linear' && $pts[0] > 10.2) { continue; }
+		else if ($type == 'quadratic' && $pts[0] < 10.3) { continue; }
+		$pts = explode(',',$val);
+		$pts[1] = ($pts[1] - $imgborder)/$pixelsperx + $xmin;
+		$pts[3] = ($pts[3] - $imgborder)/$pixelsperx + $xmin;
+		$pts[5] = ($pts[5] - $imgborder)/$pixelsperx + $xmin;
+		$pts[2] = ($h - $pts[2] - $imgborder)/$pixelspery + $ymin;
+		$pts[4] = ($h - $pts[4] - $imgborder)/$pixelspery + $ymin;
+		$pts[6] = ($h - $pts[6] - $imgborder)/$pixelspery + $ymin;
+		if ($pts[0] == 10.2 || $pts[0] == 10.4) {
+			$pts[0] = 'ne';
+		} else {
+			$pts[0] = 'eq';
+		}
+		$outpts[] = $pts;
+	}
+	return $outpts;
+}
+
 function getdotsdata($str,$xmin=-5,$xmax=5,$ymin=-5,$ymax=5,$w=300,$h=300) {
 	$imgborder = 5;
 	$pixelsperx = ($w - 2*$imgborder)/($xmax-$xmin);
@@ -3826,10 +4179,10 @@ function parsereqsigfigs($reqsigfigs) {
 			$sigfigscoretype = array('abs',$reqsigfigparts[1]);
 		}
 	}
-	if ($reqsigfigs{0}=='=') {
+	if ($reqsigfigs[0]=='=') {
 		$exactsigfig = true;
 		$reqsigfigs = substr($reqsigfigs,1);
-	} else if ($reqsigfigs{0}=='[') {
+	} else if ($reqsigfigs[0]=='[') {
 		$exactsigfig = false;
 		$reqsigfigparts = listtoarray(substr($reqsigfigs,1,-1));
 		$reqsigfigs = $reqsigfigparts[0];
@@ -3863,7 +4216,7 @@ function checksigfigs($givenans, $anans, $reqsigfigs, $exactsigfig, $reqsigfigof
 			$gadploc = strpos($givenans,'.');
 			if ($gadploc===false) {$gadploc = strlen($givenans);}
 			if ($anans != 0 && $v < 0 && strlen($givenans) - $gadploc-1 + $v < 0) { return false; } //not enough decimal places
-			if ($anans != 0 && $reqsigfigoffset>0 && $v<0 && strlen($givenans) - $gadploc-1 + $v>$reqsigfigoffset) {return false;} //too many sigfigs
+			if ($anans != 0 && $reqsigfigoffset>0 && strlen($givenans) - $gadploc-1 + $v>$reqsigfigoffset) {return false;} //too many sigfigs
 		} else {
 			$absgivenans = str_replace('-','',$givenans);
 			$gadploc = strpos($absgivenans,'.');
@@ -3890,124 +4243,6 @@ function checksigfigs($givenans, $anans, $reqsigfigs, $exactsigfig, $reqsigfigof
 	}
 	return false;
 }
-
-class Rand {
-	private $seed;
-	private $randmax;
-
-	function __construct() {
-		$this->seed = rand();
-		$this->randmax = getrandmax();
-	}
-
-	public function srand($n=0) {
-		if ($n==0) {
-			srand();
-			if (isset($GLOBALS['assessver']) && $GLOBALS['assessver']>0) {
-				$this->seed = rand();
-			}
-		} else {
-			$n = (int)$n;
-			if (isset($GLOBALS['assessver']) && $GLOBALS['assessver']>0) {
-				$this->seed = $n;
-			} else {
-				srand($n);
-			}
-		}
-	}
-
-	public function rand($min=0,$max=null) {  //simple xorshift
-		if (isset($GLOBALS['assessver']) && $GLOBALS['assessver']>0) {
-			if ($max===null) {
-				$max = $this->randmax;
-			}
-			$min = (int)$min;
-			$max = (int)$max;
-			if ($min < $max) {
-				if ($GLOBALS['assessver']>1) {
-					$this->seed = ($this->seed^($this->seed << 13)) & 0xffffffff;
-					if ($this->seed >  0x7fffffff) { $this->seed -= 0x100000000;}
-					$this->seed = ($this->seed^($this->seed >> 17)) & 0xffffffff;
-					if ($this->seed >  0x7fffffff) { $this->seed -= 0x100000000;}
-					$this->seed = ($this->seed^($this->seed << 5)) & 0x7fffffff;
-				} else { //broken; assessver=1 only
-					$this->seed ^= ($this->seed << 13);
-					$this->seed ^= ($this->seed >> 17);
-					$this->seed ^= ($this->seed << 5);
-					$this->seed &= 0x7fffffff;
-				}
-				return ($this->seed % ($max + 1 - $min)) + $min;
-			} else if($min > $max){
-				return $this->rand($max,$min);
-			} else if ($min == $max) {
-				return $min;
-			}
-		} else {
-			if ($max===null) {
-				return rand();
-			} else {
-				return rand($min,$max);
-			}
-		}
-	}
-
-	public function shuffle(&$arr) {
-		if (isset($GLOBALS['assessver']) && $GLOBALS['assessver']>0) {
-			for ($i=count($arr)-1;$i>0;$i--) {
-				if ($GLOBALS['assessver']>1) {
-					$this->seed = ($this->seed^($this->seed << 13)) & 0xffffffff;
-					if ($this->seed >  0x7fffffff) { $this->seed -= 0x100000000;}
-					$this->seed = ($this->seed^($this->seed >> 17)) & 0xffffffff;
-					if ($this->seed >  0x7fffffff) { $this->seed -= 0x100000000;}
-					$this->seed = ($this->seed^($this->seed << 5)) & 0x7fffffff;
-				} else { //broken; assessver=1 only
-					$this->seed ^= ($this->seed << 13);
-					$this->seed ^= ($this->seed >> 17);
-					$this->seed ^= ($this->seed << 5);
-					$this->seed &= 0x7fffffff;
-				}
-				$j = $this->seed % ($i+1); //$this->rand(0,$i);
-				if ($i!=$j) {
-					$tmp = $arr[$j];
-					$arr[$j] = $arr[$i];
-					$arr[$i] = $tmp;
-				}
-			}
-		} else {
-			shuffle($arr);
-		}
-	}
-
-	public function str_shuffle($str) {
-		if (isset($GLOBALS['assessver']) && $GLOBALS['assessver']>0) {
-			$arr = str_split($str);
-			$this->shuffle($arr);
-			return implode('', $arr);
-		} else {
-			return str_shuffle($str);
-		}
-	}
-
-	public function array_rand($arr, $n=1) {
-		if (isset($GLOBALS['assessver']) && $GLOBALS['assessver']>0) {
-			$keys = array_keys($arr);
-			if ($n==1) {
-				$n = $this->rand(0,count($keys)-1);
-				return $keys[$n];
-			} else if ($n==count($arr)) { //no point in shuffling since php's internal function doesn't shuffle
-				return $keys;
-			} else {
-				$n = (int)$n;
-				$this->shuffle($keys);
-				return array_slice($keys,0,$n);
-			}
-		} else {
-			return array_rand($arr,$n);
-		}
-	}
-
-}
-$RND = new Rand();
 
 function evalMathPHP($str,$vl) {
 	return evalReturnValue('return ('.mathphp($str,$vl).');', $str);
@@ -4054,6 +4289,7 @@ function evalReturnValue($str,$errordispstr='',$vars=array()) {
 
 function getRoundNumber($val) {
 	$str = (string) $val;
+  $str = str_replace('e','E',$str);
 	if (($s = strpos($str,'.'))===false) { //no decimal places
 		return 0;
 	} else if (($p = strpos($str,'E'))!==false) { //scientific notation
@@ -4104,5 +4340,16 @@ function checkMinMax($min, $max, $isint, $funcname) {
 	return array($min,$max);
 }
 
+function encryptval($val, $key) {
+	$cipher = "AES128";
+	$ivlen = openssl_cipher_iv_length($cipher);
+  $iv = openssl_random_pseudo_bytes($ivlen);
+	return base64_encode($iv). '.' . openssl_encrypt(json_encode($val), $cipher, $key, 0, $iv);
+}
+function decryptval($val, $key) {
+	$cipher = "AES128";
+	list($iv,$val) = explode('.', $val);
+	return json_decode(openssl_decrypt($val, $cipher, $key, 0, base64_decode($iv)), true);
+}
 
 ?>

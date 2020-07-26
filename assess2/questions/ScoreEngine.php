@@ -88,8 +88,13 @@ class ScoreEngine
 
         $this->randWrapper->srand($scoreQuestionParams->getQuestionSeed());
 
+        $assessmentId = $scoreQuestionParams->getAssessmentId();
+
         if (!isset($_SESSION['choicemap'])) {
             $_SESSION['choicemap'] = array();
+        }
+        if (!isset($_SESSION['choicemap'][$assessmentId])) {
+            $_SESSION['choicemap'][$assessmentId] = array();
         }
 
         // If question data was not provided, load it from the database.
@@ -131,7 +136,6 @@ class ScoreEngine
               _('Caught error while evaluating the code in this question: ')
               . $t->getMessage());
         }
-
 
         /*
 		 * Correct mistakes made by question writers.
@@ -237,6 +241,13 @@ class ScoreEngine
             $scoreResult = $this->scorePartNonMultiPart($scoreQuestionParams, $quesData);
             if ($quesData['qtype'] == "conditional") {
               // Store just-build $stuanswers as lastanswer for conditional
+              // in case there was no POST (like multans checkbox), null out
+              // stuanswers
+              for ($iidx=0;$iidx<count($anstypes);$iidx++) {
+                if (!isset($stuanswers[$thisq][$iidx])) {
+                  $stuanswers[$thisq][$iidx] = null;
+                }
+              }
               $scoreResult['lastAnswerAsGiven'] = $stuanswers[$thisq];
               $scoreResult['lastAnswerAsNumber'] = $stuanswersval[$thisq];
             }
@@ -269,7 +280,7 @@ class ScoreEngine
         $questionData = $stm->fetch(PDO::FETCH_ASSOC);
 
         if (!$questionData) {
-            throw new RuntimeException(
+            throw new \RuntimeException(
                 sprintf('Failed to get question data for question ID %d. PDO error: %s',
                     $dbQuestionId, implode(':', $this->dbh->errorInfo()))
             );
@@ -293,6 +304,7 @@ class ScoreEngine
                                                     array $stuanswersval)
     {
         $thisq = $scoreQuestionParams->getQuestionNumber() + 1;
+        $assessmentId = $scoreQuestionParams->getAssessmentId();
 
         $stuanswers[$thisq] = array();
         $stuanswersval[$thisq] = array();
@@ -323,9 +335,9 @@ class ScoreEngine
                     $tmp[] = $_POST["qn$partnum-$spc"];
                     $spc++;
                 }
-                if (isset($_SESSION['choicemap'][$partnum])) {
+                if (isset($_SESSION['choicemap'][$assessmentId][$partnum])) {
                   // matching - map back to unrandomized values
-                  list($randqkeys, $randakeys) = $_SESSION['choicemap'][$partnum];
+                  list($randqkeys, $randakeys) = $_SESSION['choicemap'][$assessmentId][$partnum];
                   $mapped = array();
                   foreach ($tmp as $k=>$v) {
                     $mapped[$randqkeys[$k]] = $randakeys[$v];
@@ -347,14 +359,14 @@ class ScoreEngine
                 } else if (is_numeric($_POST["qn$partnum"])) { // number
                   $stuanswersval[$thisq][$kidx] = floatval($_POST["qn$partnum"]);
                 }
-                if (isset($_SESSION['choicemap'][$partnum])) {
+                if (isset($_SESSION['choicemap'][$assessmentId][$partnum])) {
                     if (is_array($stuanswers[$thisq][$kidx])) { //multans
                         foreach ($stuanswers[$thisq][$kidx] as $k => $v) {
-                            $stuanswers[$thisq][$kidx][$k] = $_SESSION['choicemap'][$partnum][$v];
+                            $stuanswers[$thisq][$kidx][$k] = $_SESSION['choicemap'][$assessmentId][$partnum][$v];
                         }
                         $stuanswers[$thisq][$kidx] = implode('|', $stuanswers[$thisq][$kidx]);
                     } else { // choices
-                        $stuanswers[$thisq][$kidx] = $_SESSION['choicemap'][$partnum][$stuanswers[$thisq][$kidx]];
+                        $stuanswers[$thisq][$kidx] = $_SESSION['choicemap'][$assessmentId][$partnum][$stuanswers[$thisq][$kidx]];
                         if ($stuanswers[$thisq][$kidx] === null) {
                             $stuanswers[$thisq][$kidx] = 'NA';
                         }
@@ -384,6 +396,7 @@ class ScoreEngine
     {
         $qnidx = $scoreQuestionParams->getQuestionNumber();
         $thisq = $scoreQuestionParams->getQuestionNumber() + 1;
+        $assessmentId = $scoreQuestionParams->getAssessmentId();
 
         if (isset($_POST["qs$qnidx"]) && (
           $_POST["qs$qnidx"] === 'DNE' || $_POST["qs$qnidx"] === 'inf')
@@ -399,9 +412,9 @@ class ScoreEngine
                 $tmp[] = $_POST["qn$qnidx-$spc"];
                 $spc++;
             }
-            if (isset($_SESSION['choicemap'][$qnidx])) {
+            if (isset($_SESSION['choicemap'][$assessmentId][$qnidx])) {
               // matching - map back to unrandomized values
-              list($randqkeys, $randakeys) = $_SESSION['choicemap'][$qnidx];
+              list($randqkeys, $randakeys) = $_SESSION['choicemap'][$assessmentId][$qnidx];
               $mapped = array();
               foreach ($tmp as $k=>$v) {
                 $mapped[$randqkeys[$k]] = $randakeys[$v];
@@ -423,14 +436,14 @@ class ScoreEngine
             } else if (is_numeric($_POST["qn$qnidx"])) { // number
               $stuanswersval[$thisq] = floatval($_POST["qn$qnidx"]);
             }
-            if (isset($_SESSION['choicemap'][$qnidx])) {
+            if (isset($_SESSION['choicemap'][$assessmentId][$qnidx])) {
                 if (is_array($stuanswers[$thisq])) { //multans
                     foreach ($stuanswers[$thisq] as $k => $v) {
-                        $stuanswers[$thisq][$k] = $_SESSION['choicemap'][$qnidx][$v];
+                        $stuanswers[$thisq][$k] = $_SESSION['choicemap'][$assessmentId][$qnidx][$v];
                     }
                     $stuanswers[$thisq] = implode('|', $stuanswers[$thisq]);
                 } else { // choices
-                    $stuanswers[$thisq] = $_SESSION['choicemap'][$qnidx][$stuanswers[$thisq]];
+                    $stuanswers[$thisq] = $_SESSION['choicemap'][$assessmentId][$qnidx][$stuanswers[$thisq]];
                     if ($stuanswers[$thisq] === null) {
                         $stuanswers[$thisq] = 'NA';
                     }
@@ -499,7 +512,13 @@ class ScoreEngine
             // TODO: Do this a different/better way. (not accessing _POST)
 			      $scoreQuestionParams->setGivenAnswer($_POST["qn$inputReferenceNumber"]);
 
-            $scorePart = ScorePartFactory::getScorePart($scoreQuestionParams);
+            try {
+              $scorePart = ScorePartFactory::getScorePart($scoreQuestionParams);
+            } catch (\Throwable $t) {
+              $this->addError(
+                  _('Caught error while evaluating the code in this question: ')
+                  . $t->getMessage());
+            }
             $scorePartResult = $scorePart->getResult();
             $raw[$partnum] = $scorePartResult->getRawScore();
 
@@ -531,6 +550,8 @@ class ScoreEngine
                 'rawScores' => $raw,
                 'lastAnswerAsGiven' => $partLastAnswerAsGiven,
                 'lastAnswerAsNumber' => $partLastAnswerAsNumber,
+                'scoreMethod' => 'singlescore',
+                'answeights' => $answeights
             );
         } else if (isset($scoremethod) && $scoremethod == "allornothing") {
             if (array_sum($scores) < .98) {
@@ -539,6 +560,8 @@ class ScoreEngine
                     'rawScores' => $raw,
                     'lastAnswerAsGiven' => $partLastAnswerAsGiven,
                     'lastAnswerAsNumber' => $partLastAnswerAsNumber,
+                    'scoreMethod' => 'allornothing',
+                    'answeights' => $answeights
                 );
             } else {
                 return array(
@@ -546,6 +569,8 @@ class ScoreEngine
                     'rawScores' => $raw,
                     'lastAnswerAsGiven' => $partLastAnswerAsGiven,
                     'lastAnswerAsNumber' => $partLastAnswerAsNumber,
+                    'scoreMethod' => 'allornothing',
+                    'answeights' => $answeights
                 );
             }
         } else if (isset($scoremethod) && $scoremethod == "acct") {
@@ -555,6 +580,8 @@ class ScoreEngine
                 'rawScores' => $raw,
                 'lastAnswerAsGiven' => $partLastAnswerAsGiven,
                 'lastAnswerAsNumber' => $partLastAnswerAsNumber,
+                'scoreMethod' => 'singlescore',
+                'answeights' => $answeights
             ));
         } else {
             return array(
@@ -562,6 +589,7 @@ class ScoreEngine
                 'rawScores' => $raw,
                 'lastAnswerAsGiven' => $partLastAnswerAsGiven,
                 'lastAnswerAsNumber' => $partLastAnswerAsNumber,
+                'answeights' => $answeights
             );
         }
     }
@@ -598,6 +626,7 @@ class ScoreEngine
             'rawScores' => array(round($score, 2)),
             'lastAnswerAsGiven' => array($scorePartResult->getLastAnswerAsGiven()),
             'lastAnswerAsNumber' => array($scorePartResult->getLastAnswerAsNumber()),
+            'answeights' => array(1)
         );
     }
 

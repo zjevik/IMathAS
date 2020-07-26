@@ -13,7 +13,8 @@
         {{ $t('gradebook.lastchange') }}: {{ lastchangeString }}
         <span v-if="aData.timeontask > 0">
           <br/>
-          {{ $t('gradebook.time_onscreen') }}: {{ totalTimeOnTask }}
+          {{ $tc('gradebook.time_onscreen', attemptCount) }}:
+          {{ totalTimeOnTask }}
         </span>
       </div>
 
@@ -35,7 +36,7 @@
         </span>
       </div>
 
-      <div v-if="aData.latepass_blocked_by_practice">
+      <div v-if="canEdit && aData.latepass_blocked_by_practice">
         {{ $t('gradebook.latepass_blocked_practice') }}
         <button
           type="button"
@@ -192,10 +193,12 @@
             </div>
             <div class="scrollpane">
               <gb-question
-                class = "questionpane"
-                v-show = "showQuestion[qn]"
+                :class = "{'inactive':!showQuestion[qn]}"
                 :qdata = "qdata[curQver[qn]]"
                 :qn = "qn"
+              />
+              <gb-showwork
+                :work = "qdata[curQver[qn]].work"
               />
             </div>
             <gb-score-details
@@ -206,27 +209,14 @@
             />
           </div>
         </div>
-        <div>
-          {{ $t('gradebook.general_feedback') }}:
-          <textarea
-            v-if="canEdit && !useEditor"
-            class="fbbox"
-            rows="2"
-            cols="60"
-            :value = "assessFeedback"
-            @input="updateFeedback"
-          ></textarea>
-          <tinymce-input
-            v-else-if="canEdit"
-            id="genfbbox"
-            :value = "assessFeedback"
-            @input = "updateFeedback"
-          ></tinymce-input>
-          <div
-            v-else
-            v-html="assessFeedback"
-          />
-        </div>
+        <gb-feedback
+          qn="gen"
+          :show="true"
+          :canedit = "canEdit"
+          :useeditor = "useEditor"
+          :value = "assessFeedback"
+          @update = "updateFeedback"
+        />
         <div>
           <button
             v-if = "canEdit"
@@ -276,31 +266,40 @@
       :errormsg="errorMsg"
       @clearerror="clearError"
     />
+    <confirm-dialog
+      v-if="confirmObj !== null"
+      :data="confirmObj"
+      @close="closeConfirm"
+    />
   </div>
 </template>
 
 <script>
 import { store, actions } from './gbstore';
 import GbQuestion from '@/gbviewassess/GbQuestion.vue';
+import GbShowwork from '@/gbviewassess/GbShowwork.vue';
 import GbAssessSelect from '@/gbviewassess/GbAssessSelect.vue';
 import GbQuestionSelect from '@/gbviewassess/GbQuestionSelect.vue';
 import GbScoreDetails from '@/gbviewassess/GbScoreDetails.vue';
 import GbClearAttempts from '@/gbviewassess/GbClearAttempts.vue';
 import SummaryCategories from '@/components/summary/SummaryCategories.vue';
 import ErrorDialog from '@/components/ErrorDialog.vue';
-import TinymceInput from '@/components/TinymceInput.vue';
+import GbFeedback from '@/gbviewassess/GbFeedback.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import '../assess2.css';
 
 export default {
   components: {
     GbQuestion,
+    GbShowwork,
     GbAssessSelect,
     GbQuestionSelect,
     GbScoreDetails,
     GbClearAttempts,
     SummaryCategories,
     ErrorDialog,
-    TinymceInput
+    GbFeedback,
+    ConfirmDialog
   },
   data: function () {
     return {
@@ -319,7 +318,7 @@ export default {
       return store.assessInfo;
     },
     canEdit () {
-      return store.assessInfo['can_edit_scores'];
+      return store.assessInfo.can_edit_scores;
     },
     canSubmit () {
       return (!store.inTransit);
@@ -347,6 +346,15 @@ export default {
     totalTimeOnTask () {
       return Math.round(10 * this.aData.timeontask / 60) / 10 + ' ' + this.$t('gradebook.minutes');
     },
+    attemptCount () {
+      let cnt = 0;
+      for (let i = 0; i < this.aData.assess_versions.length; i++) {
+        if (this.aData.assess_versions[i].status < 3) {
+          cnt++;
+        }
+      }
+      return cnt;
+    },
     extensionString () {
       if (this.aData.extended_with.type === 'latepass') {
         return this.$tc('setlist.latepass_used', this.aData.extended_with.n);
@@ -364,7 +372,7 @@ export default {
       return store.curQver;
     },
     curQuestionVers () {
-      let out = [];
+      const out = [];
       for (let qn = 0; qn < this.curQuestions.length; qn++) {
         out[qn] = this.curQuestions[qn][this.curQver[qn]];
       }
@@ -372,7 +380,7 @@ export default {
     },
     showCategories () {
       let hascat = false;
-      for (let i in this.curQuestionVers) {
+      for (const i in this.curQuestionVers) {
         if (this.curQuestionVers[i].hasOwnProperty('category') &&
           this.curQuestionVers[i].category !== '' &&
           this.curQuestionVers[i].category !== null
@@ -381,7 +389,7 @@ export default {
           break;
         }
       }
-      let hasScores = this.curQuestionVers[0].hasOwnProperty('score') &&
+      const hasScores = this.curQuestionVers[0].hasOwnProperty('score') &&
         !isNaN(Number(this.curQuestionVers[0].score));
       return hascat && hasScores;
     },
@@ -407,9 +415,9 @@ export default {
     },
     showQuestion () {
       // 1 to hide perfect, 2 correct, 4 unanswered
-      let out = {};
+      const out = {};
       for (let i = 0; i < this.curQuestions.length; i++) {
-        let qdata = this.curQuestions[i][this.curQver[i]];
+        const qdata = this.curQuestions[i][this.curQver[i]];
         let showit = true;
         if (this.hidePerfect && Math.abs(qdata.score - qdata.points_possible) < 0.002) {
           showit = false;
@@ -463,17 +471,28 @@ export default {
     },
     errorMsg () {
       return store.errorMsg;
+    },
+    confirmObj () {
+      return store.confirmObj;
     }
   },
   methods: {
     changeAssessVersion (val) {
+      if (val === store.curAver) {
+        return; // not a change - abort
+      }
       if (Object.keys(store.scoreOverrides).length > 0 ||
         Object.keys(store.feedbacks).length > 0
       ) {
-        if (!confirm(this.$t('gradebook.unsaved_warn'))) {
-          return;
-        }
+        store.confirmObj = {
+          body: 'gradebook.unsaved_warn',
+          action: () => this.doChangeAssessVersion(val)
+        };
+      } else {
+        this.doChangeAssessVersion(val);
       }
+    },
+    doChangeAssessVersion (val) {
       if (val !== store.curAver) {
         if (this.aData.assess_versions[val].status === 3) {
           // requesting the practice version
@@ -484,33 +503,32 @@ export default {
       }
     },
     changeQuestionVersion (qn, val) {
+      if (val === store.curQver[qn]) {
+        return; // same value - abort
+      }
       let hasUnsaved = false;
-      let regex = new RegExp('^' + store.curAver + '-' + qn + '-');
-      for (let k in store.scoreOverrides) {
+      const regex = new RegExp('^' + store.curAver + '-' + qn + '-');
+      for (const k in store.scoreOverrides) {
         if (regex.test(k)) {
           hasUnsaved = true;
         }
       }
-      for (let k in store.feedbacks) {
+      for (const k in store.feedbacks) {
         if (regex.test(k)) {
           hasUnsaved = true;
         }
       }
-      if (hasUnsaved && !confirm(this.$t('gradebook.unsaved_warn'))) {
-        return;
-      }
-      if (val !== store.curQver[qn]) {
+      if (hasUnsaved) {
+        store.confirmObj = {
+          body: 'gradebook.unsaved_warn',
+          action: () => actions.loadGbQuestionVersion(qn, val)
+        };
+      } else {
         actions.loadGbQuestionVersion(qn, val);
       }
     },
-    updateFeedback (evt) {
-      let content;
-      if (this.useEditor) {
-        content = window.tinymce.activeEditor.getContent();
-      } else {
-        content = evt.target.value;
-      }
-      actions.setFeedback(null, content);
+    updateFeedback (val) {
+      actions.setFeedback(null, val);
     },
     setScoreOverride (evt) {
       this.assessOverride = evt.target.value.trim();
@@ -518,13 +536,13 @@ export default {
     },
     submitChanges (exit) {
       if (this.showOverride && this.assessOverride !== '') {
-        store.scoreOverrides['gen'] = this.assessOverride;
+        store.scoreOverrides.gen = this.assessOverride;
       } else if (this.aData.hasOwnProperty('scoreoverride') &&
         this.assessOverride !== this.aData.scoreoverride
       ) {
-        store.scoreOverrides['gen'] = this.assessOverride;
+        store.scoreOverrides.gen = this.assessOverride;
       } else {
-        delete store.scoreOverrides['gen'];
+        delete store.scoreOverrides.gen;
       }
       var doexit = (exit === true);
       actions.saveChanges(doexit);
@@ -565,8 +583,11 @@ export default {
         return 'You have unsaved changes';
       }
     },
-    clearError() {
+    clearError () {
       store.errorMsg = null;
+    },
+    closeConfirm () {
+      store.confirmObj = null;
     }
   },
   created () {
@@ -577,10 +598,10 @@ export default {
       store.APIbase = process.env.BASE_URL;
     }
     // if no assessinfo, or if cid/aid has changed, load data
-    let querycid = window.location.search.replace(/^.*cid=(\d+).*$/, '$1');
-    let queryaid = window.location.search.replace(/^.*aid=(\d+).*$/, '$1');
-    let queryuid = window.location.search.replace(/^.*uid=(\d+).*$/, '$1');
-    let querystu = window.location.search.replace(/^.*stu=(\d+).*$/, '$1');
+    const querycid = window.location.search.replace(/^.*cid=(\d+).*$/, '$1');
+    const queryaid = window.location.search.replace(/^.*aid=(\d+).*$/, '$1');
+    const queryuid = window.location.search.replace(/^.*uid=(\d+).*$/, '$1');
+    const querystu = window.location.search.replace(/^.*stu=(\d+).*$/, '$1');
     if (store.assessInfo === null ||
       store.cid !== querycid ||
       store.aid !== queryaid ||

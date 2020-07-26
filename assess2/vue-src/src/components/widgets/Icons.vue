@@ -73,6 +73,9 @@
       <template v-else-if="name=='unattempted'">
         <circle cx="12" cy="12" r="8" :fill="neutral"></circle>
       </template>
+      <template v-else-if="name=='partattempted'">
+        <circle cx="12" cy="12" r="8" :stroke="neutral"></circle>
+      </template>
       <template v-else-if="name=='print'">
         <polyline points="6 9 6 2 18 2 18 9"></polyline>
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -154,7 +157,7 @@ export default {
   props: ['name', 'size', 'color', 'alt'],
   computed: {
     alttext () {
-      if (this.alt) {
+      if (this.alt || this.alt === '') {
         if (this.alt === '') {
           return '';
         } else {

@@ -39,16 +39,16 @@ export default {
     this.interval = setInterval(this.updateTimer, 1000);
   },
   mounted () {
-    var s = window.$("#timerbox");
-		var pos = s.offset();
-		$(window).scroll(function() {
-		   var windowpos = window.$(window).scrollTop();
-		   if (windowpos >= pos.top) {
-		     s.addClass("sticky");
-		   } else {
-		     s.removeClass("sticky");
-		   }
-		 });
+    var s = window.$('#timerbox');
+    var pos = s.offset();
+    window.$(window).scroll(function () {
+      var windowpos = window.$(window).scrollTop();
+      if (windowpos >= pos.top) {
+        s.addClass('sticky');
+      } else {
+        s.removeClass('sticky');
+      }
+    });
   },
   beforeDestroy () {
     clearInterval(this.interval);
@@ -60,7 +60,7 @@ export default {
   },
   methods: {
     updateTimer: function () {
-      let now = new Date().getTime();
+      const now = new Date().getTime();
       this.timeString = '';
       let remaining = Math.max(0, this.end - now);
       if (remaining === 0 && this.grace > 0) {
@@ -79,7 +79,7 @@ export default {
         this.timeString += (this.minutes < 10 ? '0' : '') + this.minutes + ':';
         this.timeString += (this.seconds < 10 ? '0' : '') + this.seconds;
       } else {
-        this.timeString = this.hours > 0 ? this.hours + this.$tc('timer.hrs', this.hours) : '';
+        this.timeString += this.hours > 0 ? this.hours + this.$tc('timer.hrs', this.hours) : '';
         this.timeString += this.minutes > 0 ? this.minutes + this.$tc('timer.min', this.minutes) : '';
       }
     },

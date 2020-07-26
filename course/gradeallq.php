@@ -2,6 +2,7 @@
 //IMathAS:  Grade all of one question for an assessment
 //(c) 2007 David Lippman
 	require("../init.php");
+	require_once("../includes/TeacherAuditLog.php");
 
 	$isteacher = isset($teacherid);
 	$istutor = isset($tutorid);
@@ -16,8 +17,8 @@
 	$stu = $_GET['stu'];
 	if (isset($_GET['gbmode']) && $_GET['gbmode']!='') {
 	$gbmode = $_GET['gbmode'];
-	} else if (isset($sessiondata[$cid.'gbmode'])) {
-		$gbmode =  $sessiondata[$cid.'gbmode'];
+	} else if (isset($_SESSION[$cid.'gbmode'])) {
+		$gbmode =  $_SESSION[$cid.'gbmode'];
 	} else {
 		$stm = $DBH->prepare("SELECT defgbmode FROM imas_gbscheme WHERE courseid=:courseid");
 		$stm->execute(array(':courseid'=>$cid));
@@ -40,10 +41,9 @@
 		$secfilter = $tutorsection;
 	} else if (isset($_GET['secfilter'])) {
 		$secfilter = $_GET['secfilter'];
-		$sessiondata[$cid.'secfilter'] = $secfilter;
-		writesessiondata();
-	} else if (isset($sessiondata[$cid.'secfilter'])) {
-		$secfilter = $sessiondata[$cid.'secfilter'];
+		$_SESSION[$cid.'secfilter'] = $secfilter;
+	} else if (isset($_SESSION[$cid.'secfilter'])) {
+		$secfilter = $_SESSION[$cid.'secfilter'];
 	} else {
 		$secfilter = -1;
 	}
@@ -81,13 +81,13 @@
 						if ($v=='N/A') {
 							$allscores[$kp[1]][$kp[2]] = -1;
 						} else {
-							$allscores[$kp[1]][$kp[2]] = $v;
+							$allscores[$kp[1]][$kp[2]] = floatval($v);
 						}
 					} else {
 						if ($v=='N/A') {
 							$allscores[$kp[1]][$kp[2]][$kp[3]] = -1;
 						} else {
-							$allscores[$kp[1]][$kp[2]][$kp[3]] = $v;
+							$allscores[$kp[1]][$kp[2]][$kp[3]] = floatval($v);
 						}
 					}
 				} else if ($kp[0]=='fb') {
@@ -109,6 +109,7 @@
 		} else {
 			$onepergroup = false;
 		}
+		$scoresToLog = array();
 		$query = "SELECT imas_users.LastName,imas_users.FirstName,imas_assessment_sessions.* FROM imas_users,imas_assessment_sessions ";
 		$query .= "WHERE imas_assessment_sessions.userid=imas_users.id AND imas_assessment_sessions.assessmentid=:assessmentid ";
 		$query .= "ORDER BY imas_users.LastName,imas_users.FirstName";
@@ -139,6 +140,7 @@
 				if ($onepergroup) {
 					if ($line['agroupid']==0) { continue;}
 					foreach ($grpscores[$line['agroupid']] as $loc=>$sv) {
+						$oldscore = $scores[$loc];
 						if (is_array($sv)) {
 							if (count($sv) < count(explode('~', $scores[$loc]))) {
 								echo "Oh-oh: score didn't seem to be submitted properly. Aborting";
@@ -147,6 +149,9 @@
 							$scores[$loc] = implode('~',$sv);
 						} else {
 							$scores[$loc] = $sv;
+						}
+						if ($oldscore != $scores[$loc]) {
+							$scoresToLog[$line['userid']] = ['loc'=>$loc, 'old'=>$oldscore, 'new'=>$scores[$loc]];
 						}
 					}
 					if (isset($grpfeedback[$line['agroupid']])) {
@@ -160,6 +165,7 @@
 					}
 				} else {
 					foreach ($allscores[$line['id']] as $loc=>$sv) {
+						$oldscore = $scores[$loc];
 						if (is_array($sv)) {
 							if (count($sv) < count(explode('~', $scores[$loc]))) {
 								echo "Oh-oh: score didn't seem to be submitted properly. Aborting";
@@ -168,6 +174,9 @@
 							$scores[$loc] = implode('~',$sv);
 						} else {
 							$scores[$loc] = $sv;
+						}
+						if ($oldscore != $scores[$loc]) {
+							$scoresToLog[$line['userid']] = ['loc'=>$loc, 'old'=>$oldscore, 'new'=>$scores[$loc]];
 						}
 					}
 					if (isset($allfeedbacks[$line['id']])) {
@@ -181,12 +190,13 @@
 					}
 					//$feedback = $_POST['feedback-'.$line['id']];
 				}
+
 				$scorelist = implode(",",$scores);
 				if (count($sp)>1) {
 					$scorelist .= ';'.$sp[1].';'.$sp[2];
 				}
 				if (count($feedback)>0) {
-					$feedbackout = json_encode($feedback);
+					$feedbackout = json_encode($feedback, JSON_INVALID_UTF8_IGNORE);
 				} else {
 					$feedbackout = '';
 				}
@@ -197,7 +207,7 @@
 				if (strlen($line['lti_sourcedid'])>1) {
 					//update LTI score
 					require_once("../includes/ltioutcomes.php");
-					calcandupdateLTIgrade($line['lti_sourcedid'],$aid,$scores,true);
+					calcandupdateLTIgrade($line['lti_sourcedid'],$aid,$line['userid'],$scores,true);
 				}
 			}
 		}
@@ -207,6 +217,17 @@
 			$query .= "ON DUPLICATE KEY UPDATE bestscores=VALUES(bestscores),feedback=VALUES(feedback)";
 			$stm = $DBH->prepare($query);
 			$stm->execute($updatedata);
+		}
+		if (count($scoresToLog)>0) {
+			TeacherAuditLog::addTracking(
+				$cid,
+				"Change Grades",
+				$aid,
+				array(
+					'qid'=>$qid,
+					'changes'=>$scoresToLog
+				)
+			);
 		}
 
 		if (isset($_GET['quick'])) {
@@ -272,7 +293,7 @@
 
 	$useeditor='review';
 	$placeinhead = '<script type="text/javascript" src="'.$imasroot.'/javascript/rubric.js?v=113016"></script>';
-	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/gb-scoretools.js?v=021519"></script>';
+	$placeinhead .= '<script type="text/javascript" src="'.$imasroot.'/javascript/gb-scoretools.js?v=042920"></script>';
 	$placeinhead .= "<script type=\"text/javascript\">";
 	$placeinhead .= 'function jumptostu() { ';
 	$placeinhead .= '       var stun = document.getElementById("stusel").value; ';
@@ -288,12 +309,12 @@
 		window.location = toopen;
 		}';
 	$placeinhead .= '</script>';
-	if ($sessiondata['useed']!=0) {
+	if ($_SESSION['useed']!=0) {
 		$placeinhead .= '<script type="text/javascript"> initeditor("divs","fbbox",1,true);</script>';
 	}
 	$placeinhead .= '<style type="text/css"> .fixedbottomright {position: fixed; right: 10px; bottom: 10px; z-index:10;}</style>';
 	require("../includes/rubric.php");
-	$sessiondata['coursetheme'] = $coursetheme;
+	$_SESSION['coursetheme'] = $coursetheme;
 	require("../assessment/header.php");
 	echo "<style type=\"text/css\">p.tips {	display: none;}\n .hideongradeall { display: none;} .pseudohidden {visibility:hidden;position:absolute;}</style>\n";
 	echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=".Sanitize::courseId($_GET['cid'])."\">".Sanitize::encodeStringForDisplay($coursename)."</a> ";
@@ -435,6 +456,7 @@
 		}
 		$sp = explode(';', $line['bestscores']);
 		$scores = explode(",",$sp[0]);
+		if (isset($sp[1])) {$rawscores = explode(",",$sp[1]);}
 		$attempts = explode(",",$line['bestattempts']);
 		if ($ver=='graded') {
 			$seeds = explode(",",$line['bestseeds']);
@@ -515,7 +537,17 @@
 			} else {
 				$GLOBALS['questionscoreref'] = array("scorebox$cnt",$points);
 			}
-			$qtypes = displayq($cnt,$qsetid,$seeds[$loc],true,false,$attempts[$loc]);
+			if (isset($rawscores[$loc])) {
+				//$colors = scorestocolors($rawscores[$i],$pts[$questions[$i]],$answeights[$questions[$i]],false);
+				if (strpos($rawscores[$loc],'~')!==false) {
+					$colors = explode('~',$rawscores[$loc]);
+				} else {
+					$colors = array($rawscores[$loc]);
+				}
+			} else {
+				$colors = array();
+			}
+			$qtypes = displayq($cnt,$qsetid,$seeds[$loc],true,false,$attempts[$loc],false,false,false,$colors);
 
 
 			echo "<div class=review>";
@@ -595,7 +627,7 @@
 						echo "  <b>$cntb:</b> " ;
 						if (preg_match('/@FILE:(.+?)@/',$laarr[$k],$match)) {
 							$url = getasidfileurl($match[1]);
-							echo "<a href=\"" . Sanitize::encodeUrlForHref($url) . "\" target=\"_new\">".Sanitize::encodeStringForDisplay(basename($match[1]))."</a>";
+							echo "<a class=\"attach\" href=\"" . Sanitize::encodeUrlForHref($url) . "\" target=\"_new\">".Sanitize::encodeStringForDisplay(basename($match[1]))."</a>";
 						} else {
 							if (strpos($laarr[$k],'$f$')) {
 								if (strpos($laarr[$k],'&')) { //is multipart q
@@ -657,12 +689,12 @@
 				echo '<div>';
 				echo Sanitize::outgoingHtml($feedback["Q$loc"]);
 				echo '</div>';
-			} else if ($sessiondata['useed']==0) {
+			} else if ($_SESSION['useed']==0) {
 				echo '<br/><textarea cols="60" rows="2" class="fbbox" id="fb-'.$loc.'-'.Sanitize::onlyInt($line['id']).'" name="fb-'.$loc.'-'.Sanitize::onlyInt($line['id']).'">';
 				echo Sanitize::encodeStringForDisplay($feedback["Q$loc"], true);
 				echo '</textarea>';
 			} else {
-				echo '<div class="fbbox" id="fb-'.$loc.'-'.Sanitize::onlyInt($line['id']).'">';
+				echo '<div class="fbbox skipmathrender" id="fb-'.$loc.'-'.Sanitize::onlyInt($line['id']).'">';
 				echo Sanitize::outgoingHtml($feedback["Q$loc"]);
 				echo '</div>';
 			}

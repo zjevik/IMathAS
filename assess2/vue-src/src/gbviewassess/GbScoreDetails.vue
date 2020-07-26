@@ -34,6 +34,15 @@
         >
           <icons name="clipboard" alt="icons.rubric" size="small" />
         </button>
+        <button
+          v-if="canedit && !isPractice && qdata.rubric > 0"
+          style="display:none"
+          class="plain nopad rubriclink"
+          @click="showRubric(i)"
+          :id="'rublink-scorebox' + qn + (partPoss.length > 1 ? '-' + i : '')"
+        >
+          <icons name="clipboard" alt="icons.rubric" size="small" />
+        </button>
       </span>
       <button
         v-if="canedit && !isPractice"
@@ -47,35 +56,20 @@
         v-if="canedit && !isPractice && showfeedback === false"
         type="button"
         class="slim"
-        @click="showfeedback = true"
+        @click="revealFeedback"
       >
         {{ $t('gradebook.add_feedback') }}
       </button>
     </div>
-    <div
-      v-show="showfeedback"
-    >
-      {{ $t('gradebook.feedback') }}:<br/>
-      <textarea
-        v-if="canedit && !useEditor"
-        class="fbbox"
-        :name="'fb'+qn"
-        rows="2"
-        cols="60"
-        :value = "qdata.feedback"
-        @input="updateFeedback"
-      ></textarea>
-      <tinymce-input
-        v-else-if="canedit"
-        :id="'fb'+qn"
-        :value = "qdata.feedback"
-        @input = "updateFeedback"
-      ></tinymce-input>
-      <div
-        v-else
-        v-html="qdata.feedback"
-      />
-    </div>
+    <gb-feedback
+      :show="showfeedback"
+      :canedit = "canedit"
+      :useeditor = "useEditor"
+      ref = "fbbox"
+      :qn = "qn"
+      :value = "qdata.feedback"
+      @update = "updateFeedback"
+    />
 
     <div v-if="showfull">
       <span v-if="qdata.timeactive.total > 0">
@@ -98,15 +92,32 @@
       >
         {{ $t('gradebook.show_penalties') }}
       </button>
+      <button
+        v-if="hasAutoSaves"
+        type="button"
+        class="slim"
+        @click="showAutosaves = !showAutosaves"
+      >
+        {{ $t('gradebook.show_autosaves') }}
+      </button>
     </div>
     <gb-all-tries
       v-if="showAllTries"
       :tries="qdata.other_tries"
+      type="tries"
+      :qn="qn"
     />
     <gb-penalties
       v-if="showPenalties"
       :parts="qdata.parts"
       :submitby="submitby"
+    />
+    <gb-all-tries
+      v-if="showAutosaves"
+      :tries="qdata.autosaves"
+      type="autosave"
+      :submitby="submitby"
+      :qn="qn"
     />
     <div v-if="canedit && showfull && qHelps.length > 0">
       {{ $t('gradebook.had_help') }}:
@@ -125,7 +136,7 @@ import GbAllTries from '@/gbviewassess/GbAllTries';
 import GbPenalties from '@/gbviewassess/GbPenalties';
 import Icons from '@/components/widgets/Icons';
 import MenuButton from '@/components/widgets/MenuButton';
-import TinymceInput from '@/components/TinymceInput.vue';
+import GbFeedback from '@/gbviewassess/GbFeedback';
 
 export default {
   name: 'GbScoreDetails',
@@ -135,23 +146,24 @@ export default {
     GbPenalties,
     MenuButton,
     Icons,
-    TinymceInput
+    GbFeedback
   },
   data: function () {
     return {
       curScores: false,
       showfeedback: false,
       showAllTries: false,
-      showPenalties: false
+      showPenalties: false,
+      showAutosaves: false
     };
   },
   computed: {
     answeights () {
-      if (!this.qdata.answeights) { // if answeights not generated yet
+      if (!this.qdata.answeights || this.qdata.singlescore) { // if answeights not generated yet
         return [1];
       } else {
-        let answeights = this.qdata.answeights.map(x => parseFloat(x));
-        let answeightTot = answeights.reduce((a, c) => a + c);
+        const answeights = this.qdata.answeights.map(x => parseFloat(x));
+        const answeightTot = answeights.reduce((a, c) => a + c);
         return answeights.map(x => x / answeightTot);
       }
     },
@@ -165,7 +177,9 @@ export default {
     initScores () {
       var out = [];
       for (let i = 0; i < this.answeights.length; i++) {
-        if (this.qdata.scoreoverride && typeof this.qdata.scoreoverride !== 'object') {
+        if (this.qdata.singlescore) {
+          out.push(this.qdata.score);
+        } else if (this.qdata.scoreoverride && typeof this.qdata.scoreoverride !== 'object') {
           // handle the case of a single override
           let partscore = this.qdata.scoreoverride * this.answeights[i] * this.qdata.points_possible;
           partscore = Math.round(1000 * partscore) / 1000;
@@ -192,7 +206,7 @@ export default {
       }
     },
     timeSpent () {
-      let out = Math.round(10 * this.qdata.timeactive.total / 60) / 10 + ' ' + this.$t('gradebook.minutes');
+      const out = Math.round(10 * this.qdata.timeactive.total / 60) / 10 + ' ' + this.$t('gradebook.minutes');
       // TODO: Add per-try average?
       return out;
     },
@@ -227,9 +241,9 @@ export default {
     },
     questionErrorUrl () {
       if (store.assessInfo.qerror_cid) {
-        let quoteq = '0-' + this.qdata.qsetid + '-' + this.qdata.seed +
+        const quoteq = '0-' + this.qdata.qsetid + '-' + this.qdata.seed +
           '-reperr-' + store.assessInfo.ver;
-        let qs = 'add=new&cid=' + store.assessInfo.qerror_cid +
+        const qs = 'add=new&cid=' + store.assessInfo.qerror_cid +
           '&quoteq=' + quoteq + '&to=' + this.qdata.qowner +
           '&title=Problem%20with%20question%20id%20' +
           this.qdata.qsetid;
@@ -240,9 +254,9 @@ export default {
     },
     useInMsg () {
       // TODO
-      let quoteq = this.qn + '-' + this.qdata.qsetid + '-' + this.qdata.seed +
+      const quoteq = this.qn + '-' + this.qdata.qsetid + '-' + this.qdata.seed +
         '-' + store.aid + '-' + store.assessInfo.ver;
-      let qs = 'add=new&cid=' + store.assessInfo.qerror_cid +
+      const qs = 'add=new&cid=' + store.cid +
         '&quoteq=' + quoteq + '&to=' + store.uid;
       return store.APIbase + '../msgs/msglist.php?' + qs;
       // TODO: get GB to work for this.
@@ -250,7 +264,7 @@ export default {
       //  store.APIbase + '../msgs/msglist.php?'+qs, 800, 'auto');
     },
     moreOptions () {
-      let out = [
+      const out = [
         {
           label: this.$t('gradebook.use_in_msg'),
           link: this.useInMsg
@@ -260,7 +274,8 @@ export default {
           link: this.questionEditUrl
         },
         {
-          label: this.$t('gradebook.msg_owner'),
+          label: (store.assessInfo.hasOwnProperty('qerrortitle')
+            ? store.assessInfo.qerrortitle : this.$t('gradebook.msg_owner')),
           link: this.questionErrorUrl
         }
       ];
@@ -282,13 +297,16 @@ export default {
       }
       return false;
     },
+    hasAutoSaves () {
+      return this.qdata.hasOwnProperty('autosaves');
+    },
     submitby () {
       return store.assessInfo.submitby;
     },
     qHelps () {
       if (this.qdata.jsparams) {
-        let helps = this.qdata.jsparams.helps;
-        for (let i in helps) {
+        const helps = this.qdata.jsparams.helps;
+        for (const i in helps) {
           if (helps[i].label === 'video') {
             helps[i].icon = 'video';
             helps[i].title = this.$t('helps.video');
@@ -311,17 +329,19 @@ export default {
   },
   methods: {
     updateScore (pn, evt) {
-      let partposs = this.qdata.points_possible * this.answeights[pn];
-      actions.setScoreOverride(this.qn, pn, this.curScores[pn] / partposs);
-    },
-    updateFeedback (evt) {
-      let content;
-      if (this.useEditor) {
-        content = window.tinymce.get('fb'+this.qn).getContent();
+      if (this.curScores[pn].trim() === '') {
+        actions.setScoreOverride(this.qn, pn, '');
       } else {
-        content = evt.target.value;
+        const partposs = this.qdata.points_possible * this.answeights[pn];
+        actions.setScoreOverride(this.qn, pn, this.curScores[pn] / partposs);
       }
-      actions.setFeedback(this.qn, content);
+    },
+    revealFeedback () {
+      this.showfeedback = true;
+      this.$nextTick(() => this.$refs.fbbox.focus());
+    },
+    updateFeedback (val) {
+      actions.setFeedback(this.qn, val);
     },
     allFull () {
       for (let i = 0; i < this.answeights.length; i++) {
@@ -340,15 +360,15 @@ export default {
     },
     showRubric (pn) {
       if (!window.imasrubrics) {
-        window.imasrubrics = store.assessInfo['rubrics'];
+        window.imasrubrics = store.assessInfo.rubrics;
       }
       this.showfeedback = true;
       window.imasrubric_show(
         this.qdata.rubric,
-        this.qdata.points_possible,
+        this.partPoss[pn],
         'scorebox' + this.qn + (this.partPoss.length > 1 ? '-' + pn : ''),
         'fb' + this.qn,
-        this.qn,
+        (this.qn + 1) + (this.partPoss.length > 1 ? ' part ' + (pn + 1) : ''),
         600
       );
     }
@@ -357,11 +377,11 @@ export default {
     this.initCurScores();
   },
   watch: {
-    qdata: function (newVal, oldVal) {
-      this.initCurScores();
-      if (this.useEditor) {
-        window.initeditor('exact', 'fb'+this.qn, null, true);
-      }
+    qdata: {
+      handler: function (newVal, oldVal) {
+        this.initCurScores();
+      },
+      deep: true
     }
   }
 };

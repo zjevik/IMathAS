@@ -12,24 +12,23 @@
 	$cid = Sanitize::courseId($_GET['cid']);
 	if (isset($_GET['editing'])) {
 		$editingon = $_GET['editing']=='on';
-		$sessiondata[$cid.'caledit'] = $editingon;
-		writesessiondata();
-	} else if (isset($sessiondata[$cid.'caledit'])) {
-		$editingon = $sessiondata[$cid.'caledit'];
+		$_SESSION[$cid.'caledit'] = $editingon;
+	} else if (isset($_SESSION[$cid.'caledit'])) {
+		$editingon = $_SESSION[$cid.'caledit'];
 	} else {
 		$editington = false;
 	}
 
 	require_once("../includes/exceptionfuncs.php");
 
-	if (isset($studentid) && !isset($sessiondata['stuview'])) {
+	if (isset($studentid) && !isset($_SESSION['stuview'])) {
 		$exceptionfuncs = new ExceptionFuncs($userid, $cid, true, $studentinfo['latepasses'], $latepasshrs);
 	} else {
 		$exceptionfuncs = new ExceptionFuncs($userid, $cid, false);
 	}
 
 	require("../includes/calendardisp.php");
-	$placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/course.js?v=070218\"></script>";
+	$placeinhead = "<script type=\"text/javascript\" src=\"$imasroot/javascript/course.js?v=070620\"></script>";
 	if ($editingon) {
 		$placeinhead .= '<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
 				<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>';
@@ -55,10 +54,10 @@
 	span.calitemtitle {
 		font-size: 80%;
 	}
-	span.calitem[id^=AS],span.calitem[id^=IS],span.calitem[id^=LS],span.calitem[id^=DS],span.calitem[id^=FS] {
+	span.calitem[id^=AS],span.calitem[id^=IS],span.calitem[id^=LS],span.calitem[id^=DS],span.calitem[id^=FS],span.calitem[id^=BS] {
 		border-radius: 10px 0 0 10px;
 	}
-	span.calitem[id^=AE],span.calitem[id^=IE],span.calitem[id^=LE],span.calitem[id^=DE],span.calitem[id^=FE] {
+	span.calitem[id^=AE],span.calitem[id^=IE],span.calitem[id^=LE],span.calitem[id^=DE],span.calitem[id^=FE],span.calitem[id^=BE] {
 		border-radius: 0 10px 10px 0;
 	}
 	</style>
@@ -151,11 +150,11 @@
 	 if (isset($teacherid)) {
 		echo "<div class=\"cpmid\"><a id=\"mcelink\" href=\"managecalitems.php?from=cal&cid=$cid\">Manage Events</a> | ";
 		if ($editingon) {
-			echo '<a href="showcalendar.php?cid='.$cid.'&editing=off">'._('Disable Drag-and-drop Editing').'</a> | ';
+			echo '<a href="showcalendar.php?cid='.$cid.'&editing=off">'._('Disable Drag-and-drop Editing').'</a> ';
 		} else {
-			echo '<a href="showcalendar.php?cid='.$cid.'&editing=on">'._('Enable Drag-and-drop Editing').'</a> | ';
+			echo '<a href="showcalendar.php?cid='.$cid.'&editing=on">'._('Enable Drag-and-drop Editing').'</a> ';
 		}
-		echo '<a href="exportcalfeed.php?cid='.$cid.'">'._('Export Calendar Feed').'</a>';
+		//echo '<a href="exportcalfeed.php?cid='.$cid.'">'._('Export Calendar Feed').'</a>';
 		echo "</div>";
 	 }
 	 if ($editingon) {
@@ -176,7 +175,7 @@
 		$latepasses = 0;
 	}
 
-	 $stm = $DBH->prepare("SELECT name,itemorder,hideicons,picicons,allowunenroll,msgset,toolset,latepasshrs FROM imas_courses WHERE id=:id");
+	 $stm = $DBH->prepare("SELECT name,itemorder,allowunenroll,msgset,toolset,latepasshrs FROM imas_courses WHERE id=:id");
 	 $stm->execute(array(':id'=>$cid));
 	 $line = $stm->fetch(PDO::FETCH_ASSOC);
 	 $latepasshrs = $line['latepasshrs'];

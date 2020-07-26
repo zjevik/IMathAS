@@ -21,6 +21,8 @@ if (isset($_GET['noappend'])) {
 	$_POST['append'] = " (Copy)";
 }
 $_POST['ctc'] = $cid;
+$sourcecid = $cid;
+
 $gbcats = array();
 $stm = $DBH->prepare("SELECT id FROM imas_gbcats WHERE courseid=:courseid");
 $stm->execute(array(':courseid'=>$cid));
@@ -99,5 +101,6 @@ if (isset($_GET['backref'])) {
 } else {
 	$backref = '';
 }
-header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=$cid$backref");
+$btf = isset($_GET['btf']) ? '&folder=' . Sanitize::encodeUrlParam($_GET['btf']) : '';
+header('Location: ' . $GLOBALS['basesiteurl'] . "/course/course.php?cid=$cid$btf$backref");
 ?>
