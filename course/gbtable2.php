@@ -14,22 +14,25 @@ if ($GLOBALS['canviewall']) {
 require_once("../includes/sanitize.php");
 
 //used by gbtable
-function getpts($sc) {
-	if (strpos($sc,'~')===false) {
-		if ($sc>0) {
-			return $sc;
-		} else {
-			return 0;
-		}
-	} else {
-		$sc = explode('~',$sc);
-		$tot = 0;
-		foreach ($sc as $s) {
-			if ($s>0) {
-				$tot+=$s;
+//redeclaration check for ltiintegration
+if (!function_exists('getpts'))   {
+	function getpts($sc) {
+		if (strpos($sc,'~')===false) {
+			if ($sc>0) {
+				return $sc;
+			} else {
+				return 0;
 			}
+		} else {
+			$sc = explode('~',$sc);
+			$tot = 0;
+			foreach ($sc as $s) {
+				if ($s>0) {
+					$tot+=$s;
+				}
+			}
+			return round($tot,1);
 		}
-		return round($tot,1);
 	}
 }
 

@@ -331,8 +331,12 @@
 			if ($adata['displaymethod']=='LivePoll') {
 				$adata['shuffle'] = $adata['shuffle'] | 4;  //force all stu same random seed
 			}
+			$sbg = false;
+			if ($adata['displaymethod']=='SBG') {
+				$sbg = true;
+			}
 
-			list($qlist,$seedlist,$reviewseedlist,$scorelist,$attemptslist,$lalist) = generateAssessmentData($adata['itemorder'],$adata['shuffle'],$aid);
+			list($qlist,$seedlist,$reviewseedlist,$scorelist,$attemptslist,$lalist) = generateAssessmentData($adata['itemorder'],$adata['shuffle'],$aid,false,$sbg);
 
 			if ($qlist=='') {  //assessment has no questions!
 				echo '<html><body>', _('Assessment has no questions!');
@@ -650,6 +654,47 @@
 	}
 	$timelimitkickout = ($testsettings['timelimit']<0);
 	$testsettings['timelimit'] = abs($testsettings['timelimit']);
+	if ($testsettings['displaymethod'] == "SBG") {
+		$timelimitkickout = true;
+		//Time limit based on satisfied LG
+		require_once("../course/gbtable2.php");
+		$stu = $userid;
+		$includecategoryID = true;
+		global $canviewall,$secfilter;
+		//$canviewall = true;
+		$secfilter = -1;
+		$catfilter = 0;
+		$gbt = gbtable();
+		$learninggoalsExtra = 0;
+		// Gather all learning goals from gradebook
+		$learninggoals = array();
+		foreach ($gbt[0][1] as $val){
+			if(strpos(strtolower($val[0]),"goal")>-1){
+				array_push($learninggoals, (int) filter_var($val[0], FILTER_SANITIZE_NUMBER_INT));
+			}
+		}
+
+		// Remove satisfied learning goals
+		foreach ($gbt[1][1] as $key => $val){
+			if(strpos(strtolower($gbt[0][1][$key][0]),"goal")>-1 && $val[0]){
+				$learninggoals = array_diff($learninggoals, array((int) filter_var($gbt[0][1][$key][0], FILTER_SANITIZE_NUMBER_INT)));
+			}
+			if(strpos(strtolower($gbt[0][1][$key][0]),"extra lg")>-1){
+				$learninggoalsExtra = $val[0];
+			}
+		}
+
+		// Remove extra goals for which we don't test
+		foreach ($learninggoals as $key => $value) {
+			if ($value >= count($questions)){
+				unset($learninggoals[$key]);
+			}
+		}
+		$testsettings['timelimit'] = ($testsettings['SBGgoals']+$learninggoalsExtra)*$testsettings['SBGtime'];
+		if(count($learninggoals) < $testsettings['SBGgoals']){
+			$testsettings['timelimit'] = (count($learninggoals)+$learninggoalsExtra)*$testsettings['SBGtime'];
+		}
+	}
 	//do time limit mult
 	$testsettings['timelimit'] *= $_SESSION['timelimitmult'];
 
@@ -1186,6 +1231,9 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 	}
 	if ($_SESSION['intreereader']) {
 		$flexwidth = true;
+	}
+	if ($testsettings['displaymethod'] == "SBG") {
+		$placeinhead = '<script src="'.$imasroot.'/javascript/sbgshowtest.js"></script>';
 	}
 	require("header.php");
 	if ($testsettings['noprint'] == 1) {
@@ -2051,6 +2099,364 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				endtest($testsettings);
 				if ($shown) {leavetestmsg();}
 			}
+		} else if ($_GET['action']=="skipSBG") {
+
+			if (isset($_GET['to'])) { //jump to a problem
+				$next = $_GET['to'];
+				echo filter("<div id=intro role=region aria-label=\""._('Intro or instructions')."\"  class=hidden aria-hidden=true aria-expanded=false>{$testsettings['intro']}</div>\n");
+
+				$lefttodo = shownavbarSBG($questions,$scores,$next,$testsettings['showcat'],$testsettings['extrefs']);
+				
+				echo "<div class=inset>\n";
+				if (isset($intropieces)) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]<=$next+1 && $next+1<=$v[2]) {//right divider
+							if ($next+1==$v[1] || !empty($v[3])) {
+								echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+								echo _('Hide Question Information'), '</a></div>';
+								echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+							} else {
+								echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="false">';
+								echo _('Show Question Information'), '</a></div>';
+								echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="false" aria-hidden="true" style="display:none;" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+							}
+							break;
+						}
+					}
+				}
+				echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=skip&amp;score=$next\" onsubmit=\"return doonsubmit(this)\">\n";
+				echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
+				echo '<input type="hidden" name="disptime" value="'.time().'" />';
+				echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+				basicshowq($next);
+				showqinfobar($next,true,true);
+				echo '<input type="submit" class="btn" value="'. _('Submit'). '" />';
+				if ((($testsettings['showans']=='J' && $qi[$questions[$next]]['showans']=='0') || $qi[$questions[$next]]['showans']=='J') && $qi[$questions[$next]]['attempts']>0) {
+					echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=skip&amp;jumptoans='.$next.'&amp;to='.$next.'\'}"/>';
+				}
+				echo "</form>\n";
+				if (isset($intropieces) && $next==count($questions)-1) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]==$next+2) {//right divider
+							echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+							echo _('Hide Question Information'), '</a></div>';
+							echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';								
+						}
+					}
+				}
+				echo "</div>\n";
+				
+				
+				
+				$_POST["qn$next"] = "OPENED";
+				scorequestion($next);
+				recordtestdata();
+				
+			}
+			if (isset($_GET['done'])) { //are all done
+
+				$shown = showscores($questions,$attempts,$testsettings);
+				endtest($testsettings);
+				if ($shown) {leavetestmsg();}
+			}
+		} else if ($_GET['action']=="jitskip") {
+
+			if (isset($_GET['score'])) { //score a problem
+				global $imasroot,$isteacher,$isdiag,$testsettings,$attempts,$qi,$allowregen,$bestscores,$isreview,$showeachscore,$noindivscores,$CFG,$jitParent,$jitHasChildren,$jitChildren,$jitQuestionsFlip;
+				$qn = $_GET['score'];
+
+				//TODO: Change the number of attempts to oo if required
+				//print_r($jitHasChildren);
+
+
+				if ($_POST['verattempts']!=$attempts[$qn] && !(!in_array($questions[$qn],$jitHasChildren) ||
+					areChildrenCompleted($questions[$qn],$jitHasChildren,$jitChildren,$jitQuestionsFlip))) {
+					echo "<p>", _('This question has been submittted since you viewed it, and that grade is shown below.  Your answer just submitted was not scored or recorded.'), "</p>";
+				} else {
+					if (isset($_POST['disptime']) && !$isreview) {
+						$used = $now - intval($_POST['disptime']);
+						$timesontask[$qn] .= (($timesontask[$qn]=='') ? '':'~').$used;
+					}
+					$GLOBALS['scoremessages'] = '';
+					$GLOBALS['questionmanualgrade'] = false;
+					$rawscore = scorequestion($qn);
+
+					$immediatereattempt = false;
+					if (!$superdone && $showeachscore && hasreattempts($qn)) {
+						if (!(($regenonreattempt && $qi[$questions[$toclear]]['regen']==0) || $qi[$questions[$toclear]]['regen']==1)) {
+							if (!in_array($qn,$reattempting)) {
+								//$reattempting[] = $qn;
+								$immediatereattempt = true;
+							}
+						}
+					}
+					//echo "score!".array_sum(explode("~",$rawscore))."<br>point: ".$qi[$questions[$qn]]['points'];
+					if($rawscore == $qi[$questions[$qn]]['points'] || array_sum(explode("~",$rawscore)) == $qi[$questions[$qn]]['points']){
+						//Find all children and mark them as correct
+						jitMarkChildrenCorrect($questions[$qn]);
+
+					} else{
+						//TODO: Reset attempts if the all children are completed
+						//echo "NOOO ";
+						if(areChildrenCompleted($questions[$qn],$jitHasChildren,$jitChildren,$jitQuestionsFlip) &&
+							$attempts[$qn] == $qi[$questions[$qn]]['attempts']
+						){
+							//echo "Children COMPLETED";
+							//$immediatereattempt = true;
+						}
+					}
+
+					//record score
+					recordtestdata();
+				}
+			   if (!$superdone) {
+				echo filter("<div id=intro role=region aria-label=\""._('Intro or instructions')."\" class=hidden aria-hidden=true aria-expanded=false>{$testsettings['intro']}</div>\n");
+				$lefttodo = shownavbarJustInTime($line['JustInTime']['justintimeorder'],$questions,$scores,$qn,$testsettings['showcat'],$testsettings['extrefs']);
+
+				echo "<div class=inset>\n";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+				if ($GLOBALS['scoremessages'] != '') {
+					echo '<p>'.$GLOBALS['scoremessages'].'</p>';
+				}
+
+				if ($showeachscore) {
+					$possible = $qi[$questions[$qn]]['points'];
+					if (getpts($rawscore)!=getpts($scores[$qn])) {
+						echo "<p>", _('Score before penalty on last attempt: ');
+						echo printscore($rawscore,$qn);
+						echo "</p>";
+					}
+					echo "<p>";
+					echo _('Score on last attempt: ');
+					echo printscore($scores[$qn],$qn);
+					echo "</p>\n";
+					echo "<p>", _('Score in gradebook: ');
+					echo printscore($bestscores[$qn],$qn);
+					echo "</p>";
+					if ($GLOBALS['questionmanualgrade'] == true) {
+						echo '<p><strong>', _('Note:'), '</strong> ', _('This question contains parts that can not be auto-graded.  Those parts will count as a score of 0 until they are graded by your instructor'), '</p>';
+					}
+
+
+				} else {
+					echo '<p>'._('Question Scored').'</p>';
+				}
+
+				$reattemptsremain = false;
+				if (hasreattempts($qn)) {
+					$reattemptsremain = true;
+				}
+
+				if ($allowregen && $qi[$questions[$qn]]['allowregen']==1) {
+					echo '<p>';
+					if ($reattemptsremain && !$immediatereattempt && $reattemptduring) {
+						echo "<a href=\"showtest.php?action=jitskip&amp;to=$qn&amp;reattempt=$qn\">", _('Reattempt last question'), "</a>, ";
+					}
+					echo "<a href=\"showtest.php?action=jitskip&amp;to=$qn&amp;regen=$qn\">", _('Try another similar question'), "</a>";
+					if ($immediatereattempt) {
+						echo _(", reattempt last question below, or select another question.");
+					} else {
+						echo _(", or select another question");
+					}
+					echo "</p>\n";
+				} else if ($reattemptsremain && !$immediatereattempt && $reattemptduring) {
+					echo "<p><a href=\"showtest.php?action=jitskip&amp;to=$qn&amp;reattempt=$qn\">", _('Reattempt last question'), "</a>";
+					if ($lefttodo > 0) {
+						echo  _(", or select another question");
+					}
+					echo '</p>';
+				} else {
+					if ($reattemptsremain && $immediatereattempt && $reattemptduring) {
+						echo "<p>"._('Reattempt last question below, or select another question').'</p>';
+					} else {
+						echo "<h3>"._('It looks like you had difficulty with the problem. Please select the next question from the menu on the left to help you acquire the necessary knowledge.').'</h3>';
+						echo "<h3>"._('If you continue to have trouble, please visit the Math Lab for additional help.').'</h3>';
+					}
+				}
+
+				if ((!$reattemptsremain || $regenonreattempt) && $showeachscore && $testsettings['showans']!='N') {
+					//TODO i18n
+					unset($GLOBALS['nocolormark']);
+					echo "<p>" . _("This question, with your last answer");
+					if (($qi[$questions[$qn]]['showansafterlast'] && !$reattemptsremain) ||
+							($qi[$questions[$qn]]['showansduring'] && $qi[$questions[$qn]]['showans']<=$attempts[$qn]) ||
+							($qi[$questions[$qn]]['showans']=='R' && $regenonreattempt)) {
+						echo _(" and correct answer");
+						$showcorrectnow = true;
+					} else {
+						$showcorrectnow = false;
+					}
+
+					echo _(', is displayed below') . '</p>';
+					if (!$noraw && $showeachscore && $GLOBALS['questionmanualgrade'] != true) {
+						//$colors = scorestocolors($rawscores[$qn], '', $qi[$questions[$qn]]['answeights'], $noraw);
+						if (strpos($rawscores[$qn],'~')!==false) {
+							$colors = explode('~',$rawscores[$qn]);
+						} else {
+							$colors = array($rawscores[$qn]);
+						}
+					} else {
+						$colors = array();
+					}
+					if ($showcorrectnow) {
+						displayq($qn,$qi[$questions[$qn]]['questionsetid'],$seeds[$qn],2,false,$attempts[$qn],false,false,false,$colors);
+					} else {
+						displayq($qn,$qi[$questions[$qn]]['questionsetid'],$seeds[$qn],false,false,$attempts[$qn],false,false,false,$colors);
+					}
+					$contactlinks = showquestioncontactlinks($qn);
+					if ($contactlinks!='' && !$sessiondata['istutorial']) {
+						echo '<div class="review">'.$contactlinks.'</div>';
+					}
+
+				} else if ($immediatereattempt) {
+					$next = $qn;
+					if (isset($intropieces)) {
+						foreach ($introdividers as $k=>$v) {
+							if ($v[1]<=$next+1 && $next+1<=$v[2]) {//right divider
+								if ($next+1==$v[1] || !empty($v[3])) {
+									echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+									echo _('Hide Question Information'), '</a></div>';
+									echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+								} else {
+									echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="false">';
+									echo _('Show Question Information'), '</a></div>';
+									echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="false" aria-hidden="true" style="display:none;" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+								}
+								break;
+							}
+						}
+					}
+					echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=jitskip&amp;score=$next\" onsubmit=\"return doonsubmit(this)\">\n";
+					echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
+					echo '<input type="hidden" name="disptime" value="'.time().'" />';
+					echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
+					echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+					basicshowq($next);
+					showqinfobar($next,true,true);
+					echo '<input type="submit" class="btn" value="'. _('Submit'). '" />';
+					if ((($testsettings['showans']=='J' && $qi[$questions[$next]]['showans']=='0') || $qi[$questions[$next]]['showans']=='J') && $qi[$questions[$next]]['attempts']>0) {
+						echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=jitskip&amp;jumptoans='.$next.'&amp;to='.$next.'\'}"/>';
+					}
+					echo "</form>\n";
+
+				}
+				//Hide 'See summary of your scores'
+				/*
+				if ($testsettings['testtype']!="NoScores") {
+					echo "<br/><p>". _("When you are done, ") . " <a href=\"showtest.php?action=jitskip&amp;done=true\">" . _("click here to see a summary of your scores") . "</a>.</p>\n";
+				}
+				*/
+
+				echo "</div>\n";
+			    }
+			} else if (isset($_GET['to'])) { //jump to a problem
+				$next = $_GET['to'];
+				echo filter("<div id=intro role=region aria-label=\""._('Intro or instructions')."\"  class=hidden aria-hidden=true aria-expanded=false>{$testsettings['intro']}</div>\n");
+
+				$lefttodo = shownavbarJustInTime($line['JustInTime']['justintimeorder'],$questions,$scores,$next,$testsettings['showcat'],$testsettings['extrefs']);
+				if (unans($scores[$next]) || amreattempting($next)) {
+					echo "<div class=inset>\n";
+					if (isset($intropieces)) {
+						foreach ($introdividers as $k=>$v) {
+							if ($v[1]<=$next+1 && $next+1<=$v[2]) {//right divider
+								if ($next+1==$v[1] || !empty($v[3])) {
+									echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+									echo _('Hide Question Information'), '</a></div>';
+									echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+								} else {
+									echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="false">';
+									echo _('Show Question Information'), '</a></div>';
+									echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="false" aria-hidden="true" style="display:none;" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+								}
+								break;
+							}
+						}
+					}
+					echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=jitskip&amp;score=$next\" onsubmit=\"return doonsubmit(this)\">\n";
+					echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
+					echo '<input type="hidden" name="disptime" value="'.time().'" />';
+					echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
+					echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+					basicshowq($next);
+					showqinfobar($next,true,true);
+					echo '<input type="submit" class="btn" value="'. _('Submit'). '" />';
+					if ((($testsettings['showans']=='J' && $qi[$questions[$next]]['showans']=='0') || $qi[$questions[$next]]['showans']=='J') && $qi[$questions[$next]]['attempts']>0) {
+						echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=jitskip&amp;jumptoans='.$next.'&amp;to='.$next.'\'}"/>';
+					}
+					echo "</form>\n";
+					echo "</div>\n";
+				} else {
+					echo "<div class=inset>\n";
+					echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+					if (!isset($_GET['jumptoans'])) {
+						echo _("You've already done this problem."), "\n";
+					}
+					$reattemptsremain = false;
+					if ($showeachscore) {
+						$possible = $qi[$questions[$next]]['points'];
+						echo "<p>", _('Score in gradebook: ');
+						echo printscore($bestscores[$next],$next);
+						echo "</p>";
+					}
+					if(areChildrenCompleted($questions[$next],$jitHasChildren,$jitChildren,$jitQuestionsFlip) &&
+						$attempts[$next] == $qi[$questions[$next]]['attempts']
+					){
+						//echo "Children COMPLETEDDD <br>";
+						$attempts[$next] = 0;
+						//$immediatereattempt = true;
+					}
+					//echo areChildrenCompleted($questions[$next],$jitHasChildren,$jitChildren,$jitQuestionsFlip)." ".$attempts[$next]." ".$qi[$questions[$next]]['attempts'];
+					if (hasreattempts($next)) {
+						if ($reattemptduring) {
+							echo "<p><a href=\"showtest.php?action=jitskip&amp;to=$next&amp;reattempt=$next\">", _('Reattempt this question'), "</a></p>\n";
+						}
+						$reattemptsremain = true;
+					}
+					if ($allowregen && $qi[$questions[$next]]['allowregen']==1) {
+						echo "<p><a href=\"showtest.php?action=jitskip&amp;to=$next&amp;regen=$next\">", _('Try another similar question'), "</a></p>\n";
+					}
+					if ($lefttodo == 0 && $testsettings['testtype']!="NoScores") {
+						echo "<a href=\"showtest.php?action=jitskip&amp;done=true\">", _('When you are done, click here to see a summary of your score'), "</a>\n";
+					}
+					if ($testsettings['showans']!='N') {// && $showeachscore) {  //(!$reattemptsremain || $regenonreattempt) &&
+						unset($GLOBALS['nocolormark']);
+						//echo "<p>", _('Question with last attempt is displayed for your review only'), "</p>";
+						echo "<h3>"._('It looks like you had difficulty with the problem. Please select the next question from the menu on the left to help you acquire the necessary knowledge.').'</h3>';
+						echo "<h3>"._('If you continue to have trouble, please visit the Math Lab for additional help.').'</h3>';
+
+						if (!$noraw && $showeachscore) {
+							//$colors = scorestocolors($rawscores[$next], '', $qi[$questions[$next]]['answeights'], $noraw);
+							if (strpos($rawscores[$next],'~')!==false) {
+								$colors = explode('~',$rawscores[$next]);
+							} else {
+								$colors = array($rawscores[$next]);
+							}
+						} else {
+							$colors = array();
+						}
+						$qshowans = (($qi[$questions[$next]]['showansafterlast'] && !$reattemptsremain) ||
+								($qi[$questions[$next]]['showansduring'] && $attempts[$next]>=$qi[$questions[$next]]['showans']) ||
+								($qi[$questions[$next]]['showans']=='R' && $regenonreattempt));
+						if ($qshowans) {
+							displayq($next,$qi[$questions[$next]]['questionsetid'],$seeds[$next],2,false,$attempts[$next],false,false,false,$colors);
+						} else {
+							displayq($next,$qi[$questions[$next]]['questionsetid'],$seeds[$next],false,false,$attempts[$next],false,false,false,$colors);
+						}
+						$contactlinks = showquestioncontactlinks($next);
+						if ($contactlinks!='') {
+							echo '<div class="review">'.$contactlinks.'</div>';
+						}
+					}
+					echo "</div>\n";
+				}
+			}
+			if (isset($_GET['done'])) { //are all done
+
+				$shown = showscores($questions,$attempts,$testsettings);
+				endtest($testsettings);
+				if ($shown) {leavetestmsg();}
+			}
 		} else if ($_GET['action']=="seq") {
 			if (isset($_GET['score'])) { //score a problem
 				$qn = $_GET['score'];
@@ -2759,6 +3165,103 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 				echo "</div>\n";
 
 			}
+		} else if ($testsettings['displaymethod'] == "SBG") {
+			
+			for ($i = 0; $i<count($questions);$i++) {
+				if (unans($scores[$i]) || amreattempting($i)) {
+					break;
+				}
+			}
+			shownavbarSBG($questions,$scores,$i,$testsettings['showcat'],$testsettings['extrefs']);
+			if ($i == count($questions)) {
+				echo "<div class=inset><br/>\n";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+
+				startoftestmessage($perfectscore,$hasreattempts,$allowregen,$noindivscores,$testsettings['testtype']=="NoScores");
+
+				leavetestmsg();
+
+			} else {
+				echo "<div class=inset>\n";
+				if (isset($intropieces)) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]<=$i+1 && $i+1<=$v[2]) {//right divider
+							echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+							echo _('Hide Question Information'), '</a></div>';
+							echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+							break;
+						}
+					}
+				}
+				echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=skip&amp;score=$i\" onsubmit=\"return doonsubmit(this)\">\n";
+				echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
+				echo '<input type="hidden" name="disptime" value="'.time().'" />';
+				echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+				basicshowq($i);
+				showqinfobar($i,true,true);
+				echo '<input type="submit" class="btn" value="', _('Submit'), '" />';
+				if ((($testsettings['showans']=='J' && $qi[$questions[$i]]['showans']=='0') || $qi[$questions[$i]]['showans']=='J') && $qi[$questions[$i]]['attempts']>0) {
+					echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=skip&amp;jumptoans='.$i.'&amp;to='.$i.'\'}"/>';
+				}
+				echo "</form>\n";
+				if (isset($intropieces) && $i==count($questions)-1) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]==$i+2) {//right divider
+							echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+							echo _('Hide Question Information'), '</a></div>';
+							echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+							break;
+						}
+					}
+				}
+				echo "</div>\n";
+
+			}
+		} else if ($testsettings['displaymethod'] == "JustInTime") {
+			echo filter("<div class=intro role=region aria-label=\""._('Intro or instructions')."\">{$testsettings['intro']}</div>\n");
+
+			for ($i = 0; $i<count($questions);$i++) {
+				if (unans($scores[$i]) || amreattempting($i)) {
+					break;
+				}
+			}
+			shownavbarJustInTime($line['JustInTime']['justintimeorder'],$questions,$scores,$i,$testsettings['showcat'],$testsettings['extrefs']);
+			if ($i == count($questions)) {
+				echo "<div class=inset><br/>\n";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+
+				startoftestmessage($perfectscore,$hasreattempts,$allowregen,$noindivscores,$testsettings['testtype']=="NoScores");
+
+				leavetestmsg();
+
+			} else {
+				echo "<div class=inset>\n";
+				if (isset($intropieces)) {
+					foreach ($introdividers as $k=>$v) {
+						if ($v[1]<=$i+1 && $i+1<=$v[2]) {//right divider
+							echo '<div><a href="#" id="introtoggle'.$k.'" onclick="toggleintroshow('.$k.'); return false;" aria-controls="intropiece'.$k.'" aria-expanded="true">';
+							echo _('Hide Question Information'), '</a></div>';
+							echo '<div class="intro" role=region aria-label="'._('Pre-question text').'" aria-expanded="true" id="intropiece'.$k.'">'.filter($intropieces[$k]).'</div>';
+							break;
+						}
+					}
+				}
+				echo "<form id=\"qform\" method=\"post\" enctype=\"multipart/form-data\" action=\"showtest.php?action=jitskip&amp;score=$i\" onsubmit=\"return doonsubmit(this)\">\n";
+				echo "<input type=\"hidden\" name=\"asidverify\" value=\"$testid\" />";
+				echo '<input type="hidden" name="disptime" value="'.time().'" />';
+				echo "<input type=\"hidden\" name=\"isreview\" value=\"". ($isreview?1:0) ."\" />";
+				echo "<div class=\"screenreader\" id=\"beginquestions\">"._('Start of Questions')."</div>\n";
+				basicshowq($i);
+				showqinfobar($i,true,true);
+				echo '<input type="submit" class="btn" value="', _('Submit'), '" />';
+				if ((($testsettings['showans']=='J' && $qi[$questions[$i]]['showans']=='0') || $qi[$questions[$i]]['showans']=='J') && $qi[$questions[$i]]['attempts']>0) {
+					echo ' <input type="button" class="btn" value="', _('Jump to Answer'), '" onclick="if (confirm(\'', _('If you jump to the answer, you must generate a new version to earn credit'), '\')) {window.location = \'showtest.php?action=jitskip&amp;jumptoans='.$i.'&amp;to='.$i.'\'}"/>';
+				}
+				echo "</form>\n";
+				echo "</div>\n";
+
+			}
 		} else if ($testsettings['displaymethod'] == "Seq") {
 			for ($i = 0; $i<count($questions);$i++) {
 				if ($canimproveq[$i]) {
@@ -3359,6 +3862,151 @@ if (!isset($_REQUEST['embedpostback']) && empty($_POST['backgroundsaveforlater']
 		}
 
 		echo '</div>';
+	}
+
+
+	function shownavbarSBG($questions,$scores,$current,$showcat,$extrefs) {
+		global $imasroot,$isteacher,$isdiag,$testsettings,$attempts,$qi,$allowregen,$bestscores,$isreview,$showeachscore,$noindivscores,$CFG;
+
+		require_once("../course/gbtable2.php");
+		$stu = $userid;
+		$includecategoryID = true;
+		global $canviewall,$secfilter;
+		//$canviewall = true;
+		$secfilter = -1;
+		$catfilter = 0;
+		$gbt = gbtable();
+		// Gather all learning goals from gradebook
+		$learninggoals = array();
+		$learninggoalsExtra = 0;
+		foreach ($gbt[0][1] as $val){
+			if(strpos(strtolower($val[0]),"goal")>-1){
+				array_push($learninggoals, (int) filter_var($val[0], FILTER_SANITIZE_NUMBER_INT));
+			}
+		}
+
+		// Remove satisfied learning goals
+		foreach ($gbt[1][1] as $key => $val){
+			if(strpos(strtolower($gbt[0][1][$key][0]),"goal")>-1 && $val[0]){
+				$learninggoals = array_diff($learninggoals, array((int) filter_var($gbt[0][1][$key][0], FILTER_SANITIZE_NUMBER_INT)));
+			}
+			if(strpos(strtolower($gbt[0][1][$key][0]),"extra lg")>-1){
+				$learninggoalsExtra = $val[0];
+			}
+		}
+
+		// Remove extra goals for which we don't test
+		foreach ($learninggoals as $key => $value) {
+			if ($value >= count($questions)){
+				unset($learninggoals[$key]);
+			}
+		}
+
+		// select up to $testsettings['SBGgoals'] to display
+		$learninggoalsdispl = array();
+		
+		while (count($learninggoals) > 0 && count($learninggoalsdispl) < ($testsettings['SBGgoals']+$learninggoalsExtra)) {
+			$learninggoals = array_values($learninggoals);
+			// Get pseudo random number based on userID
+			$tmp = $userid + intval(date('d')) + 123*count($learninggoalsdispl);
+			$tmp = $tmp % count($learninggoals);
+			array_push($learninggoalsdispl, $learninggoals[$tmp]);
+			unset($learninggoals[$tmp]);
+		}
+		//print_r($learninggoals);
+		//print_r($learninggoalsdispl);
+		
+		$todo = 0;
+		$earned = 0;
+		$poss = 0;
+		echo '<div class="navbar" role="navigation" aria-label="'._("Question navigation").'">';
+		echo "<a href=\"#beginquestions\" class=\"screenreader\">", _('Skip Navigation'), "</a>\n";
+		$extrefs = json_decode($extrefs, true);
+		if ($extrefs !== null && count($extrefs)>0) {
+			echo '<h3>'._('Resources').'</h3>';
+			echo '<ul class=qlist>';
+			foreach ($extrefs as $extref) {
+				if (!$isteacher) {
+					$rec = "data-base=\"assessintro-{$testsettings['id']}\"";
+				} else {
+					$rec = '';
+				}
+				echo '<li><a target="_blank" '.$rec.' href="'.Sanitize::url($extref['link']).'">'.Sanitize::encodeStringForDisplay($extref['label']).'</a></li>';
+			}
+			echo '</ul>';
+		}
+		echo "<h3>", _('Questions'), "</h3>\n";
+		echo "<ul class=qlist>\n";
+		$questionnum = 0;
+		for ($i = 0; $i < count($questions); $i++) {
+			if(!in_array($i,$learninggoalsdispl) && $i > 0){
+				continue;
+			}
+			echo "<li>";
+			if ($current == $i) { echo "<span class=current>";}
+			if (unans($scores[$i]) || amreattempting($i)) {
+				$todo++;
+			}
+			/*
+			$icon = '';
+			if ($attempts[$i]==0) {
+				$icon = "full";
+			} else if (hasreattempts($i)) {
+				$icon = "half";
+			} else {
+				$icon = "empty";
+			}
+			echo "<img src=\"$imasroot/img/aicon/left$icon.gif\"/>";
+			$icon = '';
+			if (unans($bestscores[$i]) || getpts($bestscores[$i])==0) {
+				$icon .= "empty";
+			} else if (getpts($bestscores[$i]) == $qi[$questions[$i]]['points']) {
+				$icon .= "full";
+			} else {
+				$icon .= "half";
+			}
+			if (!canimprovebest($i) && !$allowregen && $icon!='full') {
+				$icon .= "ci";
+			}
+			echo "<img src=\"$imasroot/img/aicon/right$icon.gif\"/>";
+			*/
+			if ($isreview) {
+				$thisscore = getpts($scores[$i]);
+			} else {
+				$thisscore = getpts($bestscores[$i]);
+			}
+			
+			if (isset($CFG['TE']['navicons'])) {
+				echo "<img alt=\"" . _("untried") . "\" src=\"$imasroot/img/{$CFG['TE']['navicons']['untried']}\"/> ";
+			} else {
+			echo "<img alt=\"" - _("untried") . "\" src=\"$imasroot/img/q_fullbox.gif\"/> ";
+			}
+			
+
+
+			if ($showcat>1 && $qi[$questions[$i]]['category']!='0') {
+				if ($qi[$questions[$i]]['withdrawn']==1) {
+					echo "<a href=\"showtest.php?action=skipSBG&amp;to=$i\"><span class=\"withdrawn\">". ($i+1) . ") {$qi[$questions[$i]]['category']}</span></a>";
+				} else {
+					echo "<a href=\"showtest.php?action=skipSBG&amp;to=$i\">". ($i+1) . ") {$qi[$questions[$i]]['category']}</a>";
+				}
+			} else {
+				if ($qi[$questions[$i]]['withdrawn']==1) {
+					echo "<a href=\"showtest.php?action=skipSBG&amp;to=$i\"><span class=\"withdrawn\">Q ". ($i+1) . "</span></a>";
+				} else {
+					echo "<a href=\"showtest.php?action=skipSBG&amp;to=$i\">Q ". ($questionnum++) . "</a>";
+				}
+			}
+			
+
+			if ($current == $i) { echo "</span>";}
+
+			echo "</li>\n";
+		}
+		echo "</ul>";
+
+		echo "</div>\n";
+		return $todo;
 	}
 
 	function shownavbar($questions,$scores,$current,$showcat,$extrefs) {

@@ -4,7 +4,7 @@
 
 require_once(__DIR__ . "/../includes/sanitize.php");
 
-function generateAssessmentData($itemorder,$shuffle,$aid,$arrayout=false) {
+function generateAssessmentData($itemorder,$shuffle,$aid,$arrayout=false,$sbg=false) {
 	global $DBH;
 	$ioquestions = explode(",",$itemorder);
 	$questions = array();
@@ -91,7 +91,12 @@ function generateAssessmentData($itemorder,$shuffle,$aid,$arrayout=false) {
 		}
 	}
 
+	if ($sbg) { //the same seed for each hour
+		$seeds = array_fill(0,count($questions),intval(gmdate('mdH'))%10000);
+		$reviewseeds = array_fill(0,count($questions),$aid+100);
+	}
 
+	
 	$scores = array_fill(0,count($questions),-1);
 	$attempts = array_fill(0,count($questions),0);
 	$lastanswers = array_fill(0,count($questions),'');
