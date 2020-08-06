@@ -575,7 +575,10 @@ var livepoll = new function() {
 				sortedkeys = getSortedKeys(datatots);
 				for (var i=0;i<sortedkeys.length;i++) {
 					coordinates = sortedkeys[i].split(',');
-					drawX(ctx,parseInt(coordinates[0]),parseInt(coordinates[1]));
+					// convert from permille
+					ptX = coordinates[0]/1000*heatmapInstance._renderer._width;
+					ptY = coordinates[1]/1000*heatmapInstance._renderer._width;
+					drawX(ctx,parseInt(ptX),parseInt(ptY));
 				}
 			});
 		} else {
