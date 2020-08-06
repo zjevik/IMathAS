@@ -130,7 +130,6 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 	echo "<div class='container'>";
 	if($line['displaymethod']=="CanvasGradebook"){
 		echo '<p>This assessment synchronizes grades between Live Poll assessments and Canvas. Please make sure you place it in your Canvas Assignments tab and that it is available to students. <font color="red">Each student must open this assessment only once in the semester</font> for their grade synchronization to be enabled. Beyond that, you will not need to access it.</p><br />';
-		echo '<div class="small-12 medium-4 columns"><a class="fiu-button fiu-button-blue" target="_blank" href="assessment/showtest.php?cid=' . Sanitize::courseId($cid) . '&id=' . Sanitize::encodeUrlParam($typeid) . '" >See gradebook</a></div>';
 		echo '<div class="small-12 medium-4 columns"><a class="fiu-button fiu-button-blue" href="ltihome.php?gradesync=true" >Initiate Grade Sync</a></div>';
 		if(isset($_GET['gradesync'])){
 			echo "<script>
@@ -166,6 +165,9 @@ if (!$hascourse || isset($_GET['chgcourselink'])) {
 		}
 		if ($sessiondata['ltiitemtype']==-1) {
 			echo '<div class="small-12 medium-4 columns"><a class="fiu-button fiu-button-yellow" href="ltihome.php?chgplacement=true">Change assessment</a></div>';
+		}
+		if($line['displaymethod']=="CanvasGradebook"){
+			echo '<div class="small-12 medium-4 columns"><a class="fiu-button fiu-button-blue" target="_blank" href="assessment/showtest.php?cid=' . Sanitize::courseId($cid) . '&id=' . Sanitize::encodeUrlParam($typeid) . '" >See gradebook</a></div>';
 		}
 		echo '</div><br />';
 	}
