@@ -1283,9 +1283,9 @@ function convertHeatmapInstanceFromPermille(data,width){
 	out['data'] = [];
 	original['data'].forEach((el) => {
 		newel = el;
-		newel.x = parseInt(el.x)*width/1000;
-		newel.y = parseInt(el.y)*width/1000;
-		newel.radius = parseInt(el.radius)*width/1000;
+		newel.x = Math.round(parseInt(el.x)*width/1000);
+		newel.y = Math.round(parseInt(el.y)*width/1000);
+		newel.radius = Math.round(parseInt(el.radius)*width/1000);
 		out['data'].push(newel);
 	});
 	return out;

@@ -222,8 +222,8 @@ function display($pic) {
 			});
 
 			// Add marker for previous answer
-			$('.question input[type=text]').hide();
-			studansArr = $('.question input[type=text]').val().split(',');
+			$('.toppad input[type=text], .question input[type=text]').hide();
+			studansArr = $('.toppad input[type=text], .question input[type=text]').val().split(',');
 			if(studansArr.length == 3){
 				// Convert from Permille
 				studansArr[0] = studansArr[0]*studansArr[2]/1000;
