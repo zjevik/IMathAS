@@ -1,3 +1,23 @@
+#heatmapContainer {
+    overflow: auto;
+    overflow: auto;
+    margin: 30px;
+    border-color: black;
+    border: solid; 
+    padding: 10px; 
+    border-width: 2px;
+}
+#heatmap_radius {
+    vertical-align: top; 
+    float:left;
+    width:2em
+}
+#heatmapNotification {
+    padding: 10px;
+    border-radius: 10px;
+    margin: 5px;
+    display: none;
+}
 .switch {
     position: relative;
     display: inline-block;

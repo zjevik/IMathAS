@@ -559,7 +559,26 @@ var livepoll = new function() {
 			for (var i=0;i<sortedkeys.length;i++) {
 				imathasDraw.initCanvases("LP"+curquestion+"-"+i);
 			}
-		}else {
+		} else if (qdata[curquestion].anstypes=="heatmap"){
+			var ansContainer = $('.questionContainer').clone();
+			out += ansContainer.html();
+			$("#livepollrcontent").html(out);
+
+			// Display student data (need to wait until picture is loaded)
+			$('#livepollrcontent .heatmap img').attr('src',$('#livepollrcontent .heatmap img').attr('src'));
+			$('#livepollrcontent .heatmap img').on('load', function() {
+				var heatmapInstance = h337.create({
+					container: document.querySelector('#livepollrcontent .heatmap')
+				});
+				var canvas = document.querySelector('#livepollrcontent .heatmap-canvas');
+				var ctx = canvas.getContext('2d');
+				sortedkeys = getSortedKeys(datatots);
+				for (var i=0;i<sortedkeys.length;i++) {
+					coordinates = sortedkeys[i].split(',');
+					drawX(ctx,parseInt(coordinates[0]),parseInt(coordinates[1]));
+				}
+			});
+		} else {
 			var sortedkeys = getSortedKeys(datatots);
 			out += '<table class=\"LPres\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">'+_("Frequency")+'</th></tr></thead><tbody>';
 			for (var i=0;i<sortedkeys.length;i++) {
@@ -1152,7 +1171,37 @@ var livepoll = new function() {
 		}
 		return JSON.stringify(drawarr);
 	}
+	var PI2 = Math.PI * 2;
+	function drawX(ctx, x, y) {
+		ctx.beginPath();
+		ctx.strokeStyle = 'white';
+		ctx.moveTo(x - 10, y - 10);
+		ctx.lineTo(x + 10, y + 10);
+		ctx.lineWidth = 4;
+		ctx.stroke();
+	
+		ctx.moveTo(x + 10, y - 10);
+		ctx.lineTo(x - 10, y + 10);
+		ctx.stroke();
 
+		ctx.beginPath();
+		ctx.strokeStyle = 'black';
+		ctx.moveTo(x - 10, y - 10);
+		ctx.lineTo(x + 10, y + 10);
+		ctx.lineWidth = 2;
+		ctx.stroke();
+	
+		ctx.moveTo(x + 10, y - 10);
+		ctx.lineTo(x - 10, y + 10);
+		ctx.stroke();
+		ctx.strokeStyle = 'white';
+
+		ctx.beginPath();
+		ctx.arc(x, y, 3, 0, PI2);
+		ctx.closePath();
+		ctx.fillStyle = 'red';
+		ctx.fill();
+	}
 };
 
 if (!String.prototype.repeat) {

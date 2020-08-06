@@ -96,6 +96,7 @@ if (!empty($CFG['use_csrfp']) && class_exists('csrfProtector')) {
 }
 
 echo '<script src="' . $imasroot . '/javascript/assessment_min.js?v=030219" type="text/javascript"></script>';
+echo '<script src="'.$imasroot.'/javascript/heatmap.min.js" type="text/javascript"></script>';
 
 //assessment_min.js bundles: general.js, mathjs.js, AMhelpers.js, confirmsubmit.js, drawing.js, and eqntips.js
 /*

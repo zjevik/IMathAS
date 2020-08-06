@@ -282,7 +282,7 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$returnqtxt
 	if (isset($GLOBALS['nocolormark'])) {  //no colors
 		$qcolors = array();
 	}
-	if ($qdata['qtype']=="multipart" || $qdata['qtype']=='conditional') {
+	if ($qdata['qtype']=="multipart" || $qdata['qtype']=='conditional' || $qdata['qtype']=='heatmap') {
 		if (!isset($anstypes) && $GLOBALS['myrights']>10) {
 			echo 'Error in question: missing $anstypes for multipart or conditional question';
 			$anstypes = array("number");
@@ -321,7 +321,7 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$returnqtxt
 		$qcol = isset($qcolors[0])?(is_numeric($qcolors[0])?rawscoretocolor(Sanitize::encodeStringForDisplay($qcolors[0]),1):Sanitize::encodeStringForDisplay($qcolors[0])):'';
 		list($answerbox,$entryTips[0],$shanspt[0],$previewloc) = makeanswerbox(Sanitize::simpleString($qdata['qtype']),$qnidx,$la,$optionsPack,0,$qcol);
 	}
-	if ($qdata['qtype']=='conditional') {
+	if ($qdata['qtype']=='conditional' || $qdata['qtype']=='heatmap') {
 		$qcol = isset($qcolors[0])?(is_numeric($qcolors[0])?rawscoretocolor(Sanitize::encodeStringForDisplay($qcolors[0]),1):Sanitize::encodeStringForDisplay($qcolors[0])):'';
 		if ($qcol!='') {
 			if (strpos($toevalqtxt, '<div')!==false || strpos($toevalqtxt, '<table')!==false) {
@@ -748,7 +748,7 @@ function scoreq($qnidx,$qidx,$seed,$givenans,$attemptn=0,$qnpointval=1) {
 	$thisq = $qnidx+1;
 	unset($stuanswers[$thisq]);  //unset old stuanswer for this question
 
-	if ($qdata['qtype']=="multipart" || $qdata['qtype']=='conditional') {
+	if ($qdata['qtype']=="multipart" || $qdata['qtype']=='conditional' || $qdata['qtype']=='heatmap') {
 		$stuanswers[$thisq] = array();
 		$stuanswersval[$thisq] = array();
 		$postpartstoprocess = array();
@@ -1053,7 +1053,7 @@ function scoreq($qnidx,$qidx,$seed,$givenans,$attemptn=0,$qnpointval=1) {
 		if (isset($scoremethod) && $scoremethod == "allornothing") {
 			if ($score<.98) {$score=0;}
 		}
-		if ($qdata['qtype']!='conditional') {
+		if ($qdata['qtype']!='conditional' && $qdata['qtype']!='heatmap') {
 			$GLOBALS['partlastanswer'] = str_replace('&','',$GLOBALS['partlastanswer']);
 			$GLOBALS['partlastanswer'] = preg_replace('/#+/','#',$GLOBALS['partlastanswer']);
 		}
@@ -7381,7 +7381,7 @@ function scorepart($anstype,$qn,$givenans,$options,$multi) {
 				return -2;
 			}
 		}
-	} else if ($anstype == "conditional") {
+	} else if ($anstype == "conditional" || $anstype == "heatmap") {
 		$answer = $options['answer'];
 		if (isset($options['abstolerance'])) {$abstolerance = $options['abstolerance'];}
 		if (isset($options['reltolerance'])) {$reltolerance = $options['reltolerance'];}

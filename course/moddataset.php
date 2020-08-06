@@ -1104,8 +1104,10 @@ Question type: <select name=qtype <?php if (!$myq) echo "disabled=\"disabled\"";
 	<option value="file" <?php if ($line['qtype']=="file") {echo "SELECTED";} ?>>File Upload</option>
 	<option value="multipart" <?php if ($line['qtype']=="multipart") {echo "SELECTED";} ?>>Multipart</option>
 	<option value="conditional" <?php if ($line['qtype']=="conditional") {echo "SELECTED";} ?>>Conditional</option>
+	<option value="heatmap" <?php if ($line['qtype']=="heatmap") {echo "SELECTED";} ?>>Heatmap</option>
 
 </select>
+<?php if ($line['qtype']=="heatmap") {echo '<script type="text/javascript"> $(window).load(function() {showHeatmap(true)});</script>';} ?>
 </p>
 <p>
 <a href="#" onclick="window.open('<?php echo $imasroot;?>/help.php?section=writingquestions','Help','width='+(.35*screen.width)+',height='+(.7*screen.height)+',scrollbars=1,resizable=1,status=1,top=20,left='+(screen.width*.6))">Writing Questions Help</a> |
@@ -1248,6 +1250,151 @@ $("input[name=imgfile]").on("change", function(event) {
 	}
 });
 
+$("select[name=qtype]").on("change", function(event){
+	if(event.currentTarget.value == "heatmap"){
+		showHeatmap(true);
+	} else{
+		showHeatmap(false);
+	}
+});
+
+var heatmapShown = false;
+var heatmapInstance;
+function updateCC(){
+	editorWithoutData = controlEditor.getValue().substr(controlEditor.getValue().indexOf("';",0)+2);
+	staticText = '\nloadlibrary("heatmap");\n$anstypes=["number"];\n$displayformat[0] = "number";\n$stu = getstuans($stuanswers,$thisq,0);\n$showanswer = $data;\n$answer = heatmap_grade($data,$stu);\n';
+	output = '$heatmap = display('+$("#imgList input:first").val()+')';
+	controlEditor.setValue("$data='"+JSON.stringify(heatmapInstance.getData())+"';"+staticText+output);
+}
+function showHeatmap(show){
+	heatmapShown = show;
+	$("#heatmapQuestion").empty();
+	if(show){
+		//show heatmap control
+		controlEditor.setOption("readOnly", 'nocursor')
+		$("#ccbox .CodeMirror").css("background", "lightgrey")
+		$("#ccbox .CodeMirror").css("display", "none")
+		if($("#heatmapContainer").length == 0){
+			//create heatmap container and fill it
+			$("#ccbox").append('<div id="heatmapNotification" class="alert"><span id="heatmapNotificationSpan"></span></div><div id="heatmapContainer"><div style="overflow: auto; padding: 10px;"><div><span style="vertical-align: top;float:left; ">Radius:</span> <span id="heatmap_radius" ></span><input style="width: 400px;" type="range" min="10" max="50" value="25" step="5" id="heatmap_radius_range" name="heatmap_radius_range"></div><div><input type="button" value="Clear heatmap" id="clearCanvas_btn"/></div></div><div id="heatmapQuestion" style="width: fit-content;"></div></div>');
+			//callbacks for text display
+			$("#heatmap_correctness_range").on("input",function() {
+				$("#heatmap_correctness").text((100*this.value)+"%");
+			});
+			$("#heatmap_radius_range").on("input",function() {
+				$("#heatmap_radius").text(this.value);
+			});
+			$("#heatmap_radius").text($("#heatmap_radius_range").val());
+			//check for uploaded images
+			$('body').on('DOMSubtreeModified', '#imgList', showHeatmap(heatmapShown));
+			return;
+		}
+
+		// Check number of uploaded images
+		if($("#imgList li").length == 0){
+			$("#heatmapNotificationSpan").text("Please upload one picture.\n");
+			$("#heatmapContainer").hide();
+			$("#heatmapNotification").slideDown("slow");
+		} else if($("#imgList li").length > 1) {
+			$("#heatmapNotificationSpan").text("Please upload only one picture.\n");
+			$("#heatmapContainer").hide();
+			$("#heatmapNotification").slideDown("slow");
+		} else{
+			// Only one img is uploaded
+			$("#heatmapNotificationSpan").text("");
+			$("#heatmapNotification").slideUp("slow");
+			$("#heatmapContainer").show();
+			$("#heatmapQuestion").append('<div class="heatmap"><img id="heatmapImg" src="'+$("#imgList li a").attr("href")+'" /></div>');
+			$("#heatmapImg").on('load', function() {
+				heatmapInstance = h337.create({
+					container: document.querySelector(".heatmap"),
+					blur: 0.07,
+					max: 100,
+					min: 0,
+					maxOpacity: .8,
+					gradient: {
+						".0": "red",
+						".5": "lightgreen",
+						"1": "green"
+					},
+					/*
+					onExtremaChange: function(data) {
+						updateLegend(data);
+					}
+					*/
+				}); 
+				// Load the previous heatmap data if possible
+				try {
+					var data = JSON.parse(controlEditor.getValue().substr(1+controlEditor.getValue().indexOf("'",0),controlEditor.getValue().indexOf("';",0)-controlEditor.getValue().indexOf("'",0)-1));
+					heatmapInstance.setData(data);
+				} catch(error){
+					console.log(error);
+				}
+				
+				document.querySelector("#heatmapQuestion").onclick = function(ev) {
+					// Add point to the heatmap
+					heatmapInstance.addData({
+						x: ev.layerX,
+						y: ev.layerY,
+						value: 100,
+						radius: parseInt($("#heatmap_radius_range").val())
+					});
+					heatmapInstance.setDataMax(100);
+
+					// Update the common control
+					updateCC();
+				};
+				updateCC();
+
+				var gradientImg = document.querySelector("#gradient");
+				var legendCanvas = document.createElement("canvas");
+				legendCanvas.width = 100;
+				legendCanvas.height = 10;
+				var legendCtx = legendCanvas.getContext("2d");
+				var gradientCfg = {};
+
+				
+				function updateLegend(data) {
+					gradientCfg = data.gradient;
+					var gradient = legendCtx.createLinearGradient(0, 0, 100, 1);
+					for (var key in gradientCfg) {
+						gradient.addColorStop(key, gradientCfg[key]);
+					}
+
+					legendCtx.fillStyle = gradient;
+					legendCtx.fillRect(0, 0, 100, 10);
+					gradientImg.src = legendCanvas.toDataURL();
+				}
+
+				$("#clearCanvas_btn").on("click",function() {
+					heatmapInstance.setData({min:0,max:100,data:[]})
+					updateCC();
+				});
+			});
+		}
+
+		// Check for required text in ccbox
+		if(qEditor['qtext'].getValue().indexOf("$heatmap") == -1 ){
+			$("#heatmapNotificationSpan").text($("#heatmapNotificationSpan").text()+'Please include "$heatmap" in the Question text.\n');
+			$("#heatmapNotification").slideDown("slow");
+		}
+
+		// Display directions if $data is empty
+		if(JSON.parse(controlEditor.getValue().substr(1+controlEditor.getValue().indexOf("'",0),controlEditor.getValue().indexOf("';",0)-controlEditor.getValue().indexOf("'",0)-1))['data'].length == 0 ){
+			$("#heatmapNotificationSpan").text($("#heatmapNotificationSpan").text()+'Click on the picture to add answer area.\n');
+			$("#heatmapNotification").slideDown("slow");
+		}
+	} else{
+		//hide heatmap control
+		controlEditor.setOption("readOnly", false)
+		$("#ccbox .CodeMirror").css("background","")
+		//$("#ccbox .CodeMirror").css("display", "")
+		
+	}
+}
+
+
+
 if (FormData){ // Only allow quicksave if FormData object exists
 	var quickSaveQuestion = function(){
 		// Add text to notice areas
@@ -1335,6 +1482,11 @@ if (FormData){ // Only allow quicksave if FormData object exists
 				// Load preview page
 				var previewpop = window.open(quickSaveQuestion.testAddr, 'Testing', 'width='+(.4*screen.width)+',height='+(.8*screen.height)+',scrollbars=1,resizable=1,status=1,top=20,left='+(.6*screen.width-20));
 				previewpop.focus();
+
+				// Call showHeatmap
+				if($("select[name=qtype]").val() == "heatmap"){
+					showHeatmap(heatmapShown);
+				}
 			},
 			error: function(res){
 				quickSaveQuestion.errorFunc();

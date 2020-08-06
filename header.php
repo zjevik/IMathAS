@@ -22,6 +22,7 @@
 </script>
 
 <?php
+echo '<script defer src="'.$imasroot.'/javascript/heatmap.min.js" type="text/javascript"></script>';
 echo '<script defer src="'.$imasroot.'/javascript/modernizr-custom.js"></script>';
 if (!empty($CFG['GEN']['uselocaljs'])) {
 	echo '<script src="'.$imasroot.'/javascript/jquery.min.js"></script>';
