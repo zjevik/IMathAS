@@ -87,7 +87,10 @@ function display($pic) {
 
 
 				}
-				$('.question input[type=text]').val(circles[0].x+','+circles[0].y);
+				// Convert to Premille
+				var ansX = circles[0].x/heatmapInstance._renderer._width*1000;
+				var ansY = circles[0].y/heatmapInstance._renderer._width*1000;
+				$('.question input[type=text]').val(ansX+','+ansY+','+heatmapInstance._renderer._width);
 			}
 			function drawX(x, y) {
 				ctx.beginPath();
@@ -133,7 +136,7 @@ function display($pic) {
 					var circle = circles[i];
 					var dx = lastX - circle.x;
 					var dy = lastY - circle.y;
-					if (dx * dx + dy * dy < circle.radius * circle.radius*4) {
+					if (dx * dx + dy * dy < circle.radius * circle.radius) {
 						hit = i;
 					}
 				}
@@ -221,7 +224,11 @@ function display($pic) {
 			// Add marker for previous answer
 			$('.question input[type=text]').hide();
 			studansArr = $('.question input[type=text]').val().split(',');
-			if(studansArr.length == 2){
+			if(studansArr.length == 3){
+				// Convert from Permille
+				studansArr[0] = studansArr[0]*studansArr[2]/1000;
+				studansArr[1] = studansArr[1]*studansArr[2]/1000;
+
 				circles.push({
 					x: parseInt(studansArr[0]),
 					y: parseInt(studansArr[1]),

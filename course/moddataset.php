@@ -1260,11 +1260,41 @@ $("select[name=qtype]").on("change", function(event){
 
 var heatmapShown = false;
 var heatmapInstance;
+function convertHeatmapInstanceToPermille(data,width){
+	var original = data;
+	var out = {};
+	out['min'] = original['min'];
+	out['max'] = original['max'];
+	out['data'] = [];
+	original['data'].forEach((el) => {
+		newel = el;
+		newel.x = parseInt(el.x)/width*1000;
+		newel.y = parseInt(el.y)/width*1000;
+		newel.radius = parseInt(el.radius)/width*1000;
+		out['data'].push(newel);
+	});
+	return out;
+}
+function convertHeatmapInstanceFromPermille(data,width){
+	var original = data;
+	var out = {};
+	out['min'] = original['min'];
+	out['max'] = original['max'];
+	out['data'] = [];
+	original['data'].forEach((el) => {
+		newel = el;
+		newel.x = parseInt(el.x)*width/1000;
+		newel.y = parseInt(el.y)*width/1000;
+		newel.radius = parseInt(el.radius)*width/1000;
+		out['data'].push(newel);
+	});
+	return out;
+}
 function updateCC(){
 	editorWithoutData = controlEditor.getValue().substr(controlEditor.getValue().indexOf("';",0)+2);
 	staticText = '\nloadlibrary("heatmap");\n$anstypes=["number"];\n$displayformat[0] = "number";\n$stu = getstuans($stuanswers,$thisq,0);\n$showanswer = $data;\n$answer = heatmap_grade($data,$stu);\n';
 	output = '$heatmap = display('+$("#imgList input:first").val()+')';
-	controlEditor.setValue("$data='"+JSON.stringify(heatmapInstance.getData())+"';"+staticText+output);
+	controlEditor.setValue("$data='"+JSON.stringify(convertHeatmapInstanceToPermille(heatmapInstance.getData(),heatmapInstance._renderer._width))+"';"+staticText+output);
 }
 function showHeatmap(show){
 	heatmapShown = show;
@@ -1304,7 +1334,7 @@ function showHeatmap(show){
 			$("#heatmapNotificationSpan").text("");
 			$("#heatmapNotification").slideUp("slow");
 			$("#heatmapContainer").show();
-			$("#heatmapQuestion").append('<div class="heatmap"><img id="heatmapImg" src="'+$("#imgList li a").attr("href")+'" /></div>');
+			$("#heatmapQuestion").append('<div class="heatmap"><img id="heatmapImg" src="'+$("#imgList li a").attr("href")+'" style="max-width: 100%;"/></div>');
 			$("#heatmapImg").on('load', function() {
 				heatmapInstance = h337.create({
 					container: document.querySelector(".heatmap"),
@@ -1326,6 +1356,7 @@ function showHeatmap(show){
 				// Load the previous heatmap data if possible
 				try {
 					var data = JSON.parse(controlEditor.getValue().substr(1+controlEditor.getValue().indexOf("'",0),controlEditor.getValue().indexOf("';",0)-controlEditor.getValue().indexOf("'",0)-1));
+					data = convertHeatmapInstanceFromPermille(data,heatmapInstance._renderer._width)
 					heatmapInstance.setData(data);
 				} catch(error){
 					console.log(error);
