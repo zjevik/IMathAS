@@ -566,8 +566,9 @@ var livepoll = new function() {
 
 			// Display student data (need to wait until picture is loaded)
 			$('#livepollrcontent .heatmap img').attr('src',$('#livepollrcontent .heatmap img').attr('src'));
+			var heatmapInstance;
 			$('#livepollrcontent .heatmap img').on('load', function() {
-				var heatmapInstance = h337.create({
+				heatmapInstance = h337.create({
 					container: document.querySelector('#livepollrcontent .heatmap')
 				});
 				var canvas = document.querySelector('#livepollrcontent .heatmap-canvas');
@@ -581,6 +582,26 @@ var livepoll = new function() {
 					drawX(ctx,parseInt(ptX),parseInt(ptY));
 				}
 			});
+			$("#LPshowrchkbox").on("change", function() {
+				if(typeof heatmapInstance !== 'undefined' && ! heatmapInstance._renderer._width > 0 && $("#livepollrcontent .heatmap").length > 0){
+					$('#livepollrcontent .heatmap canvas').remove();
+
+					heatmapInstance = h337.create({
+						container: document.querySelector('#livepollrcontent .heatmap')
+					});
+					var canvas = document.querySelector('#livepollrcontent .heatmap-canvas');
+					var ctx = canvas.getContext('2d');
+					sortedkeys = getSortedKeys(datatots);
+					for (var i=0;i<sortedkeys.length;i++) {
+						coordinates = sortedkeys[i].split(',');
+						// convert from permille
+						ptX = coordinates[0]/1000*heatmapInstance._renderer._width;
+						ptY = coordinates[1]/1000*heatmapInstance._renderer._width;
+						drawX(ctx,parseInt(ptX),parseInt(ptY));
+					}
+				}
+			});
+
 		} else {
 			var sortedkeys = getSortedKeys(datatots);
 			out += '<table class=\"LPres\"><thead><tr><th>'+_("Answer")+'</th><th style="min-width:10em">'+_("Frequency")+'</th></tr></thead><tbody>';
