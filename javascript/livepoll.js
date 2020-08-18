@@ -289,11 +289,28 @@ var livepoll = new function() {
 	this.loadResults = function(data) {
 		results = data;
 	}
+	var heatmapInstance;
+	function loadHeatmapresults(data) {
+		heatmapInstance = h337.create({
+			container: document.querySelector('#livepollrcontent .heatmap')
+		});
+		var canvas = document.querySelector('#livepollrcontent .heatmap-canvas');
+		var ctx = canvas.getContext('2d');
+		sortedkeys = getSortedKeys(data);
+		for (var i=0;i<sortedkeys.length;i++) {
+			coordinates = sortedkeys[i].split(',');
+			// convert from permille
+			ptX = coordinates[0]/1000*heatmapInstance._renderer._width;
+			ptY = coordinates[1]/1000*heatmapInstance._renderer._width;
+			drawX(ctx,parseInt(ptX),parseInt(ptY));
+		}
+	}
 
 	function updateResults() {
 		var datatots = {};
 		var scoredat = {};
 		var multipartdata = [];
+		$("#LPshowrchkbox").off("change.LPshowrchkbox");
 		if (qdata[curquestion].choices.length>0) {
 			for (i=0;i<qdata[curquestion].choices.length;i++) {
 				datatots[i] = 0;
@@ -566,39 +583,19 @@ var livepoll = new function() {
 
 			// Display student data (need to wait until picture is loaded)
 			$('#livepollrcontent .heatmap img').attr('src',$('#livepollrcontent .heatmap img').attr('src'));
-			var heatmapInstance;
 			$('#livepollrcontent .heatmap img').on('load', function() {
-				heatmapInstance = h337.create({
-					container: document.querySelector('#livepollrcontent .heatmap')
-				});
-				var canvas = document.querySelector('#livepollrcontent .heatmap-canvas');
-				var ctx = canvas.getContext('2d');
-				sortedkeys = getSortedKeys(datatots);
-				for (var i=0;i<sortedkeys.length;i++) {
-					coordinates = sortedkeys[i].split(',');
-					// convert from permille
-					ptX = coordinates[0]/1000*heatmapInstance._renderer._width;
-					ptY = coordinates[1]/1000*heatmapInstance._renderer._width;
-					drawX(ctx,parseInt(ptX),parseInt(ptY));
-				}
+				loadHeatmapresults(datatots);
 			});
-			$("#LPshowrchkbox").on("change", function() {
+			$(window).resize(function () {
+				waitForFinalEvent(function(){
+					$('#livepollrcontent .heatmap canvas').remove();
+					loadHeatmapresults(datatots);
+				}, 50, "heatmap_resize");
+			});
+			$("#LPshowrchkbox").on("change.LPshowrchkbox", function() {
 				if(typeof heatmapInstance !== 'undefined' && ! heatmapInstance._renderer._width > 0 && $("#livepollrcontent .heatmap").length > 0){
 					$('#livepollrcontent .heatmap canvas').remove();
-
-					heatmapInstance = h337.create({
-						container: document.querySelector('#livepollrcontent .heatmap')
-					});
-					var canvas = document.querySelector('#livepollrcontent .heatmap-canvas');
-					var ctx = canvas.getContext('2d');
-					sortedkeys = getSortedKeys(datatots);
-					for (var i=0;i<sortedkeys.length;i++) {
-						coordinates = sortedkeys[i].split(',');
-						// convert from permille
-						ptX = coordinates[0]/1000*heatmapInstance._renderer._width;
-						ptY = coordinates[1]/1000*heatmapInstance._renderer._width;
-						drawX(ctx,parseInt(ptX),parseInt(ptY));
-					}
+					loadHeatmapresults(datatots);
 				}
 			});
 
@@ -1267,3 +1264,16 @@ if (!String.prototype.repeat) {
 	  return str;
 	}
   }
+
+  var waitForFinalEvent = (function () {
+	var timers = {};
+	return function (callback, ms, uniqueId) {
+	  if (!uniqueId) {
+		uniqueId = "Don't call this twice without a uniqueId";
+	  }
+	  if (timers[uniqueId]) {
+		clearTimeout (timers[uniqueId]);
+	  }
+	  timers[uniqueId] = setTimeout(callback, ms);
+	};
+  })();
