@@ -20,6 +20,11 @@
 
   gtag('config', 'UA-66560554-3');
 </script>
+<script>
+if (location.protocol !== 'https:') {
+    location.replace(`https:${location.href.substring(location.protocol.length)}`);
+}
+</script>
 
 <?php
 echo '<script defer src="'.$imasroot.'/javascript/heatmap.min.js" type="text/javascript"></script>';
